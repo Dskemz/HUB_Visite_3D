@@ -49,7 +49,7 @@
       --brand-accent-dark:#0038cc;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a1426; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--brand-navy); }
     
     #canvas { width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
     
@@ -1039,7 +1039,7 @@ async function init() {
   } catch (e) { /* API absente : comportement par défaut conservé */ }
 
   scene = new BABYLON.Scene(engine);
-  scene.clearColor = new BABYLON.Color4(0.039, 0.078, 0.149, 1);
+  scene.clearColor = (function(){var b=(window.__BRAND__&&window.__BRAND__.navyRgb)?window.__BRAND__.navyRgb.split(",").map(Number):[11,27,63];return new BABYLON.Color4(b[0]*0.9/255,b[1]*0.74/255,b[2]*0.6/255,1);})();
 
   // ========== RÉCUPÉRATION APRÈS PERTE DE CONTEXTE WebGL ==========
   // Sous forte charge GPU (transition POV → vue de dessus, ombres…), le navigateur
@@ -1119,17 +1119,23 @@ async function init() {
   const imageData = ctx.createImageData(512, 512);
   const data = imageData.data;
   
+  // Couleurs du dégradé dérivées de la teinte de marque (navy de l'agence).
+  // Laforêt → identique à l'origine ; ERA → bordeaux ; Sixième → vert d'eau sombre.
+  const _bn = (window.__BRAND__ && window.__BRAND__.navyRgb) ? window.__BRAND__.navyRgb.split(',').map(Number) : [11,27,63];
+  const _ctr = [Math.min(255,Math.round(_bn[0]*1.45)), Math.min(255,Math.round(_bn[1]*1.37)), Math.min(255,Math.round(_bn[2]*1.25))];
+  const _edg = [Math.round(_bn[0]*0.9), Math.round(_bn[1]*0.74), Math.round(_bn[2]*0.6)];
+
   for (let i = 0; i < 512; i++) {
     for (let j = 0; j < 512; j++) {
       const dx = i - centerX;
       const dy = j - centerY;
       const distance = Math.sqrt(dx * dx + dy * dy) / maxRadius;
       const t = Math.min(1, distance);
-      
-      // Dégradé navy : centre #10254f (16,37,79) → bords #0a1426 (10,20,38)
-      const r = Math.round(16 + (10 - 16) * t);
-      const g = Math.round(37 + (20 - 37) * t);
-      const b = Math.round(79 + (38 - 79) * t);
+
+      // Dégradé : centre (clair) → bords (sombre), teinté selon l'agence
+      const r = Math.round(_ctr[0] + (_edg[0] - _ctr[0]) * t);
+      const g = Math.round(_ctr[1] + (_edg[1] - _ctr[1]) * t);
+      const b = Math.round(_ctr[2] + (_edg[2] - _ctr[2]) * t);
       const idx = (j * 512 + i) * 4;
       data[idx] = r;
       data[idx + 1] = g;
@@ -2027,7 +2033,7 @@ async function loadManifest() {
     propertyData = { name: 'Visite 3D', poi: [] };
   }
 
-  document.getElementById('header-title').textContent = propertyData.name || 'Visite 3D';
+  (function(){var _pn=propertyData.name||'Visite 3D';if(window.__BRAND__&&window.__BRAND__.id&&window.__BRAND__.id!=='laforet'){_pn=_pn.replace(/^\s*la\s*for[e\u00EA]t\s*[-\u2013\u2014:]\s*/i,'');}document.getElementById('header-title').textContent=_pn;})();
   // Si le manifest ne contient aucun POI, on les génère après le chargement des murs
   // (generateDefaultPOIs a besoin de modelBounds, donc appelé depuis loadWalls())
 }
