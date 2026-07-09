@@ -1,0 +1,4115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Visite 3D - VisiteIA</title>
+  <script src="https://cdn.jsdelivr.net/npm/babylonjs@6.46.0/babylon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babylonjs-loaders@6.46.0/babylonjs.loaders.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babylonjs-gui@6.46.0/babylon.gui.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="branding.js"></script>
+  <script>
+  (function(){
+    var A=(window.resolveAgency&&window.resolveAgency())||{name:'Laforêt',navy:'#0B1B3F',navyRgb:'11,27,63',accent:'#0046FE',accentRgb:'0,70,254',accentDark:'#0038cc',logo:'laforet'};
+    window.__BRAND__=A;
+    var s=document.documentElement.style;
+    s.setProperty('--brand-navy',A.navy); s.setProperty('--brand-navy-rgb',A.navyRgb);
+    s.setProperty('--brand-accent',A.accent); s.setProperty('--brand-accent-rgb',A.accentRgb);
+    s.setProperty('--brand-accent-dark',A.accentDark||A.accent);
+    document.addEventListener('DOMContentLoaded',function(){
+      try{document.title=A.name+' \u2014 Visite virtuelle 3D';}catch(e){}
+      if(A.logo!=='laforet'&&window.brandLogoHTML){var el=document.querySelector('.brand-logo'); if(el) el.innerHTML=window.brandLogoHTML(A);}
+      try{var bb=document.querySelector('.back-btn'); if(bb&&A.id) bb.setAttribute('href','index.html?agency='+A.id);}catch(e){}
+    });
+  })();
+  </script>
+  <style>
+    :root{
+      --brand-navy:#0B1B3F; --brand-navy-rgb:11,27,63;
+      --brand-accent:#0046FE; --brand-accent-rgb:0,70,254;
+      --brand-accent-dark:#0038cc;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a1426; }
+    
+    #canvas { width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+    
+    /* UI OVERLAY */
+    #ui-overlay { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
+    
+    .header-bar { background: linear-gradient(180deg, rgba(var(--brand-navy-rgb),.92), rgba(var(--brand-navy-rgb),0)); color: white; height: 54px; padding: 0 1rem; display: flex; align-items: center; gap: 1rem; pointer-events: auto; }
+    .header-left { display: flex; gap: 0.8rem; align-items: center; }
+    .back-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.14); color: white; border-radius: 9px; padding: 0.5rem 0.8rem; font-size: .85rem; font-weight: 600; cursor: pointer; text-decoration: none; line-height: 1; transition: background .15s ease, transform .15s ease; }
+    .back-btn:hover { background: rgba(255,255,255,.18); transform: translateX(-2px); }
+    .back-btn svg { width: 16px; height: 16px; }
+    .brand-logo { display: flex; align-items: center; gap: 0.5rem; font-weight: 800; letter-spacing: 0.02em; font-size: 1.05rem; }
+    .brand-logo .tree { width: 20px; height: 20px; }
+    .ttl { display: flex; flex-direction: column; line-height: 1.15; margin-left: 0.25rem; }
+    .ttl .property-title { font-weight: 700; font-size: 0.9rem; letter-spacing: 0.01em; }
+    .ttl small { font-size: 0.72rem; color: #9aa6bd; }
+    .header-spacer { flex: 1; }
+    
+    .header-center { display: flex; gap: 0.5rem; }
+
+    /* BOUTON BASCULE — intégré dans la barre du haut (même traitement que « Annonce ») */
+    .toggle-view-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 0 0 auto;
+      background: var(--brand-accent);
+      border: none;
+      color: #fff;
+      border-radius: 9px;
+      padding: 0.6rem 1.05rem;
+      font-size: .88rem;
+      font-weight: 700;
+      font-family: inherit;
+      line-height: 1;
+      cursor: pointer;
+      pointer-events: auto;
+      box-shadow: 0 4px 14px rgba(var(--brand-accent-rgb),0.45);
+      transition: background .2s ease, transform .15s ease, box-shadow .2s ease;
+    }
+    .toggle-view-btn .btn-icon { display: inline-flex; width: 16px; height: 16px; }
+    .toggle-view-btn .btn-icon svg { width: 16px; height: 16px; display: block; }
+    .toggle-view-btn:hover { background: var(--brand-accent-dark); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(var(--brand-accent-rgb),0.55); }
+    .toggle-view-btn:disabled { opacity: 0.5; cursor: wait; }
+
+    /* SWITCH VERSION : VIDE (low-poly, instantané) / AMÉNAGÉ (hi-poly chargé en arrière-plan) */
+    /* ====== SECTION « ÉLÉMENTS PAR PIÈCE » (switches cumulables) ====== */
+    .room-section { margin: 0 0 1.4rem 0; }
+    .room-section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.8rem; padding-bottom: 0.6rem;
+      border-bottom: 2px solid var(--brand-accent);
+    }
+
+    /* ====== SOUS-MENUS REPLIABLES (téléphone uniquement) ======
+       Sur desktop/tablette : les <details> restent toujours ouverts et sans
+       flèche (rendu identique à avant). Sur téléphone : on peut plier/déplier
+       « Éléments par pièce » et « Visiter les pièces » d'un tap sur le titre. */
+    .collapsible > summary { list-style: none; cursor: default; }
+    .collapsible > summary::-webkit-details-marker { display: none; }
+    .collapse-arrow { display: none; }
+    /* Desktop/tablette : toujours ouvert, clic sur le titre sans effet. */
+    @media (min-width: 901px) {
+      .collapsible[open] > summary { pointer-events: none; }
+      .collapsible > summary button { pointer-events: auto; }
+    }
+    @media (max-width: 900px) {
+      .collapsible > summary {
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 0.6rem; -webkit-tap-highlight-color: transparent; user-select: none;
+      }
+      .collapse-arrow {
+        display: inline-block; flex: 0 0 auto;
+        width: 18px; height: 18px; color: #fff;
+        transition: transform 0.22s ease;
+      }
+      .collapsible[open] > summary .collapse-arrow { transform: rotate(180deg); }
+    }
+    .room-section-title { color: var(--brand-navy); font-size: 0.92rem; font-weight: 600; margin: 0; }
+    .room-allnone { display: flex; gap: 0.4rem; }
+    .room-allnone button {
+      border: 1px solid rgba(var(--brand-accent-rgb),0.3); background: #fff; color: var(--brand-accent);
+      font-family: inherit; font-size: 0.68rem; font-weight: 600;
+      padding: 0.22rem 0.5rem; border-radius: 999px; cursor: pointer; transition: all 0.15s;
+    }
+    .room-allnone button:hover { background: var(--brand-accent); color: #fff; }
+    .room-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.42rem 0.2rem; border-bottom: 1px solid rgba(var(--brand-navy-rgb),0.06);
+    }
+    .room-row .room-name { color: var(--brand-navy); font-size: 0.84rem; font-weight: 500; }
+    .room-row .room-status { font-size: 0.72rem; color: #9db0d6; margin-left: 0.5rem; }
+    /* Switch iOS-like */
+    .switch { position: relative; display: inline-block; width: 42px; height: 24px; flex: 0 0 auto; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider {
+      position: absolute; inset: 0; cursor: pointer;
+      background: #cdd6ea; border-radius: 999px; transition: background 0.2s;
+    }
+    .switch .slider::before {
+      content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+    .switch input:checked + .slider { background: var(--brand-accent); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+    .switch input:disabled + .slider { opacity: 0.5; cursor: wait; }
+    @keyframes ver-spin-anim2 { to { transform: rotate(360deg); } }
+
+
+    /* Outils de placement POV — actif pour repositionner facilement */
+    .view-toggle-btn { background: rgba(255,255,255,0.3); color: white; border: 1px solid rgba(255,255,255,0.5); padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+    .view-toggle-btn:hover { background: rgba(255,255,255,0.5); }
+    .view-toggle-btn.active { background: white; color: var(--brand-accent); }
+    .anim-btn { background: var(--brand-accent); color: white; border: 1px solid var(--brand-accent); padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.2s; }
+    .anim-btn:hover { background: #0035C4; border-color: #0035C4; }
+    .anim-btn.active { background: white; color: var(--brand-accent); }
+    
+    .bottom-row { display: flex; gap: 1rem; padding: 1rem; align-items: flex-end; }
+    
+    /* PANELS */
+    .controls-panel { background: rgba(255,255,255,0.95); border-radius: 8px; padding: 1.5rem; max-width: 350px; max-height: 400px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); pointer-events: auto; }
+    .controls-panel h3 { font-size: 0.95rem; color: #333; margin-bottom: 1rem; margin-top: 1rem; font-weight: 600; }
+    .controls-panel h3:first-child { margin-top: 0; }
+    
+    .toggle-group { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .toggle-btn { flex: 1; padding: 0.7rem; border: 2px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+    .toggle-btn.active { background: var(--brand-accent); color: white; border-color: var(--brand-accent); }
+    .toggle-btn:disabled { opacity: 0.5; cursor: wait; }
+    
+    .poi-container { 
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex: 1;
+      overflow: visible;
+    }
+    .poi-btn { 
+      padding: 0.6rem 0.9rem; 
+      margin-bottom: 0;
+      background: rgba(255,255,255,0.10); 
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.14); 
+      border-radius: 9px; 
+      cursor: pointer; 
+      text-align: center; 
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: background 0.15s ease, transform 0.15s ease;
+      box-shadow: none;
+    }
+    .poi-btn:hover {
+      background: rgba(255,255,255,0.18);
+      transform: translateY(-1px);
+      box-shadow: none;
+    }
+    .poi-btn.active { 
+      background: rgba(255,255,255,0.22);
+      border-color: rgba(255,255,255,0.30);
+      box-shadow: none;
+    }
+
+    /* Carte de pièce dans le menu.
+       DESKTOP/TABLETTE : neutre — seul .poi-btn est visible (les actions POV/Photos
+       sont masquées), donc le rendu ordinateur est strictement identique à avant.
+       TÉLÉPHONE : la carte se déplie en titre + 2 boutons (Vue 3D / Photos). */
+    .poi-item { display: flex; flex-direction: column; gap: 0.4rem; }
+    .poi-item-acts { display: none; }
+    
+    /* PANNEAU POI RÉTRACTABLE À DROITE */
+    .right-panel-wrapper { 
+      position: fixed; 
+      top: 54px; 
+      right: 0; 
+      height: calc(100% - 54px); 
+      width: clamp(300px, 21vw, 560px); /* largeur fluide, un peu plus discrète */
+      display: flex; 
+      z-index: 300;
+      pointer-events: none;
+    }
+    
+    .right-panel-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: stretch;
+      pointer-events: auto;
+    }
+    
+    .poi-panel { 
+      background: rgba(var(--brand-navy-rgb), 0.62);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+      padding: 1.1rem 1.2rem; 
+      width: 100%; 
+      height: 100%;
+      overflow-y: auto;
+      box-shadow: -4px 0 26px rgba(var(--brand-navy-rgb), 0.45);
+      transform: translateX(0);
+      transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    /* ===== Skin « verre navy » du panneau : textes & éléments internes en clair ===== */
+    .poi-panel h3 { color: #fff; }
+    .poi-panel .room-section-title { color: #fff; }
+    .poi-panel .room-section-head { border-bottom-color: rgba(255, 255, 255, 0.18); }
+    .poi-panel .room-row { border-bottom-color: rgba(255, 255, 255, 0.07); }
+    .poi-panel .room-row .room-name { color: #fff; font-weight: 500; }
+    /* Pendant l'ouverture/fermeture : on retire le flou (coûteux au-dessus du canvas 3D)
+       et on opacifie légèrement le fond pour garder la lisibilité, sans latence. */
+    .right-panel-container.reframing .poi-panel {
+      -webkit-backdrop-filter: none; backdrop-filter: none;
+      background: rgba(var(--brand-navy-rgb),0.90);
+    }
+    .poi-panel .room-allnone button {
+      background: rgba(255, 255, 255, 0.08); color: #cdd8ef; border-color: rgba(255, 255, 255, 0.20);
+    }
+    .poi-panel .room-allnone button:hover { background: var(--brand-accent); color: #fff; border-color: var(--brand-accent); }
+    .poi-panel .switch .slider { background: rgba(255, 255, 255, 0.24); }
+    /* Contenu du mode 1ère personne (POV) posé sur le fond verre */
+    .poi-panel .fp-photo-title,
+    .poi-panel .fp-room-title,
+    .poi-panel .fp-section-title { color: #fff; }
+    .poi-panel .fp-photo-hint,
+    .poi-panel .fp-desc p { color: #c3cee4; }
+    .poi-panel .fp-poi-btn { background: rgba(255, 255, 255, 0.06); color: #eaf0fb; }
+    .poi-panel .fp-poi-btn:hover { background: var(--brand-accent); color: #fff; }
+    
+    .poi-panel.closed {
+      transform: translateX(100%);
+    }
+    
+    .poi-panel h3 { 
+      font-size: 0.95rem; 
+      color: #333; 
+      margin-bottom: 1rem; 
+      font-weight: 600;
+      margin-top: 0;
+    }
+    
+    .toggle-panel-btn {
+      position: absolute;
+      left: -34px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(var(--brand-navy-rgb),0.62);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-right: none;
+      width: 34px;
+      height: 68px;
+      border-radius: 12px 0 0 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-size: 0;
+      transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      box-shadow: -2px 0 10px rgba(var(--brand-navy-rgb),0.30);
+      pointer-events: auto;
+    }
+    .toggle-panel-btn::before,
+    .toggle-panel-btn::after {
+      content: "";
+      width: 3px;
+      height: 24px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.9);
+      transition: background 0.2s ease;
+    }
+    
+    .toggle-panel-btn:hover {
+      background: rgba(var(--brand-navy-rgb),0.78);
+      left: -36px;
+    }
+    .toggle-panel-btn:hover::before,
+    .toggle-panel-btn:hover::after { background: #fff; }
+    
+    /* Quand le menu est fermé, la languette se colle au bord droit du conteneur */
+    .poi-panel.closed + .toggle-panel-btn {
+      left: calc(100% - 34px);
+      transform: translateY(-50%);
+    }
+    
+    .poi-panel.closed + .toggle-panel-btn:hover {
+      left: calc(100% - 36px);
+    }
+    
+    .info-panel { 
+      position: fixed !important;
+      bottom: 1rem;
+      right: 1rem;
+      background: rgba(0,0,0,0.9); 
+      color: white; 
+      padding: 1.5rem; 
+      border-radius: 8px; 
+      max-width: 400px;
+      pointer-events: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .info-panel h4 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .poi-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: 4px; margin-bottom: 1rem; background: #222; }
+    .poi-image[src=""] { display: none; }
+    
+    .reset-btn { position: absolute; bottom: 1rem; right: 1rem; pointer-events: auto; background: rgba(255,255,255,0.95); border: 1px solid #ddd; border-radius: 999px; padding: 0.6rem 1.1rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .reset-btn:hover { background: var(--brand-accent); color: white; border-color: var(--brand-accent); }
+    
+    .loading-bar { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; }
+    .loading-bar h3 { font-size: 1rem; color: #333; margin-bottom: 1rem; font-weight: 500; }
+    .progress { width: 220px; height: 6px; background: #e6e6e6; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--brand-accent); width: 0%; transition: width 0.2s; }
+    .hidden { display: none !important; }
+    
+    .debug-info { position: absolute; top: 100px; left: 1rem; background: rgba(0,0,0,0.7); color: #00ff00; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.8rem; pointer-events: auto; max-width: 300px; }
+
+    /* ====== VUE 1ÈRE PERSONNE — PHOTO RÉELLE DANS LE PANNEAU DROITE ====== */
+    .fp-photo-block { display: flex; flex-direction: column; gap: 0.8rem; }
+    .fp-photo-title { color: var(--brand-navy); font-size: 1.05rem; font-weight: 700; }
+    .fp-photo-frame {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: zoom-in;
+      box-shadow: 0 4px 14px rgba(var(--brand-navy-rgb),0.18);
+      background: #eef2f7;
+      position: relative;
+    }
+    .fp-photo-frame img { width: 100%; display: block; object-fit: cover; }
+    .fp-photo-frame::after {
+      content: '⤢';
+      position: absolute;
+      bottom: 8px; right: 8px;
+      background: rgba(var(--brand-navy-rgb),0.85);
+      color: #fff;
+      width: 30px; height: 30px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .fp-photo-hint { font-size: 0.82rem; color: #5b6b85; line-height: 1.4; }
+
+    /* En-tête de la pièce visitée (mode POV) */
+    .fp-room-title {
+      color: var(--brand-navy); font-size: 1.25rem; font-weight: 700;
+      margin-bottom: 0.2rem; padding-bottom: 0.7rem;
+      border-bottom: 2px solid var(--brand-accent);
+    }
+    .fp-section-title { color: var(--brand-navy); font-size: 0.95rem; font-weight: 700; margin-bottom: 0.1rem; }
+    .fp-desc p { color: #5b6b85; font-size: 0.88rem; line-height: 1.55; margin: 0.2rem 0 0 0; }
+    .fp-photos { display: flex; flex-direction: column; gap: 0.7rem; }
+
+    /* Navigation entre POV en mode 1ère personne */
+    .fp-other-poi { margin-top: 1rem; }
+    .fp-poi-btn {
+      background: #f0f5ff; color: var(--brand-navy);
+      border: 1px solid var(--brand-accent);
+      border-radius: 6px;
+      padding: 0.5rem 0.6rem;
+      font-family: inherit; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .fp-poi-btn:hover { background: var(--brand-accent); color: #fff; }
+    .fp-poi-btn:active { transform: scale(0.97); }
+    .fp-poi-btn.active {
+      background: var(--brand-accent); color: #fff;
+      cursor: default;
+      box-shadow: 0 2px 8px rgba(var(--brand-accent-rgb),0.35);
+    }
+    .fp-poi-btn.active:hover { background: var(--brand-accent); } /* pas de changement au survol */
+
+    .fp-back-btn {
+      margin-top: 0.4rem;
+      padding: 0.85rem 1.2rem;
+      background: var(--brand-accent);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.98rem;
+      font-weight: 700;
+      font-family: inherit;
+      box-shadow: 0 4px 14px rgba(var(--brand-accent-rgb),0.45);
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+    .fp-back-btn:hover { background: var(--brand-accent-dark); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(var(--brand-accent-rgb),0.55); }
+
+    /* Indication "regarder autour" en vue 1ère personne */
+    .fp-look-hint {
+      position: absolute;
+      bottom: 1.2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(var(--brand-navy-rgb),0.85);
+      color: #fff;
+      padding: 0.5rem 1.1rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s;
+      z-index: 150;
+    }
+    .fp-look-hint.show { opacity: 1; }
+
+    /* ====== LIGHTBOX PLEIN ÉCRAN POUR LA PHOTO ====== */
+    .lightbox {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2000;
+      pointer-events: auto;
+      cursor: zoom-out;
+    }
+    .lightbox img { max-width: 92%; max-height: 92%; border-radius: 6px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+    .lightbox-error {
+      color: #eaf0fb; font-size: 1rem; font-weight: 600; letter-spacing: 0.02em;
+      padding: 1.2rem 1.6rem; border-radius: 10px;
+      background: rgba(var(--brand-navy-rgb),0.7); border: 1px solid rgba(255,255,255,0.14);
+    }
+    .lightbox-close {
+      position: absolute; top: 1.5rem; right: 1.5rem;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: #fff; width: 44px; height: 44px;
+      border-radius: 50%; cursor: pointer; font-size: 1.4rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lightbox-close:hover { background: rgba(255,255,255,0.3); }
+    
+    /* Navigation photos dans la lightbox */
+    .lightbox-nav {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 1.2rem;
+      background: rgba(0,0,0,0.6); padding: 0.8rem 1.5rem;
+      border-radius: 999px; backdrop-filter: blur(8px);
+      user-select: none; z-index: 1001;
+    }
+    .lightbox-btn {
+      background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4);
+      padding: 0.6rem 1.1rem; border-radius: 6px; cursor: pointer;
+      font-size: 0.9rem; font-weight: 600; transition: all 0.2s;
+      font-family: inherit;
+    }
+    .lightbox-btn:hover { background: rgba(255,255,255,0.35); border-color: rgba(255,255,255,0.7); }
+    .lightbox-counter {
+      color: white; font-size: 0.95rem; font-weight: 600; min-width: 60px; text-align: center;
+    }
+
+    /* ====== MODE PLACEMENT POV (outil interne) ====== */
+    .placement-toggle {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      pointer-events: auto;
+      background: rgba(var(--brand-navy-rgb),0.92);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 0.55rem 1rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: inherit;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 250;
+    }
+    .placement-toggle.active { background: var(--brand-accent); }
+    .placement-panel {
+      position: absolute;
+      bottom: 3.6rem;
+      left: 1rem;
+      width: 340px;
+      max-height: 60vh;
+      overflow-y: auto;
+      background: var(--brand-navy);
+      color: #e8eefc;
+      border-radius: 10px;
+      padding: 1rem;
+      pointer-events: auto;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+      z-index: 250;
+      font-size: 0.85rem;
+    }
+    .placement-panel h4 { font-size: 0.95rem; margin-bottom: 0.6rem; color: #fff; }
+    .placement-panel .pp-row { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; }
+    .placement-panel input {
+      flex: 1; padding: 0.5rem 0.7rem; border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08); color: #fff;
+      font-size: 0.85rem; font-family: inherit;
+    }
+    .placement-panel input::placeholder { color: #8ea3cc; }
+    .pp-btn {
+      width: 100%; padding: 0.6rem; border: none; border-radius: 6px;
+      background: var(--brand-accent); color: #fff; font-weight: 600; cursor: pointer;
+      font-family: inherit; font-size: 0.85rem; margin-bottom: 0.6rem;
+    }
+    .pp-btn:hover { background: #0035C4; }
+    .pp-btn.secondary { background: rgba(255,255,255,0.12); }
+    .pp-btn.secondary:hover { background: rgba(255,255,255,0.22); }
+    .pp-output {
+      width: 100%; min-height: 120px; resize: vertical;
+      background: #06122b; color: #7fffc4; border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px; padding: 0.6rem; font-family: monospace; font-size: 0.75rem;
+      white-space: pre; margin-top: 0.4rem;
+    }
+    .pp-hint { font-size: 0.75rem; color: #9db0d6; line-height: 1.4; margin-bottom: 0.6rem; }
+    .pp-count { font-size: 0.75rem; color: #7fffc4; margin-bottom: 0.5rem; }
+
+    /* ====================================================================== */
+    /*  BOTTOM-SHEET MOBILE — éléments créés en JS, MASQUÉS sur ordinateur.    */
+    /*  (Toute la mécanique visuelle est confinée aux media-queries mobiles ;  */
+    /*   sur desktop ces éléments n'existent visuellement pas.)                */
+    /* ====================================================================== */
+    .sheet-handle { display: none; }
+    .sheet-scrim  { display: none; }
+
+    /* ====================================================================== */
+    /*  RESPONSIVE — l'UI (en rem) suit la taille de l'écran via la racine.    */
+    /*  Téléphone, tablette, HD, 4K : tout s'ajuste proportionnellement.       */
+    /* ====================================================================== */
+
+    /* Grands écrans : on n'agrandit la base rem que sur de la VRAIE haute résolution
+       (au-delà du QHD), et de façon douce, pour éviter une UI envahissante. */
+    @media (min-width: 2700px) { html { font-size: 16.5px; } }
+    @media (min-width: 3200px) { html { font-size: 18.5px; } }
+    @media (min-width: 3800px) { html { font-size: 22px; } }
+
+    /* Tablette : layout identique au desktop (panneau droite fixe, mêmes proportions). */
+
+    /* ====================================================================== */
+    /*  ★ TÉLÉPHONE — REFONTE COMPLÈTE (bottom-sheet à paliers).               */
+    /*                                                                        */
+    /*  Le panneau de droite du desktop devient, sur mobile, une feuille      */
+    /*  glissante multi-paliers :                                             */
+    /*    • PORTRAIT  → elle vient DU BAS (peek / demi / plein).              */
+    /*    • PAYSAGE   → elle vient de la DROITE (repliée / ouverte).          */
+    /*  Le rendu 3D reste TOUJOURS plein écran derrière (aucun recadrage      */
+    /*  caméra n'est déclenché sur mobile : getEffectiveViewportWidth()=1).   */
+    /*  Tout est confiné à ces media-queries → desktop ET tablette ne bougent pas. */
+    /* ====================================================================== */
+    @media (max-width: 900px) {
+      html { font-size: 15px; }
+      .header-bar { height: 48px; padding: 0 0.8rem; gap: 0.6rem; }
+      .property-title { font-size: 0.9rem; }
+      /* Header compacté (bouton retour + titre). */
+      .brand-logo { display: none; }
+      .ttl small { display: none; }
+      .ttl { margin-left: 0; }
+      .back-btn { padding: 0.45rem 0.7rem; font-size: 0.8rem; }
+      .toggle-view-btn { padding: 0.45rem 0.7rem; font-size: 0.78rem; }
+      /* Libellé texte conservé (compréhensible) ; on laisse le titre se tronquer
+         pour que le bouton tienne toujours dans le bandeau. */
+      .header-left { min-width: 0; }
+      .ttl { min-width: 0; }
+      .property-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+      /* On masque la flèche desktop (remplacée par la poignée de la feuille)
+         et l'outil interne de placement POV (flux d'édition, pas de visite). */
+      .toggle-panel-btn { display: none !important; }
+      .placement-toggle, .placement-panel { display: none !important; }
+
+      /* Bouton « Recentrer » remonté en haut à droite pour ne jamais passer
+         derrière la feuille. */
+      .reset-btn {
+        top: 3.4rem; right: 0.7rem; bottom: auto; left: auto;
+        padding: 0.5rem 0.9rem; font-size: 0.8rem;
+      }
+
+      /* L'astuce « regarder autour » passe au-dessus de la feuille repliée. */
+      .fp-look-hint { bottom: 7.2rem; }
+      .info-panel { max-width: calc(100vw - 2rem); left: 1rem; right: 1rem; bottom: auto; top: 3.4rem; }
+      .lightbox img { max-width: 96%; max-height: 82%; }
+
+      /* --- COUCHE FEUILLE --- */
+      .right-panel-wrapper {
+        top: auto; left: 0; right: 0; bottom: 0;
+        width: 100%; height: auto;
+        z-index: 300; pointer-events: none;
+      }
+      .right-panel-container {
+        pointer-events: none;                 /* seuls poignée + panneau captent */
+        position: fixed;
+        display: flex;
+        background: transparent; box-shadow: none;
+        overflow: hidden;
+        --peek: 88px;
+        transition: transform 0.34s cubic-bezier(.25,.46,.45,.94);
+        will-change: transform;
+      }
+      .right-panel-container.dragging { transition: none; }
+
+      /* Poignée (créée en JS) */
+      .sheet-handle {
+        display: flex;
+        pointer-events: auto;
+        background: rgba(var(--brand-navy-rgb),0.62);
+        -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+        touch-action: none; user-select: none; -webkit-user-select: none;
+        cursor: grab; flex: 0 0 auto;
+      }
+      .right-panel-container.dragging .sheet-handle { cursor: grabbing; }
+      .sheet-grip-wrap { display: flex; justify-content: center; align-items: center; }
+      .sheet-grip { background: rgba(255,255,255,0.35); border-radius: 999px; }
+      .sheet-handle-row {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; min-width: 0;
+      }
+      .sheet-handle-label {
+        color: #fff; font-weight: 700; font-size: 0.95rem;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+      }
+      .sheet-handle-hint { color: #9db0d6; font-size: 0.72rem; font-weight: 600; flex: 0 0 auto; }
+
+      /* Corps scrollable de la feuille */
+      .poi-panel {
+        pointer-events: auto;
+        position: static; transform: none !important;
+        width: 100%; height: auto; flex: 1 1 auto; min-height: 0;
+        overflow-y: auto; -webkit-overflow-scrolling: touch;
+        box-shadow: none; border-left: none;
+        background: rgba(var(--brand-navy-rgb),0.94);
+      }
+      .poi-panel.closed { transform: none !important; pointer-events: auto; }
+
+      /* Voile discret uniquement au palier « plein » (portrait). */
+      .sheet-scrim {
+        display: block;
+        position: fixed; inset: 0;
+        background: rgba(var(--brand-navy-rgb),0.28);
+        opacity: 0; pointer-events: none;
+        transition: opacity .3s; z-index: 290;
+      }
+      .sheet-scrim.show { opacity: 1; pointer-events: auto; }
+
+      /* ---- Cartes de pièce du menu (téléphone) : titre + Vue 3D + Photos ---- */
+      .poi-item {
+        gap: 0.5rem; padding: 0.7rem 0.75rem;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 12px;
+      }
+      .poi-item .poi-btn {
+        background: transparent; border: none; box-shadow: none;
+        text-align: left; font-size: 1rem; font-weight: 700;
+        padding: 0 0.1rem; color: #fff;
+      }
+      .poi-item .poi-btn:hover,
+      .poi-item .poi-btn.active { background: transparent; transform: none; }
+      .poi-item-acts { display: flex; gap: 0.5rem; }
+      .poi-mini {
+        flex: 1 1 0; min-width: 0;
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+        padding: 0.62rem 0.5rem; border-radius: 9px;
+        font-family: inherit; font-weight: 600; font-size: 0.85rem;
+        cursor: pointer; transition: background 0.15s ease, transform 0.1s ease;
+      }
+      .poi-mini:active { transform: scale(0.97); }
+      .poi-mini svg { width: 16px; height: 16px; flex: 0 0 auto; }
+      .poi-mini-pov   { background: var(--brand-accent); color: #fff; border: 1px solid var(--brand-accent); }
+      .poi-mini-photo { background: rgba(255,255,255,0.10); color: #fff; border: 1px solid rgba(255,255,255,0.18); }
+
+      /* Grille « Toutes les pièces » plus aérée au doigt en mode POV. */
+      .fp-poi-btn { padding: 0.62rem 0.6rem; font-size: 0.82rem; }
+      .fp-back-btn { padding: 0.85rem 1rem; font-size: 0.92rem; }
+      .room-row { padding: 0.55rem 0.2rem; }
+      .switch { width: 46px; height: 26px; }
+      .switch .slider::before { height: 20px; width: 20px; }
+      .switch input:checked + .slider::before { transform: translateX(20px); }
+    }
+
+    /* ---------- PORTRAIT : feuille qui vient DU BAS ---------- */
+    @media (max-width: 900px) and (orientation: portrait) {
+      .right-panel-container {
+        left: 0; right: 0; bottom: 0; top: auto;
+        width: 100%;
+        height: min(50vh, 480px);   /* jamais plus haut que la moitié de l'écran */
+        flex-direction: column;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -10px 34px rgba(var(--brand-navy-rgb),0.24);
+        transform: translateY(calc(100% - var(--peek)));
+      }
+      .sheet-handle { flex-direction: column; padding-top: 8px; }
+      .sheet-grip-wrap { padding: 2px 0 6px; }
+      .sheet-grip { width: 44px; height: 5px; }
+      .sheet-handle-row { padding: 0 16px 10px; }
+      .poi-panel { padding: 0.2rem 1rem calc(1.1rem + env(safe-area-inset-bottom)); }
+    }
+
+    /* ---------- PAYSAGE : feuille qui vient de la DROITE ---------- */
+    @media (max-width: 900px) and (orientation: landscape) {
+      .right-panel-container {
+        top: 48px; bottom: 0; right: 0; left: auto;
+        height: calc(100% - 48px);
+        width: min(340px, 46vw);
+        flex-direction: row;               /* poignée à gauche, panneau à droite */
+        border-radius: 16px 0 0 16px;
+        box-shadow: -10px 0 34px rgba(var(--brand-navy-rgb),0.24);
+        --edge: 30px;
+        transform: translateX(calc(100% - var(--edge)));
+      }
+      .sheet-handle {
+        flex-direction: column; justify-content: center; align-items: center;
+        width: 30px; flex: 0 0 30px;
+        border-right: 1px solid rgba(var(--brand-accent-rgb),0.10);
+      }
+      .sheet-grip-wrap { padding: 0; }
+      .sheet-grip { width: 5px; height: 44px; }
+      .sheet-handle-row { display: none; }  /* trop étroit : la poignée suffit */
+      .poi-panel { padding: 0.8rem 0.9rem calc(0.8rem + env(safe-area-inset-bottom)); }
+      /* Recentrer décalé pour ne pas passer sous la tranche de la feuille. */
+      .reset-btn { right: 2.6rem; }
+      .fp-look-hint { bottom: 1.4rem; }
+    }
+
+    /* Très petits écrans (téléphone compact). */
+    @media (max-width: 480px) {
+      html { font-size: 14px; }
+      .back-btn { padding: 0.45rem 0.5rem; gap: 0; font-size: 0; }
+      .back-btn svg { width: 18px; height: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="canvas" touch-action="none"></canvas>
+
+<div id="ui-overlay">
+  <!-- HUD PLAN (cotations + noms de pièces) — visible en vue de dessus uniquement -->
+  <svg id="hud-svg" xmlns="http://www.w3.org/2000/svg"
+       style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; opacity:0; transition:opacity .35s ease;">
+    <g id="hud-content" style="pointer-events:none;"></g>
+  </svg>
+
+  <!-- HEADER (topbar) -->
+  <div class="header-bar">
+    <div class="header-left">
+      <a class="back-btn" href="index.html" title="Retour à l'annonce">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Annonce
+      </a>
+      <div class="brand-logo">
+        <svg class="tree" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 12h3l-2 4h4l-2 4h10l-2-4h4l-2-4h3L12 2z" fill="#fff"/><rect x="11" y="18" width="2" height="4" fill="#fff"/></svg>
+        LAFORÊT
+      </div>
+      <div class="ttl">
+        <span class="property-title" id="header-title">Chargement…</span>
+        <small>Visite virtuelle 3D</small>
+      </div>
+    </div>
+    <div class="header-spacer"></div>
+    <button class="toggle-view-btn" id="btn-toggle-view" onclick="toggleViewMode()">
+      <span class="btn-icon" id="btn-icon"></span>
+      <span class="btn-label" id="btn-label">Vue de dessus</span>
+    </button>
+  </div>
+
+  <!-- PANNEAU POI RÉTRACTABLE À DROITE -->
+  <div class="right-panel-wrapper">
+    <div class="right-panel-container">
+      <div class="poi-panel" id="poi-panel">
+        <h3 style="color: #fff; font-size: 0.95rem; font-weight: 600; margin-bottom: 0.9rem; border-bottom: 2px solid rgba(255,255,255,0.18); padding-bottom: 0.6rem;">Visiter les pièces</h3>
+        <div class="poi-container" id="poi-list" style="flex: 1; overflow-y: auto;"></div>
+      </div>
+      <button class="toggle-panel-btn" id="btn-toggle-panel" onclick="togglePoiPanel()" title="Ouvrir/Fermer le panneau"></button>
+    </div>
+  </div>
+
+  <!-- PANEL INFO POI (bas-gauche) -->
+  <div class="info-panel hidden" id="info-panel" style="position: absolute; bottom: 1rem; left: 1rem;">
+    <h4 id="info-title"></h4>
+    <img id="info-image" class="poi-image" src="" alt="">
+    <p id="info-desc"></p>
+  </div>
+
+  <!-- DEBUG INFO -->
+  <div class="debug-info" id="debug-info" style="display: none;">
+    <div>Position: <span id="debug-pos">0, 0, 0</span></div>
+    <div>Target: <span id="debug-target">0, 0, 0</span></div>
+    <div>Radius: <span id="debug-radius">0</span></div>
+    <div>Alpha: <span id="debug-alpha">0</span></div>
+    <div>Beta: <span id="debug-beta">0</span></div>
+  </div>
+
+  <button class="reset-btn" onclick="resetView()" title="Recentrer la vue">⟳ Recentrer</button>
+
+  <!-- INDICATION "REGARDER AUTOUR" (vue 1ère personne) -->
+  <div class="fp-look-hint" id="fp-look-hint">Cliquez-glissez horizontalement pour balayer la pièce du regard</div>
+
+  <!-- MODE PLACEMENT POV (outil interne pour générer les coordonnées) -->
+  <button class="placement-toggle" id="placement-toggle" onclick="togglePlacementMode()">⊕ Placer un POV</button>
+  <div class="placement-panel hidden" id="placement-panel">
+    <h4>Mode placement POV</h4>
+    <p class="pp-hint">Navigue jusqu'à l'emplacement exact d'une photo, oriente la vue comme tu veux qu'elle apparaisse, puis capture. Le bloc JSON se construit tout seul.</p>
+    <div class="pp-row">
+      <input type="text" id="pp-id" placeholder="id (ex: salon-01)">
+    </div>
+    <div class="pp-row">
+      <input type="text" id="pp-label" placeholder="Nom (ex: Salon)">
+    </div>
+    <div class="pp-row">
+      <input type="text" id="pp-image" placeholder="photo (ex: salon.jpg)">
+    </div>
+    <div class="pp-row">
+      <input type="text" id="pp-roomId" placeholder="roomId (ex: salon) — optionnel">
+    </div>
+    <div class="pp-row">
+      <textarea id="pp-description" placeholder="description (optionnel)" style="font-size:0.75rem;min-height:50px;"></textarea>
+    </div>
+    <div class="pp-row">
+      <input type="text" id="pp-photos" placeholder="photos (CSV: cuisine-1.jpg, cuisine-2.jpg) — optionnel">
+    </div>
+    <button class="pp-btn" onclick="capturePOV()">📸 Capturer ce POV</button>
+    <p class="pp-count" id="pp-count">0 POV capturé(s)</p>
+    <textarea class="pp-output" id="pp-output" readonly placeholder='Le JSON apparaîtra ici…'></textarea>
+    <button class="pp-btn secondary" onclick="copyPlacementJSON()" style="margin-top:0.6rem;">📋 Copier le JSON</button>
+    <button class="pp-btn secondary" onclick="resetPlacement()">🗑 Vider la liste</button>
+  </div>
+</div>
+
+<!-- LIGHTBOX PHOTO PLEIN ÉCRAN -->
+<div class="lightbox hidden" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()" title="Fermer">✕</button>
+  <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()" onerror="lightboxImgError()" onload="lightboxImgOk()">
+  <div id="lightbox-error" class="lightbox-error hidden" onclick="event.stopPropagation()">Photo indisponible</div>
+  
+  <!-- Navigation photos (visible que si > 1 photo) -->
+  <div id="lightbox-nav" class="lightbox-nav" style="display:none;" onclick="event.stopPropagation()">
+    <button class="lightbox-btn lightbox-prev" onclick="prevPhoto()" title="Photo précédente">‹ Précédent</button>
+    <span class="lightbox-counter"><span id="lightbox-index">1</span>/<span id="lightbox-total">1</span></span>
+    <button class="lightbox-btn lightbox-next" onclick="nextPhoto()" title="Photo suivante">Suivant ›</button>
+  </div>
+</div>
+
+<div id="loading-bar" class="loading-bar">
+  <h3>Chargement de l'architecture…</h3>
+  <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+</div>
+
+<script>
+/* ============================================================================
+   CONFIG
+   ============================================================================ */
+const CONFIG = {
+  propertyId: new URLSearchParams(location.search).get('property') || 'demo-rambouillet',
+  assetsBase: (id) => `./properties/${id}/`,
+  // Version des photos : incrémentée pour forcer le CDN à recharger les images
+  // (contourne un éventuel 404 mis en cache par Vercel/CDN).
+  photoVersion: 3,
+  wallsFile:     'walls.glb',       // LOW-POLY — chargé en premier, navigation immédiate
+
+  fitMargin:        1.15,
+  zoomInLimitRatio:  0.55,
+  zoomOutLimitRatio: 2.20,
+  clipNearRatio:     0.02,
+  clipFarRatio:      8.0,
+
+  lockPanning: true,
+
+  // === VITESSE ADAPTATIVE (navigation) ===
+  // Diviseurs de base (plus haut = plus lent). Ralentissement progressif quand on
+  // s'approche du modèle : jusqu'à navSpeedMaxSlow× plus lent au plus près.
+  navPanSensibility:     300,  // translation clic droit — vitesse de base (loin)
+  navAngularSensibility: 1000, // rotation — vitesse de base (loin)
+  navSpeedMaxSlow:       3,    // facteur max de ralentissement quand on est au plus près (÷3)
+
+  // Cadrage VUE DE DESSUS — marges exprimées en FRACTION de la zone rendue.
+  // Avantage : le plan occupe la même proportion de l'écran quelle que soit la
+  // résolution ou le DPR (téléphone, tablette, HD, 4K). Plus aucun pixel fixe.
+  topViewPadding:       1.25, // ↑ recule la caméra → plan plus petit, plus de vide autour (cohérence d'avant)
+  topViewMarginLeftF:   0.07, // marge gauche (fraction de la largeur rendue)
+  topViewMarginRightF:  0.08, // marge droite (cotations) — le panneau est déjà exclu
+  topViewMarginTopF:    0.13, // marge haute (cotations + bouton Navigation)
+  topViewMarginBottomF: 0.11, // marge basse (cotations)
+  // La largeur réservée au panneau de droite n'est plus une constante en pixels :
+  // elle est lue dynamiquement sur la largeur réelle du panneau (responsive CSS).
+
+  firstPersonFov: 0.8, // FOV de BASE en POV = ouverture maximale (zoom max). 0.8 rad ≈ 45.8°
+  // En POV, la molette (PC) / le pinch (mobile) permettent de DÉZOOMER vers un grand
+  // angle "agence immobilière" puis de revenir à l'ouverture de base.
+  firstPersonFovWide: 1.30, // grand angle max atteignable au dézoom. 1.30 rad ≈ 74.5°
+  povZoomStep: 0.05,        // pas de variation du FOV par cran de molette (radians)
+  povPinchSensitivity: 0.0022, // sensibilité du pincement tactile (radians par pixel d'écartement)
+
+  // === ÉLÉMENTS PAR PIÈCE (meubles hi-poly, switch indépendant et cumulable) ===
+  // L'enveloppe low-poly (walls.glb) reste TOUJOURS visible. Chaque pièce ci-dessous
+  // est un GLB de meubles chargé en arrière-plan et affiché/masqué par son switch.
+  // Source prioritaire = "rooms" dans manifest.json. À défaut, cette liste sert de fallback.
+  // Pour ajouter une pièce : dépose son .glb dans le dossier de la propriété + ajoute une ligne.
+  rooms: [
+    // { id: 'salon',   label: 'Salon',   glb: 'salon.glb' },
+    // { id: 'cuisine', label: 'Cuisine', glb: 'cuisine.glb' },
+  ],
+  roomsLoadDelay: 7000,   // délai avant de commencer le chargement des pièces (ms) — après l'enveloppe
+  roomsStartVisible: false, // false = tout masqué au départ (l'utilisateur active via les switches)
+  autoEnableRoomOnPOV: false, // false = en entrant dans un POV, on NE touche PAS aux éléments de la pièce (on garde l'état actuel : activés restent activés, désactivés restent désactivés)
+};
+
+/* ============================================================================
+   ÉTAT GLOBAL
+   ============================================================================ */
+let engine, scene, camera;
+let wallsRoot = null;
+let initialFraming = null;
+let propertyData = null;
+let modelBounds = null;
+let currentView = '3d';
+let axisLines = null;
+let isAnimating = false;
+let isTopView = false; // true quand on est en vue de dessus (pour adapter au resize)
+let currentAnimObserver = null; // observer d'animation actif (un seul à la fois)
+// Sur mobile/petit écran, le panneau s'affiche en overlay PLEIN ÉCRAN. S'il est ouvert
+// au démarrage, il masque la visite et bloque la prise en main tactile. On démarre donc
+// FERMÉ sur petit écran (< 900px), OUVERT sur desktop comme avant.
+let isPoiPanelOpen = !(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+let poiMarkers = {}; // objets 3D pour les marqueurs POI (clé = poiId)
+let isFirstPerson = false; // true quand on est immergé en vue 1ère personne
+let fpCamera = null;        // caméra "tête" (UniversalCamera) qui pivote sur elle-même en 1ère personne
+let fpPitchObserver = null; // observer qui verrouille le tangage (balayage horizontal pur)
+let currentPoiId = null;   // POV courant en vue 1ère personne
+let povWheelObserver = null;  // observer molette (zoom FOV en POV - PC)
+let povPinchActive = false;   // true pendant un pincement 2 doigts (mobile)
+let povPinchStartDist = 0;    // distance initiale entre les 2 doigts
+let povPinchStartFov = 0;     // FOV au début du pincement
+let povTouchHandlers = null;  // {down, move, up} pour pouvoir les retirer à la sortie
+let povLookActive = false;    // true pendant un glissement 1 doigt (rotation de la vue)
+let povLastTouchX = 0;        // dernière position X du doigt (pour le delta de rotation)
+let povLastTouchY = 0;        // dernière position Y du doigt
+let savedRadiusLimits = null; // sauvegarde des limites de zoom hors 1ère personne
+let defaultFov = 0.8; // FOV de navigation (sauvegardé au boot, restauré à la sortie du 1ère personne)
+
+// --- Éléments par pièce ---
+let roomList = [];      // [{id, label, glb}] effectif (manifest.rooms ?? CONFIG.rooms)
+let roomNodes = {};     // id pièce -> TransformNode des meubles hi-poly
+let roomState = {};     // id pièce -> { loaded:bool, enabled:bool, failed:bool }
+
+// --- Plafond ---
+let ceilingNode = null; // TransformNode du plafond
+let isInPOVMode = false; // true si on est en mode POV 1ère personne
+
+/* ============================================================================
+   BOOT
+   ============================================================================ */
+async function init() {
+  const canvas = document.getElementById('canvas');
+
+  // Synchronise l'état visuel du panneau avec isPoiPanelOpen dès le démarrage.
+  // (Sur mobile, isPoiPanelOpen vaut false → le panneau démarre fermé pour libérer
+  // l'écran et la navigation tactile.)
+  (function syncPanelDomAtBoot() {
+    const panel = document.getElementById('poi-panel');
+    const tbtn  = document.getElementById('btn-toggle-panel');
+    if (panel) panel.classList.toggle('closed', !isPoiPanelOpen);
+  })();
+
+  // Appareil tactile (tablette / mobile) ? Sert à alléger la charge GPU UNIQUEMENT
+  // sur ces appareils — le rendu desktop reste strictement identique.
+  const IS_TOUCH = ((navigator.maxTouchPoints || 0) > 0) ||
+    (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
+  engine = new BABYLON.Engine(canvas, true, {
+    // preserveDrawingBuffer RETIRÉ : aucun code ne relit le back-buffer (capturePOV ne
+    // fait que lire la position/cible de la caméra). Ce flag doublait la mémoire GPU du
+    // back-buffer ; sur iPad/Safari EN PAYSAGE (grand panneau en verre dépoli + recadrage
+    // animé), le budget GPU était dépassé → perte de contexte WebGL (le « refresh » vu au
+    // 1er repli du menu) puis écran blanc au 2e. Le retrait est sans effet fonctionnel.
+    stencil: true,
+    // MSAA coûteux en mémoire sur iOS : désactivé sur tablette/mobile (le FXAA du pipeline
+    // de compositing lisse déjà les bords). Desktop : MSAA conservé, rendu inchangé.
+    antialias: !IS_TOUCH,
+    adaptToDeviceRatio: true,
+  });
+
+  // Écran haute densité (DPR 2–3, tablettes) : on plafonne le ratio effectif à 1.5 pour
+  // que le back-buffer ET les cibles plein écran (bloom, netteté, FXAA) tiennent dans le
+  // budget GPU. Rendu net. Desktop DPR 1 : condition inactive → inchangé.
+  try {
+    const minHwScaling = 1 / 1.5;
+    if (engine.getHardwareScalingLevel() < minHwScaling) engine.setHardwareScalingLevel(minHwScaling);
+  } catch (e) { /* API absente : comportement par défaut conservé */ }
+
+  scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0.039, 0.078, 0.149, 1);
+
+  // ========== RÉCUPÉRATION APRÈS PERTE DE CONTEXTE WebGL ==========
+  // Sous forte charge GPU (transition POV → vue de dessus, ombres…), le navigateur
+  // peut réinitialiser le contexte WebGL : écran noir + rechargement progressif des
+  // ressources. Sans récupération, la taille du moteur et celle du canvas se
+  // désynchronisent → plan « tordu » / cotations déformées jusqu'au refresh.
+  // Ici on resynchronise tout proprement à la restauration, sans recharger la page.
+  if (engine.onContextLostObservable) {
+    engine.onContextLostObservable.add(() => {
+      console.warn('⚠️ Contexte WebGL perdu — récupération automatique en cours…');
+    });
+  }
+  if (engine.onContextRestoredObservable) {
+    engine.onContextRestoredObservable.add(() => {
+      try {
+        isAnimating = false;            // débloque si la perte a eu lieu en pleine transition
+        engine.resize();                // resynchronise la taille du moteur sur le canvas
+        if (typeof relayout === 'function') relayout(); // recadre la vue courante
+        if (typeof hudUpdate === 'function') hudUpdate(); // redessine les cotations à la bonne échelle
+        if (scene) { try { scene.render(); } catch (_) {} } // frame immédiate → jamais d'écran figé/blanc
+        console.log('✅ Contexte WebGL restauré — affichage recalé');
+      } catch (e) {
+        console.warn('Erreur pendant la récupération du contexte :', e);
+      }
+    });
+  }
+
+  // --- Caméra 3D ---
+  camera = new BABYLON.ArcRotateCamera('camera', -Math.PI / 2, Math.PI / 2.5, 10, BABYLON.Vector3.Zero(), scene);
+  camera.attachControl(canvas, true);
+  // Empêche le menu contextuel au clic droit → translation propre (comme le Sandbox)
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  defaultFov = camera.fov; // mémorise le FOV de navigation pour le restaurer après la vue 1ère personne
+
+  // === PARAMÈTRES EXACTS DU SANDBOX BABYLON.JS (valeurs par défaut de l'ArcRotateCamera) ===
+  // Clic gauche = rotation, clic droit = translation (mapping par défaut, rien à remapper)
+  camera.inertia = 0.7;               // amortissement rotation/zoom : 0.7 = arrêt franc après un lâcher rapide (0.9 = défaut Sandbox, glisse ~1 s ; 0.7 stoppe vite en restant fluide)
+  camera.angularSensibilityX = 1000;  // rotation horizontale (défaut — plus "lourde" que 800)
+  camera.angularSensibilityY = 1000;  // rotation verticale (défaut)
+  camera.panningSensibility = 300;     // translation au clic droit (diviseur = plus haut = plus lent)
+  camera.panningInertia = 0.7;        // amortissement translation : aligné sur la rotation (0.7) → la translation stoppe aussi franchement après un lâcher rapide (0.9 = défaut Sandbox)
+  camera.panningAxis = new BABYLON.Vector3(1, 1, 0); // pan dans le plan écran (défaut Sandbox)
+  camera.wheelPrecision = 15;         // zoom molette très adouci (plus haut = plus doux)
+  camera.pinchPrecision = 120;        // zoom pincement tactile TRÈS adouci (plus haut = plus doux, ~10x moins fort)
+  camera.wheelDeltaPercentage = 0;    // désactive le mode pourcentage → utilise wheelPrecision
+  camera.pinchDeltaPercentage = 0;
+  camera.useNaturalPinchZoom = false; // comportement zoom standard (défaut)
+
+  // === VITESSE ADAPTATIVE selon la proximité du modèle ===
+  // panningSensibility / angularSensibility sont des DIVISEURS (plus haut = plus lent).
+  // Plus on est proche du modèle (radius petit — ex. à l'intérieur d'une pièce), plus on
+  // ralentit translation ET rotation — jusqu'à navSpeedMaxSlow× — pour un contrôle fin.
+  // Loin (vue d'ensemble) : vitesse de base. N'agit qu'en navigation (pas POV/top-view/anim).
+  scene.onBeforeRenderObservable.add(() => {
+    if (!camera || !initialFraming || isFirstPerson || isTopView || isAnimating) return;
+    const ratio = BABYLON.Scalar.Clamp(
+      camera.radius / initialFraming.radius,
+      1 / CONFIG.navSpeedMaxSlow, 1);            // proche → petit ratio ; loin → 1
+    const slow = 1 / ratio;                       // proche → grand (jusqu'à navSpeedMaxSlow)
+    camera.panningSensibility  = CONFIG.navPanSensibility     * slow;
+    camera.angularSensibilityX = CONFIG.navAngularSensibility * slow;
+    camera.angularSensibilityY = CONFIG.navAngularSensibility * slow;
+  });
+
+  camera.lowerBetaLimit = 0.05;
+  camera.upperBetaLimit = Math.PI / 2 + 0.15;
+
+  // --- SKYBOX DÉGRADÉ RADIAL (gris centre → blanc bords) ---
+  const skybox = BABYLON.MeshBuilder.CreateSphere('skybox', { diameter: 2000, segments: 64 }, scene);
+  
+  // Créer texture dégradée radiale
+  const radialTexture = new BABYLON.DynamicTexture('radialGradient', 512, scene);
+  const ctx = radialTexture.getContext();
+  const centerX = 256, centerY = 256, maxRadius = 256;
+  
+  // Remplir avec dégradé radial gris (centre) → blanc (bords)
+  const imageData = ctx.createImageData(512, 512);
+  const data = imageData.data;
+  
+  for (let i = 0; i < 512; i++) {
+    for (let j = 0; j < 512; j++) {
+      const dx = i - centerX;
+      const dy = j - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy) / maxRadius;
+      const t = Math.min(1, distance);
+      
+      // Dégradé navy : centre #10254f (16,37,79) → bords #0a1426 (10,20,38)
+      const r = Math.round(16 + (10 - 16) * t);
+      const g = Math.round(37 + (20 - 37) * t);
+      const b = Math.round(79 + (38 - 79) * t);
+      const idx = (j * 512 + i) * 4;
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+  radialTexture.update();
+  
+  // Matériau skybox
+  const skyMaterial = new BABYLON.StandardMaterial('skyboxMat', scene);
+  skyMaterial.emissiveTexture = radialTexture;
+  skyMaterial.backFaceCulling = false;
+  
+  skybox.material = skyMaterial;
+  skybox.infiniteDistance = true;
+  
+  // --- CHARGER HDRi (optionnel, ne peut pas bloquer) ---
+  const hdriUrl = 'Hdrichaude_Viewer_3D.hdr';
+  console.log('💡 Tentative chargement HDRi:', hdriUrl);
+  try {
+    const hdrTexture = new BABYLON.HDRCubeTexture(hdriUrl, scene, 512);
+    hdrTexture.onLoadObservable.add(() => {
+      scene.environmentTexture = hdrTexture;
+      scene.environmentIntensity = 1.25;  // intensité réflexions/IBL (légèrement relevée pour le réalisme)
+
+      // NB : le tone mapping / exposition / contraste sont gérés UNIQUEMENT par le
+      // bloc GRADE + pipeline (plus bas). On ne les réécrit plus ici, sinon ce
+      // callback asynchrone écrasait les valeurs de GRADE quand la HDRi finissait
+      // de charger (selon l'ordre de chargement).
+      console.log('✅ HDRi chargée (IBL) + tone mapping ACES');
+    });
+    hdrTexture.onErrorObservable.add(() => {
+      console.warn('⚠️ HDRi non trouvée, skybox simple conservée');
+    });
+  } catch (e) {
+    console.warn('⚠️ Erreur HDRi (non bloquant):', e.message);
+  }
+  
+  // --- ÉCLAIRAGE PRO AGRESSIF (vraies variations) ---
+  
+  // --- CHARGER LA CONFIG LIGHTING ---
+  let lightConfig = {
+    spotLight: { position: [12, 1.8, 3], direction: [-1, -0.2, -0.1], angle: 1.256, exponent: 2, intensity: 1.8, range: 40 },
+    directionalLight: { direction: [0.7, -1, 0.2], intensity: 0.8 },
+    ambientLight: { intensity: 0.5, groundColor: [0.3, 0.3, 0.35] },
+    fillLight: { intensity: 0.3, groundColor: [0.25, 0.25, 0.3] },
+    shadows: { mapResolution: 2048, blurKernel: 32 }
+  };
+  
+  // Charger lighting-config.json si disponible
+  try {
+    const configUrl = CONFIG.assetsBase(CONFIG.propertyId) + 'lighting-config.json';
+    const response = await fetch(configUrl);
+    if (response.ok) {
+      const customConfig = await response.json();
+      lightConfig = { ...lightConfig, ...customConfig };
+      console.log('✅ lighting-config.json chargée');
+    }
+  } catch (e) {
+    console.log('⚠️ lighting-config.json non trouvée, config par défaut');
+  }
+  
+  // --- APPLIQUER LA CONFIG ---
+  const sl = lightConfig.spotLight;
+  const keyLight = new BABYLON.SpotLight('keyLight',
+    new BABYLON.Vector3(...sl.position),
+    new BABYLON.Vector3(...sl.direction),
+    sl.angle, sl.exponent, scene);
+  keyLight.intensity = sl.intensity;
+  keyLight.range = sl.range;
+  
+  // ========== SOLEIL (lumière directionnelle chaude) ==========
+  // Représente le soleil : lumière directe chaude qui donne du modelé et des
+  // ombres réalistes, en complément de l'éclairage doux hémisphérique (froid).
+  // Ce contraste chaud/froid est la base d'un rendu réaliste.
+  const SUN = {
+    enabled:   true,
+    color:     [1.0, 0.94, 0.82], // teinte chaude par défaut (si non défini dans le JSON)
+    shadows:   true,              // ⬅️ passer à false si les ombres gênent / artefacts
+    darkness:  0.45,              // 0 = ombre noire, 1 = pas d'ombre. ~0.45 = douce/réaliste
+  };
+
+  const dl = lightConfig.directionalLight;
+  const shadowLight = new BABYLON.DirectionalLight('shadowLight',
+    new BABYLON.Vector3(...dl.direction), scene);
+  shadowLight.intensity = dl.intensity;
+  shadowLight.diffuse   = new BABYLON.Color3(...(dl.color || SUN.color)); // teinte chaude du soleil
+  shadowLight.specular  = new BABYLON.Color3(0.4, 0.38, 0.32);            // léger reflet solaire
+  // Positionner le soleil EN HAUTEUR, du côté d'où il vient : sans ça, la caméra
+  // d'ombre (frustum orthographique de la directionnelle) reste à l'origine, à
+  // l'intérieur du bâtiment, et ne projette rien de cohérent.
+  shadowLight.position = new BABYLON.Vector3(...dl.direction).scale(-40);
+  shadowLight.autoUpdateExtends = true;     // recalcule le frustum sur les meshes
+  shadowLight.autoCalcShadowZBounds = true; // ajuste les bornes de profondeur
+
+  // ========== OMBRES SOLAIRES DOUCES & RÉALISTES ==========
+  // Avant : aucun mesh n'était enregistré comme projecteur → pas d'ombre du tout,
+  // et darkness=1.0 = ombre invisible. On corrige : ombres douces, darkness modérée,
+  // et auto-enregistrement de chaque mesh chargé (murs, pièces, meubles, plafond)
+  // comme projecteur ET receveur d'ombre, en excluant skybox / marqueurs / axes.
+  const sh = lightConfig.shadows;
+  // Résolution/flou PLAFONNÉS pour limiter la charge GPU (évite les pertes de
+  // contexte WebGL lors des transitions). 1024 reste net pour une visite immo.
+  const shadowRes = Math.min(1024, sh.mapResolution || 1024);
+  const shadowGenerator = new BABYLON.ShadowGenerator(shadowRes, shadowLight);
+  shadowGenerator.useBlurExponentialShadowMap = true;
+  shadowGenerator.blurKernel = Math.min(16, sh.blurKernel || 16);  // flou plus léger
+  shadowGenerator.bias = 0.00005;   // évite l'acné d'ombre tout en gardant le contact
+  shadowGenerator.normalBias = 0.02;
+  shadowGenerator.useKernelBlur = true;
+  shadowGenerator.blurScale = 2;
+  shadowGenerator.darkness = SUN.darkness; // ombres douces (pas noir total)
+  shadowGenerator.transparencyShadow = true;
+  window.shadowGenerator = shadowGenerator;
+
+  if (SUN.shadows) {
+    // Meshes à NE PAS inclure dans les ombres (ciel, marqueurs POV, axes debug)
+    const shadowExcluded = (m) => {
+      const n = m.name || '';
+      return n === 'skybox' || n.indexOf('poi-plane') === 0 || n.indexOf('poi-group') === 0
+          || n.indexOf('axis') === 0 || !m.getTotalVertices || m.getTotalVertices() === 0;
+    };
+    const registerShadowMesh = (m) => {
+      if (shadowExcluded(m)) return;
+      try {
+        shadowGenerator.addShadowCaster(m, true);
+        m.receiveShadows = true;
+      } catch (e) { /* mesh non compatible — ignoré */ }
+    };
+    // 1) meshes déjà présents, 2) tout mesh importé ensuite (chargements async)
+    scene.meshes.slice().forEach(registerShadowMesh);
+    scene.onNewMeshAddedObservable.add(registerShadowMesh);
+  }
+  
+  const al = lightConfig.ambientLight;
+  const ambientLight = new BABYLON.HemisphericLight('ambient', new BABYLON.Vector3(0, 1, 0), scene);
+  ambientLight.intensity = al.intensity;
+  ambientLight.groundColor = new BABYLON.Color3(...al.groundColor);
+  ambientLight.specular = new BABYLON.Color3(0, 0, 0); // Pas de spéculaire ambiante
+  
+  const fl = lightConfig.fillLight;
+  const fillLight = new BABYLON.HemisphericLight('fillLight', new BABYLON.Vector3(0, 1, 0), scene);
+  fillLight.intensity = fl.intensity;
+  fillLight.groundColor = new BABYLON.Color3(...fl.groundColor);
+  
+  // --- CRÉER LES LUMIÈRES INTÉRIEURES ---
+  if (lightConfig.interiorLights && Array.isArray(lightConfig.interiorLights)) {
+    lightConfig.interiorLights.forEach(ilConfig => {
+      const iLight = new BABYLON.PointLight(ilConfig.name, 
+        new BABYLON.Vector3(...ilConfig.position), scene);
+      iLight.intensity = ilConfig.intensity;
+      iLight.range = ilConfig.range;
+      if (ilConfig.color) {
+        iLight.diffuse = new BABYLON.Color3(...ilConfig.color);
+      }
+      console.log(`✅ Interior light créée: ${ilConfig.name}`);
+    });
+  }
+  
+  console.log('✅ Lighting appliqué depuis config');
+
+  await loadManifest();
+  await loadWalls();
+  loadRoomsAsync();
+
+  // HDRi et skybox gérées par createDefaultEnvironment()
+  // setupHDRI();
+  // createGradientSkybox();
+
+  document.getElementById('loading-bar').classList.add('hidden');
+
+  // Indication d'exploration 3D pour les visiteurs peu familiers (après un court
+  // délai pour laisser la scène s'afficher).
+  setTimeout(() => { flashExploreHint(); }, 700);
+
+  // ========================================================================
+  //  COMPOSITING / ÉTALONNAGE RÉALISTE  (post-traitement caméra)
+  //  AO de contact + tone mapping filmique ACES + étalonnage couleur
+  //  + bloom + netteté + vignette. Réglages centralisés dans GRADE.
+  // ========================================================================
+  const GRADE = {
+    exposure:   1.18,    // exposition globale (monter si trop sombre)
+    contrast:   1.55,    // ↑ contraste légèrement augmenté (rendu plus réaliste)
+    toneMapping:'ACES',  // 'ACES' (filmique, réaliste) ou 'STANDARD'
+
+    // Étalonnage couleur cinéma : ombres froides / hautes lumières chaudes
+    satGlobal:        12,
+    shadowsHue:      220, shadowsDensity:    14, shadowsSaturation:     0,
+    highlightsHue:    32, highlightsDensity: 10, highlightsSaturation: -8,
+
+    // Bloom : diffusion lumineuse sur les zones très claires (fenêtres, lampes)
+    bloom: true, bloomThreshold: 0.82, bloomWeight: 0.18, bloomKernel: 64, bloomScale: 0.5,
+
+    // Netteté → contraste perçu
+    sharpenEdge: 0.30, sharpenColor: 1.0,
+
+    // Vignette (profondeur / focalisation)
+    vignette: true, vignetteWeight: 2.4,
+
+    // Grain filmique (réduit le banding) — 0 = désactivé (évite le "bruit partout")
+    grain: 0,
+
+    // AO de contact (SSAO2). OFF par défaut : combiné au pipeline + MSAA il provoque
+    // des artefacts plein écran. À réactiver seulement après test (voir note).
+    ao: false,
+  };
+
+  // --- 1) AMBIENT OCCLUSION DE CONTACT (SSAO2, WebGL2) — optionnel ---
+  // Désactivé par défaut (GRADE.ao = false) : combiné au pipeline de compositing
+  // et au MSAA, il génère des artefacts plein écran. À tester isolément avant de réactiver.
+  if (GRADE.ao) {
+    try {
+      if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
+        const ssao2 = new BABYLON.SSAO2RenderingPipeline('ssao2', scene,
+          { ssaoRatio: 0.5, blurRatio: 1 }, [camera]);
+        ssao2.radius        = 0.9;
+        ssao2.totalStrength = 1.1;
+        ssao2.base          = 0.1;
+        ssao2.samples       = 16;
+        ssao2.maxZ          = 100;
+        ssao2.expensiveBlur = true;
+        console.log('✅ SSAO2 (occlusion de contact) activé');
+      } else {
+        console.log('ℹ️ SSAO2 indisponible (WebGL1) — AO ignoré');
+      }
+    } catch (e) {
+      console.warn('⚠️ SSAO2 non activé :', e.message);
+    }
+  }
+
+  // --- 2) PIPELINE DE COMPOSITING (tone mapping + grade + bloom + netteté + vignette) ---
+  try {
+    const ip = scene.imageProcessingConfiguration;
+    ip.toneMappingEnabled = true;
+    ip.toneMappingType = (GRADE.toneMapping === 'ACES')
+      ? BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES
+      : BABYLON.ImageProcessingConfiguration.TONEMAPPING_STANDARD;
+    ip.exposure = GRADE.exposure;
+    ip.contrast = GRADE.contrast;
+
+    // Étalonnage couleur (ombres froides / lumières chaudes + saturation)
+    const curves = new BABYLON.ColorCurves();
+    curves.globalSaturation     = GRADE.satGlobal;
+    curves.shadowsHue           = GRADE.shadowsHue;
+    curves.shadowsDensity       = GRADE.shadowsDensity;
+    curves.shadowsSaturation    = GRADE.shadowsSaturation;
+    curves.highlightsHue        = GRADE.highlightsHue;
+    curves.highlightsDensity    = GRADE.highlightsDensity;
+    curves.highlightsSaturation = GRADE.highlightsSaturation;
+    ip.colorCurves = curves;
+    ip.colorCurvesEnabled = true;
+
+    // Vignette
+    ip.vignetteEnabled = GRADE.vignette;
+    ip.vignetteWeight  = GRADE.vignetteWeight;
+    ip.vignetteColor   = new BABYLON.Color4(0, 0, 0, 0);
+    ip.vignetteStretch = 0.4;
+
+    const pipe = new BABYLON.DefaultRenderingPipeline('compositing', true, scene, [camera]);
+    pipe.imageProcessingEnabled = true;  // applique l'étalonnage en post-process (1 seule fois)
+    pipe.fxaaEnabled = true;             // anti-aliasing (FXAA seul — pas de MSAA pour éviter
+    pipe.samples = 1;                    // les conflits de pipeline / artefacts plein écran)
+
+    pipe.bloomEnabled = GRADE.bloom;
+    if (GRADE.bloom) {
+      pipe.bloomThreshold = GRADE.bloomThreshold;
+      pipe.bloomWeight    = GRADE.bloomWeight;
+      pipe.bloomKernel    = GRADE.bloomKernel;
+      pipe.bloomScale     = GRADE.bloomScale;
+    }
+
+    pipe.sharpenEnabled = true;
+    pipe.sharpen.edgeAmount  = GRADE.sharpenEdge;
+    pipe.sharpen.colorAmount = GRADE.sharpenColor;
+
+    if (GRADE.grain > 0) {
+      pipe.grainEnabled = true;
+      pipe.grain.intensity = GRADE.grain;
+      pipe.grain.animated  = true;
+    }
+
+    window.compositingPipeline = pipe;  // réglages live possibles depuis la console
+    console.log('✅ Compositing réaliste activé (ACES + grade + bloom + netteté + vignette)');
+  } catch (e) {
+    console.warn('⚠️ Compositing non activé, rendu standard :', e.message);
+    // Repli minimal pour ne jamais casser le rendu
+    scene.imageProcessingConfiguration.toneMappingEnabled = true;
+    scene.imageProcessingConfiguration.exposure = 1.0;
+    scene.imageProcessingConfiguration.contrast = 1.1;
+  }
+
+  // Afficher axes de coordonnées (debug)
+  // createAxesHelper();
+
+  // Charger le plafond (masqué par défaut)
+  await loadCeiling();
+
+  // Icône initiale du bouton (vue de dessus)
+  updateToggleButton();
+
+  engine.runRenderLoop(() => {
+   try {
+    scene.render();
+    updateDebugInfo();
+    
+    // ========== AFFICHER/MASQUER PLAFOND BASÉ SUR HAUTEUR CAMÉRA ==========
+    if (ceilingNode && ceilingHeight > 0) {
+      // On teste TOUJOURS la caméra réellement rendue (scene.activeCamera), jamais une
+      // supposition basée sur isFirstPerson : pendant l'animation d'entrée en POV, la
+      // caméra visible est encore l'ArcRotate qui descend — la fpCamera n'est repositionnée
+      // qu'à la fin. Lire fpCamera ici la faisait apparaître trop tôt (position périmée).
+      const activeCam = scene.activeCamera || camera;
+      const camY = activeCam.position.y;
+      const isShown = ceilingNode.isEnabled();
+
+      // Le plafond est VISIBLE quand la caméra est SOUS son niveau (on est dans la
+      // pièce, on voit le plafond au-dessus de soi) et INVISIBLE quand elle est
+      // AU-DESSUS (vue plongeante : on voit à travers, dans les pièces).
+      // Petite marge (hystérésis) pour éviter tout clignotement au passage du seuil.
+      const HYST = 0.05;
+      if (!isShown && camY <= ceilingHeight - HYST) {
+        ceilingNode.setEnabled(true);
+      } else if (isShown && camY >= ceilingHeight + HYST) {
+        ceilingNode.setEnabled(false);
+      }
+    }
+   } catch (e) {
+    // Une frame en erreur (transition, ressource en cours de restauration…) ne
+    // doit jamais tuer la boucle de rendu : on ignore et on continue.
+    console.warn('Frame ignorée (erreur transitoire) :', e);
+   }
+  });
+
+  // Détecter les clics sur les marqueurs POI
+  window.addEventListener('click', (event) => {
+    // En mode placement, on navigue librement : pas de déclenchement POV
+    if (placementMode) return;
+    // Ne pas déclencher si on clique sur un bouton ou un élément UI
+    if (event.target.closest('button') || event.target.closest('.poi-panel') ||
+        event.target.closest('.info-panel') || event.target.closest('.toggle-panel-btn') ||
+        event.target.closest('.placement-panel') || event.target.closest('.lightbox')) {
+      return;
+    }
+
+    // Raycast prioritaire sur les marqueurs POV (ils sont rendus par-dessus)
+    const pickMarker = scene.pick(event.clientX, event.clientY,
+      (mesh) => mesh.isPickable && !!mesh.poiId);
+    if (pickMarker && pickMarker.hit && pickMarker.pickedMesh && pickMarker.pickedMesh.poiId) {
+      goToPOI(pickMarker.pickedMesh.poiId);
+    }
+  });
+
+  // Recadrage centralisé (réutilisé par le resize ET la récupération de contexte WebGL)
+  function relayout() {
+    if (isAnimating) return;
+    if (isFirstPerson && fpCamera) {
+      fpCamera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+    } else if (isTopView) {
+      applyTopViewViewport();
+      camera.radius = computeTopViewRadius();
+    } else {
+      camera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+    }
+  }
+
+  window.addEventListener('resize', () => {
+    engine.resize();
+    relayout();
+  });
+}
+
+/* ============================================================================
+   LOAD MODELS
+   ============================================================================ */
+async function loadWalls() {
+  const base = CONFIG.assetsBase(CONFIG.propertyId);
+  try {
+    const result = await importGlbResilient(base, CONFIG.wallsFile, scene);
+    wallsRoot = groupUnder(result.meshes, 'wallsRoot');
+    // Appliquer le viewport selon l'état du panneau AVANT le cadrage, pour que le modèle
+    // soit cadré dans la zone réellement visible (gauche si panneau ouvert, plein écran sinon).
+    camera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+    frameModel(wallsRoot);
+
+    // Construire la liste des POV depuis le manifest
+    rebuildPoiList();
+
+    // Créer les marqueurs POV cliquables
+    createPoiMarkers();
+  } catch (err) {
+    console.error('Échec chargement walls.glb :', err);
+    document.querySelector('#loading-bar h3').textContent = 'Modèle introuvable (walls.glb)';
+  }
+}
+
+
+function groupUnder(meshes, name) {
+  const root = new BABYLON.TransformNode(name, scene);
+  meshes.forEach(m => { if (!m.parent) m.setParent(root); });
+  return root;
+}
+
+/* ============================================================================
+   CHARGEMENT GLB RÉSILIENT
+   ----------------------------------------------------------------------------
+   Objectif : que le viewer accepte N'IMPORTE QUEL .glb sans planter, même si
+   le fichier contient des références de textures cassées (orphelines) — un cas
+   fréquent après conversion WebP / réduction de textures dans Blender ou via
+   un outil d'optimisation.
+
+   Principe : on récupère le .glb en mémoire, on le « nettoie » (on retire les
+   références de textures pointant vers une image source absente), puis on le
+   passe à Babylon. Le modèle se charge ; seule la texture cassée est ignorée.
+   Aucun renommage requis : tant que le nom dans le viewer correspond au fichier,
+   ça fonctionne.
+   ============================================================================ */
+async function importGlbResilient(base, filename, scene) {
+  let buffer = null;
+  try {
+    const resp = await fetch(base + filename);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    buffer = await resp.arrayBuffer();
+  } catch (e) {
+    // Si le fetch échoue (ex : protocole file://), on retombe sur le loader standard.
+    console.warn(`⚠️ Fetch direct impossible pour ${filename}, chargement standard :`, e.message);
+    return BABYLON.SceneLoader.ImportMeshAsync('', base, filename, scene);
+  }
+
+  let cleaned = buffer;
+  try {
+    cleaned = sanitizeGlbBuffer(buffer, filename);
+  } catch (e) {
+    console.warn(`⚠️ Nettoyage GLB ignoré pour ${filename} (chargement brut) :`, e.message);
+    cleaned = buffer;
+  }
+
+  const file = new File([cleaned], filename, { type: 'model/gltf-binary' });
+  return BABYLON.SceneLoader.ImportMeshAsync('', '', file, scene, null, '.glb');
+}
+
+/* Nettoie un buffer GLB : retire les références de textures sans image source
+   valide. Retourne un nouvel ArrayBuffer (ou l'original si rien à corriger). */
+function sanitizeGlbBuffer(arrayBuffer, label) {
+  const dv = new DataView(arrayBuffer);
+  const MAGIC_GLTF = 0x46546C67; // 'glTF'
+  const TYPE_JSON  = 0x4E4F534A; // 'JSON'
+  const TYPE_BIN   = 0x004E4942; // 'BIN\0'
+
+  if (dv.getUint32(0, true) !== MAGIC_GLTF) return arrayBuffer; // pas un GLB binaire
+  const total = dv.getUint32(8, true);
+
+  // --- Lire les chunks JSON + BIN ---
+  let jsonText = null, binChunk = null;
+  let offset = 12;
+  while (offset < total) {
+    const chunkLen  = dv.getUint32(offset, true);
+    const chunkType = dv.getUint32(offset + 4, true);
+    const chunkData = arrayBuffer.slice(offset + 8, offset + 8 + chunkLen);
+    if (chunkType === TYPE_JSON)      jsonText = new TextDecoder().decode(chunkData);
+    else if (chunkType === TYPE_BIN)  binChunk = chunkData;
+    offset += 8 + chunkLen;
+  }
+  if (!jsonText) return arrayBuffer;
+
+  const gltf     = JSON.parse(jsonText);
+  const images   = gltf.images   || [];
+  const textures = gltf.textures || [];
+  const nImages  = images.length;
+
+  // Une texture est valide si elle a une source d'image existante,
+  // que ce soit via `source` standard ou une extension (EXT_texture_webp, KHR_texture_basisu…).
+  function textureHasValidSource(tex) {
+    if (!tex) return false;
+    const candidates = [];
+    if (typeof tex.source === 'number') candidates.push(tex.source);
+    if (tex.extensions) {
+      for (const ext of Object.values(tex.extensions)) {
+        if (ext && typeof ext.source === 'number') candidates.push(ext.source);
+      }
+    }
+    return candidates.some(s => s >= 0 && s < nImages && images[s]);
+  }
+
+  const brokenTex = new Set();
+  textures.forEach((t, i) => { if (!textureHasValidSource(t)) brokenTex.add(i); });
+  if (brokenTex.size === 0) return arrayBuffer; // rien à corriger
+
+  // Retirer, dans chaque matériau, les blocs « texture info » ({index:…}) pointant
+  // vers une texture cassée. Parcours récursif pour couvrir les extensions PBR
+  // (clearcoat, transmission, specular, anisotropy…).
+  let removed = 0;
+  function clean(obj) {
+    if (Array.isArray(obj)) { obj.forEach(clean); return; }
+    if (!obj || typeof obj !== 'object') return;
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (val && typeof val === 'object' && !Array.isArray(val)
+          && typeof val.index === 'number' && brokenTex.has(val.index)) {
+        delete obj[key];
+        removed++;
+      } else {
+        clean(val);
+      }
+    }
+  }
+  (gltf.materials || []).forEach(clean);
+
+  console.log(`🧹 ${label || 'GLB'} : ${brokenTex.size} texture(s) orpheline(s) détectée(s), ${removed} référence(s) retirée(s) — chargement sécurisé.`);
+
+  // --- Ré-emballer le GLB ---
+  const enc = new TextEncoder();
+  let jsonBytes = enc.encode(JSON.stringify(gltf));
+  const jsonPad = (4 - (jsonBytes.length % 4)) % 4;
+  if (jsonPad) {
+    const p = new Uint8Array(jsonBytes.length + jsonPad);
+    p.set(jsonBytes);
+    p.fill(0x20, jsonBytes.length); // espaces
+    jsonBytes = p;
+  }
+
+  let binBytes = binChunk ? new Uint8Array(binChunk) : null;
+  if (binBytes) {
+    const binPad = (4 - (binBytes.length % 4)) % 4;
+    if (binPad) {
+      const p = new Uint8Array(binBytes.length + binPad);
+      p.set(binBytes); // zéros
+      binBytes = p;
+    }
+  }
+
+  const hasBin   = !!binBytes;
+  const totalLen = 12 + 8 + jsonBytes.length + (hasBin ? 8 + binBytes.length : 0);
+  const out  = new ArrayBuffer(totalLen);
+  const odv  = new DataView(out);
+  const ob   = new Uint8Array(out);
+  let o = 0;
+  odv.setUint32(0, MAGIC_GLTF, true);
+  odv.setUint32(4, 2, true);
+  odv.setUint32(8, totalLen, true);
+  o = 12;
+  odv.setUint32(o, jsonBytes.length, true); o += 4;
+  odv.setUint32(o, TYPE_JSON, true);        o += 4;
+  ob.set(jsonBytes, o);                     o += jsonBytes.length;
+  if (hasBin) {
+    odv.setUint32(o, binBytes.length, true); o += 4;
+    odv.setUint32(o, TYPE_BIN, true);        o += 4;
+    ob.set(binBytes, o);                     o += binBytes.length;
+  }
+  return out;
+}
+
+/* ============================================================================
+   CADRAGE AUTO
+   ============================================================================ */
+function frameModel(root) {
+  let min = new BABYLON.Vector3(Infinity, Infinity, Infinity);
+  let max = new BABYLON.Vector3(-Infinity, -Infinity, -Infinity);
+  let found = false;
+
+  root.getChildMeshes(false).forEach(mesh => {
+    if (!mesh.getTotalVertices || mesh.getTotalVertices() === 0) return;
+    mesh.computeWorldMatrix(true);
+    const bb = mesh.getBoundingInfo().boundingBox;
+    min = BABYLON.Vector3.Minimize(min, bb.minimumWorld);
+    max = BABYLON.Vector3.Maximize(max, bb.maximumWorld);
+    found = true;
+  });
+  if (!found) return;
+
+  const center = BABYLON.Vector3.Center(min, max);
+  const radius = max.subtract(min).length() / 2;
+
+  // IMPORTANT : on CLONE le centre pour modelBounds ET pour la cible caméra.
+  // Sinon la cible et modelBounds.center partagent le même Vector3, et une
+  // translation (pan) — qui modifie la cible EN PLACE — corromprait le centre
+  // stocké → la « vue de dessus » recadrerait sur le point translaté au lieu du
+  // vrai centre du modèle.
+  modelBounds = {min, max, center: center.clone(), radius};
+
+  const fovV = camera.fov;
+  const aspect = engine.getAspectRatio(camera);
+  const fovH = 2 * Math.atan(Math.tan(fovV / 2) * aspect);
+  const limitingFov = Math.min(fovV, fovH);
+  const distance = (radius / Math.sin(limitingFov / 2)) * CONFIG.fitMargin;
+
+  camera.setTarget(center.clone());
+  camera.radius = distance;
+
+  camera.lowerRadiusLimit = radius * CONFIG.zoomInLimitRatio;
+  camera.upperRadiusLimit = distance * CONFIG.zoomOutLimitRatio;
+
+  camera.minZ = radius * CONFIG.clipNearRatio;
+  camera.maxZ = distance * CONFIG.clipFarRatio;
+
+  initialFraming = {
+    target: center.clone(),
+    radius: distance,
+    alpha: -Math.PI / 2,
+    beta: Math.PI / 2.5,
+  };
+
+  console.log(`✅ Cadré — centre ${center}, rayon ${radius.toFixed(2)}, distance ${distance.toFixed(2)}`);
+}
+
+/* Ramène un angle alpha à son équivalent le plus proche de la cible (évite de rejouer
+   plusieurs tours accumulés). Le saut est invisible : même orientation modulo 360°. */
+function wrapAlphaNear(current, target) {
+  const twoPi = Math.PI * 2;
+  let a = current;
+  while (a - target > Math.PI)  a -= twoPi;
+  while (a - target < -Math.PI) a += twoPi;
+  return a;
+}
+
+function resetView() {
+  if (!initialFraming || isAnimating) return;
+  isAnimating = true;
+  isTopView = false; // on quitte la vue de dessus
+  setHudVisible(false); // masque le HUD plan
+
+  // Si on sortait d'une vue 1ère personne, restaurer l'état "visite"
+  if (isFirstPerson) {
+    exitPanoramaCamera();               // rebascule sur l'ArcRotate, alignée sur la vue panorama
+    isFirstPerson = false;
+    currentPoiId = null;
+    setMarkersVisible(true);
+    rebuildPoiList();
+    camera.panningSensibility = 300;    // translation au clic droit réactivée
+    camera.angularSensibilityX = 1000;  // vitesse de rotation de navigation
+    camera.angularSensibilityY = 1000;
+  }
+
+  // Stopper tout observer d'animation en cours (sécurité anti-conflit)
+  if (currentAnimObserver) {
+    scene.onBeforeRenderObservable.remove(currentAnimObserver);
+    currentAnimObserver = null;
+  }
+
+  // Repasser en perspective
+  camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+
+  // Libérer temporairement les limites de zoom pour permettre l'éloignement
+  // (en 1ère personne, lower=upper=radius bloquerait l'animation)
+  camera.lowerRadiusLimit = null;
+  camera.upperRadiusLimit = null;
+  // Restaurer les limites d'angle vertical de navigation
+  camera.lowerBetaLimit = 0.05;
+  camera.upperBetaLimit = Math.PI / 2 + 0.15;
+
+  // États de départ et d'arrivée
+  const startViewportWidth = camera.viewport.width;
+  const targetViewportWidth = getEffectiveViewportWidth(); // Considère l'état du panneau
+  const startRadius = camera.radius;
+  const startBeta = camera.beta;
+  const startAlpha = wrapAlphaNear(camera.alpha, initialFraming.alpha);
+  const targetRadius = computeFitRadiusForViewport(getEffectiveViewportWidth());
+  const targetBeta = initialFraming.beta;
+  const targetAlpha = initialFraming.alpha;
+  const startTarget = camera.target.clone();
+  const targetCenter = initialFraming.target.clone();
+  const startFov = camera.fov;
+  const targetFovValue = defaultFov;
+
+  const totalFrames = 90;
+  let frame = 0;
+
+  currentAnimObserver = scene.onBeforeRenderObservable.add(() => {
+    frame++;
+    const t = Math.min(frame / totalFrames, 1);
+    const eased = easeInOut(t);
+
+    // Viewport revient au viewport effectif en continu (pas de "clac")
+    const vpWidth = startViewportWidth + (targetViewportWidth - startViewportWidth) * eased;
+    camera.viewport = new BABYLON.Viewport(0, 0, vpWidth, 1);
+
+    // Caméra revient à sa position de navigation
+    camera.target = BABYLON.Vector3.Lerp(startTarget, targetCenter, eased);
+    camera.radius = startRadius + (targetRadius - startRadius) * eased;
+    camera.beta = startBeta + (targetBeta - startBeta) * eased;
+    camera.alpha = startAlpha + (targetAlpha - startAlpha) * eased;
+    camera.fov = startFov + (targetFovValue - startFov) * eased;
+
+    if (t >= 1) {
+      scene.onBeforeRenderObservable.remove(currentAnimObserver);
+      currentAnimObserver = null;
+      // Restaurer les limites de zoom de navigation
+      camera.lowerRadiusLimit = modelBounds.radius * CONFIG.zoomInLimitRatio;
+      camera.upperRadiusLimit = initialFraming.radius * CONFIG.zoomOutLimitRatio;
+      camera.minZ = modelBounds.radius * CONFIG.clipNearRatio;
+      camera.fov = defaultFov;
+      // Fin propre : viewport effectif net + contrôles réactivés
+      camera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+      camera.attachControl(document.getElementById('canvas'), true);
+      isAnimating = false;
+      updateToggleButton();
+    }
+  });
+}
+
+/* ============================================================================
+   CHARGEMENT DU PLAFOND
+   ============================================================================ */
+let ceilingHeight = 0; // Hauteur du plafond (calculée dynamiquement au besoin)
+
+async function loadCeiling() {
+  const base = CONFIG.assetsBase(CONFIG.propertyId);
+  try {
+    // Charger le GLB du plafond
+    const result = await importGlbResilient(base, 'plafond.glb', scene);
+    ceilingNode = groupUnder(result.meshes, 'ceiling');
+    
+    // Calculer la hauteur du plafond à partir des meshes enfants.
+    // (ceilingNode est un TransformNode : il n'a PAS de getBoundingInfo() —
+    //  l'appeler levait une exception et laissait ceilingHeight à 0, ce qui
+    //  désactivait totalement la bascule du plafond.)
+    let minY = Infinity, maxY = -Infinity;
+    ceilingNode.getChildMeshes(false).forEach(mesh => {
+      if (!mesh.getTotalVertices || mesh.getTotalVertices() === 0) return;
+      mesh.computeWorldMatrix(true);
+      const bb = mesh.getBoundingInfo().boundingBox;
+      minY = Math.min(minY, bb.minimumWorld.y);
+      maxY = Math.max(maxY, bb.maximumWorld.y);
+    });
+    // Seuil = sous-face du plafond (hauteur sous plafond de la pièce) : le plafond
+    // apparaît dès que la caméra passe SOUS ce niveau, et disparaît au-dessus.
+    ceilingHeight = (minY !== Infinity) ? minY : 0;
+
+    // ========== CONSERVER LE MATÉRIAU DU GLB (texture AO bakée) ==========
+    // IMPORTANT : on NE remplace PAS le matériau importé. Le plafond porte une
+    // texture d'AO/lightmap bakée dans son GLB qui lui donne exactement la même
+    // teinte que les murs. L'ancien code créait ici un StandardMaterial blanc
+    // et l'assignait à chaque mesh : la texture bakée était jetée, et la sous-face
+    // du plafond (orientée vers le bas) ne recevait plus que la `groundColor`
+    // sombre des lumières hémisphériques → plafond « totalement foncé ».
+    // On garde donc le matériau d'origine, exactement comme pour walls.glb.
+    ceilingNode.getChildMeshes(false).forEach(mesh => {
+      const mat = mesh.material;
+      if (!mat) return;
+      // S'assurer que l'AO bakée (chargée par le loader glTF dans ambientTexture)
+      // contribue à pleine intensité, comme sur les murs.
+      if (mat.ambientTexture) {
+        mat.ambientTextureStrength = 1.0;
+        if ('useAmbientInGrayScale' in mat) mat.useAmbientInGrayScale = true;
+      }
+      // La scène a déjà 4 lumières globales (spot + directionnelle + 2 hémi) ;
+      // notre lumière d'appoint plafond serait la 5ᵉ et donc IGNORÉE (limite PBR
+      // par défaut = 4). On relève la limite pour que l'appoint s'applique bien.
+      if ('maxSimultaneousLights' in mat) mat.maxSimultaneousLights = 8;
+    });
+
+    // ========== PRÉ-COMPILER LES SHADERS (zéro latence à l'affichage) ==========
+    // On force la compilation des matériaux d'origine pendant que le plafond est
+    // encore caché, pour qu'il s'affiche INSTANTANÉMENT quand la caméra atteint
+    // son niveau, sans le micro-figement de la 1ère frame de rendu.
+    try {
+      const compilations = [];
+      ceilingNode.getChildMeshes(false).forEach(mesh => {
+        if (mesh.material && mesh.material.forceCompilationAsync) {
+          compilations.push(mesh.material.forceCompilationAsync(mesh));
+        }
+      });
+      await Promise.all(compilations);
+    } catch (e) {
+      console.warn('⚠️ Pré-compilation plafond ignorée :', e.message);
+    }
+
+    // ========== APPOINT PLAFOND : LÉGER + TEINTÉ COMME L'UNIVERS ==========
+    // Les murs prennent leurs teintes variées de l'IBL (la HDRi). Pour que le
+    // plafond fasse PAREIL, on laisse l'IBL être sa source principale et on ne
+    // garde qu'un appoint TRÈS léger, TEINTÉ CHAUD (cohérent avec la HDRi chaude)
+    // plutôt qu'un blanc pur. Résultat : le plafond capte la teinte de l'univers
+    // et varie naturellement comme les murs, sans être lessivé en blanc ni trop foncé.
+    const ceilingMeshes = ceilingNode.getChildMeshes(false)
+      .filter(m => m.getTotalVertices && m.getTotalVertices() > 0);
+    const ceilingFill = new BABYLON.HemisphericLight(
+      'ceilingFill', new BABYLON.Vector3(0, -1, 0), scene);
+    const ceilTint = new BABYLON.Color3(1.0, 0.95, 0.88); // teinte chaude ~HDRi (pas de blanc pur)
+    ceilingFill.diffuse     = ceilTint;
+    ceilingFill.groundColor = ceilTint; // même teinte → appoint uniforme et chaud
+    ceilingFill.specular    = new BABYLON.Color3(0, 0, 0);
+    ceilingFill.intensity   = 0.35; // ⬅️ appoint léger : ↓ = plus dépendant de l'univers (plus varié), ↑ = plus uniforme/clair
+    ceilingFill.includedOnlyMeshes = ceilingMeshes; // n'éclaire QUE le plafond
+
+    // ========== CHARGER CACHÉ POUR ZÉRO LATENCE ==========
+    ceilingNode.setEnabled(false);
+
+    console.log('✅ Plafond pré-chargé caché — seuil sous-face:', ceilingHeight.toFixed(2));
+  } catch (err) {
+    console.warn('⚠️ Plafond non chargé :', err.message);
+  }
+}
+
+/* ============================================================================
+   ÉLÉMENTS PAR PIÈCE — chargement arrière-plan + switches cumulables
+   L'enveloppe low-poly (wallsRoot) reste TOUJOURS visible et n'est jamais touchée ici.
+   ============================================================================ */
+function loadRoomsAsync() {
+  // Source : manifest.json > rooms, sinon CONFIG.rooms (fallback éditable)
+  roomList = (propertyData && Array.isArray(propertyData.rooms) && propertyData.rooms.length)
+    ? propertyData.rooms
+    : (CONFIG.rooms || []);
+
+  if (!roomList.length) {
+    console.log('ℹ️ Aucune pièce déclarée (manifest.rooms ou CONFIG.rooms vide) — section masquée.');
+    return;
+  }
+
+  // Init de l'état + affichage des switches (désactivés tant que le GLB n'est pas prêt)
+  roomList.forEach(r => { roomState[r.id] = { loaded: false, enabled: false, failed: false }; });
+  if (!isFirstPerson) rebuildPoiList();
+
+  const base = CONFIG.assetsBase(CONFIG.propertyId);
+
+  // Chargement SÉQUENTIEL (un GLB à la fois) pour éviter de saturer le décodage Draco
+  setTimeout(async () => {
+    for (const r of roomList) {
+      try {
+        const result = await importGlbResilient(base, r.glb, scene);
+        const node = groupUnder(result.meshes, 'room-' + r.id);
+        node.setEnabled(!!CONFIG.roomsStartVisible);
+        roomNodes[r.id] = node;
+        roomState[r.id].loaded = true;
+        roomState[r.id].enabled = !!CONFIG.roomsStartVisible;
+
+
+        console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
+      } catch (err) {
+        roomState[r.id].failed = true;
+        console.warn(`⚠️ Pièce « ${r.label} » (${r.glb}) non chargée :`, err);
+      }
+      // Rafraîchir les switches au fil des chargements
+      if (!isFirstPerson) {
+        rebuildPoiList();
+      } else {
+        // En vue 1ère personne : si la pièce qui vient de (ne pas) charger est
+        // celle du POV courant, on re-render le panneau pour activer son switch
+        // (sinon il reste bloqué sur « chargement… » jusqu'à ce qu'on ressorte).
+        refreshFirstPersonPanelIfRoom(r.id);
+      }
+    }
+  }, CONFIG.roomsLoadDelay || 0);
+}
+
+/* Affiche/masque les éléments d'une pièce. Indépendant et cumulable.
+   Recentre le GLB en douceur à chaque clic (jamais de cut). */
+function toggleRoom(id, on) {
+  const node = roomNodes[id];
+  const st = roomState[id];
+  if (!node || !st || !st.loaded) return;
+  st.enabled = !!on;
+  node.setEnabled(!!on);
+  // NOTE : on NE recadre PAS la caméra. Afficher/masquer un élément ne doit jamais
+  // déplacer la vue (sinon la caméra recule pour "tout voir").
+}
+
+/* Tout afficher / tout masquer */
+function setAllRooms(on) {
+  roomList.forEach(r => {
+    const st = roomState[r.id];
+    if (st && st.loaded && !st.failed) {
+      st.enabled = !!on;
+      if (roomNodes[r.id]) roomNodes[r.id].setEnabled(!!on);
+    }
+  });
+  if (!isFirstPerson) rebuildPoiList();
+  // Idem : pas de recadrage caméra sur "tout afficher / tout masquer".
+}
+
+/* Recentre le GLB global dans la zone visible avec la marge configurée, en douceur.
+   Conserve l'orientation courante (nav) ou la vue de dessus selon le mode.
+   Appelé à chaque clic de bouton pour remettre le modèle bien cadré. */
+function recenterModel(animated) {
+  // En 1ère personne on ne recentre pas (la caméra est dans une pièce)
+  if (isFirstPerson) return;
+  reframeForPanel(animated !== false);
+}
+
+
+
+/* ============================================================================
+   MANIFEST + POI
+   ============================================================================ */
+let manifestLoaded = false;
+
+async function loadManifest() {
+  try {
+    const res = await fetch(CONFIG.assetsBase(CONFIG.propertyId) + 'manifest.json');
+    if (!res.ok) throw new Error('manifest ' + res.status);
+    propertyData = await res.json();
+    manifestLoaded = true;
+  } catch (err) {
+    console.warn('manifest.json absent ou invalide — POV de démo utilisés en attendant :', err);
+    propertyData = { name: 'Visite 3D', poi: [] };
+  }
+
+  document.getElementById('header-title').textContent = propertyData.name || 'Visite 3D';
+  // Si le manifest ne contient aucun POI, on les génère après le chargement des murs
+  // (generateDefaultPOIs a besoin de modelBounds, donc appelé depuis loadWalls())
+}
+
+/* ============================================================================
+   POV DE DÉMO — 9 emplacements approximatifs basés sur le plan de référence
+   Positions en FRACTION de la bounding box (0 = bord min, 1 = bord max),
+   à corriger ensuite avec le mode placement intégré (bouton "Placer un POV").
+   xFrac/zFrac = position dans la pièce vue du dessus (plan de référence).
+   ============================================================================ */
+const DEFAULT_POI_LAYOUT = [
+  { id: 'entree',    label: 'Entrée',       image: 'entree.jpg',      xFrac: 0.157, zFrac: 0.833 },
+  { id: 'couloir',   label: 'Couloir',      image: 'couloir.jpg',     xFrac: 0.214, zFrac: 0.237 },
+  { id: 'salle-bain',label: 'Salle de bain',image: 'salle-bain.jpg',  xFrac: 0.467, zFrac: 0.550 },
+  { id: 'toilettes', label: 'Toilettes',    image: 'toilettes.jpg',   xFrac: 0.583, zFrac: 0.262 },
+  { id: 'balcon',    label: 'Balcon',       image: 'balcon.jpg',      xFrac: 0.700, zFrac: 0.194 },
+  { id: 'cuisine',   label: 'Cuisine',      image: 'cuisine.jpg',     xFrac: 0.720, zFrac: 0.318 },
+  { id: 'chambre-1', label: 'Chambre 1',    image: 'chambre-1.jpg',   xFrac: 0.759, zFrac: 0.306 },
+  { id: 'chambre-2', label: 'Chambre 2',    image: 'chambre-2.jpg',   xFrac: 0.727, zFrac: 0.479 },
+  { id: 'salon',     label: 'Salon',        image: 'salon.jpg',       xFrac: 0.637, zFrac: 0.513 },
+];
+
+const POV_EYE_HEIGHT = 1.6; // hauteur des yeux par défaut (m)
+
+function generateDefaultPOIs() {
+  if (!modelBounds) return [];
+  const { min, max, center } = modelBounds;
+  const w = max.x - min.x;
+  const d = max.z - min.z;
+
+  return DEFAULT_POI_LAYOUT.map(p => {
+    const x = min.x + p.xFrac * w;
+    const z = min.z + p.zFrac * d;
+    const camPos = [x, POV_EYE_HEIGHT, z];
+    // Cible par défaut : on regarde vers le centre de l'appart (sera affiné via le mode placement)
+    let dirX = center.x - x, dirZ = center.z - z;
+    const len = Math.sqrt(dirX*dirX + dirZ*dirZ) || 1;
+    dirX /= len; dirZ /= len;
+    const camTarget = [x + dirX * 2, POV_EYE_HEIGHT - 0.05, z + dirZ * 2];
+    return { id: p.id, label: p.label, image: p.image, camPos, camTarget };
+  });
+}
+
+/* ============================================================================
+   ALLER VERS UN POV → ANIMATION CAMÉRA EN VUE 1ÈRE PERSONNE
+   ============================================================================ */
+function goToPOI(poiId) {
+  if (!propertyData || isAnimating) return;
+  const poi = (propertyData.poi || []).find(p => p.id === poiId);
+  if (!poi) return;
+
+  // Bouton actif dans la liste
+  document.querySelectorAll('.poi-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`poi-${poiId}`);
+  if (btn) btn.classList.add('active');
+
+  // TÉLÉPHONE comme desktop/tablette : entrée en vue immersive POV.
+  // (Les pastilles POV ayant été retirées du viewer sur téléphone, l'accès POV se
+  //  fait désormais par le menu. Les photos restent accessibles via leur bouton
+  //  dédié « Photos » → openPhotosFromMenu().)
+  enterFirstPerson(poi);
+}
+
+/* Ouvre directement la galerie photos plein écran d'une pièce depuis le menu
+   (bouton « Photos » sur téléphone). Indépendant du POV. */
+function openPhotosFromMenu(poiId) {
+  if (!propertyData) return;
+  const poi = (propertyData.poi || []).find(p => p.id === poiId);
+  if (!poi) return;
+  if (!openPoiPhotosMobile(poi)) {
+    // Aucune photo pour cette pièce : on bascule sur la vue immersive à la place.
+    goToPOI(poiId);
+  }
+}
+
+/* Clic sur le NOM de la pièce dans le menu.
+   - Téléphone : ouvre directement les photos de la pièce (l'immersion POV, calibrée
+     souris, n'est pas proposée au tactile). Si la pièce n'a pas de photo, on retombe
+     sur le POV pour ne pas laisser le tap sans effet.
+   - Desktop / tablette : comportement d'origine inchangé → entrée en POV. */
+function onPoiNameClick(poiId) {
+  const phone = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  if (phone) { openPhotosFromMenu(poiId); return; }
+  goToPOI(poiId);
+}
+
+/* Position de l'appareil photo + point regardé */
+function poiCamPos(poi) {
+  const a = poi.camPos || poi.position || [0, 1.6, 0];
+  return new BABYLON.Vector3(a[0], a[1], a[2]);
+}
+function poiCamTarget(poi) {
+  // camTarget explicite, sinon on regarde droit devant (vers le centre de l'appart)
+  if (poi.camTarget) {
+    return new BABYLON.Vector3(poi.camTarget[0], poi.camTarget[1], poi.camTarget[2]);
+  }
+  const p = poiCamPos(poi);
+  const c = modelBounds ? modelBounds.center : BABYLON.Vector3.Zero();
+  // direction horizontale vers le centre, à hauteur des yeux
+  const dir = c.subtract(p);
+  dir.y = 0;
+  if (dir.lengthSquared() < 0.001) dir.set(0, 0, 1);
+  dir.normalize();
+  return p.add(dir.scale(2)); // un point 2m devant
+}
+
+/* Animation ArcRotateCamera vers la vue 1ère personne, puis rotation libre sur place */
+/* Caméra panorama : pivote sur son propre axe (l'œil reste fixe, seul le regard tourne) */
+function enterPanoramaCamera(eyePos, lookAt) {
+  if (!fpCamera) {
+    fpCamera = new BABYLON.UniversalCamera('fpCamera', eyePos.clone(), scene);
+    fpCamera.minZ = 0.05;
+    fpCamera.inertia = 0.35;             // faible inertie → la rotation s'arrête net quand le doigt/la souris s'arrête (plus de dérive)
+    fpCamera.angularSensibility = 2000;  // rotation souris POV (diviseur ; plus bas = plus rapide) — un peu plus vive
+    // Rotation TACTILE : gérée manuellement (voir enablePovTouchLook) pour que le
+    // glissement d'UN doigt fasse tourner la vue dans les DEUX axes (gauche/droite
+    // ET haut/bas). L'input tactile natif de Babylon ne gère bien que l'axe X, on
+    // le retire donc pour éviter les conflits.
+    try {
+      if (fpCamera.inputs && fpCamera.inputs.attached && fpCamera.inputs.attached.touch) {
+        fpCamera.inputs.removeByType('FreeCameraTouchInput');
+      }
+    } catch (e) { /* selon version Babylon, l'input peut porter un autre nom */ }
+    fpCamera.speed = 0;                  // aucun déplacement
+    fpCamera.keysUp = []; fpCamera.keysDown = []; fpCamera.keysLeft = []; fpCamera.keysRight = [];
+    // Souris : seulement le clic gauche pour pivoter, aucune translation
+    if (fpCamera.inputs && fpCamera.inputs.attached && fpCamera.inputs.attached.mouse) {
+      fpCamera.inputs.attached.mouse.buttons = [0];
+    }
+
+    // ========== TRAITEMENT D'IMAGE IDENTIQUE EN VUE POV ==========
+    // Le pipeline de compositing ('compositing') n'était attaché qu'à
+    // l'ArcRotateCamera. En passant sur la fpCamera, la vue POV ne traversait plus
+    // ce post-traitement → rendu plus sombre/contrasté et SANS bloom. On rattache
+    // donc LE MÊME pipeline à la fpCamera : ACES, exposition, contraste, bloom,
+    // vignette et netteté sont désormais strictement identiques dans les 2 vues.
+    try {
+      if (scene.postProcessRenderPipelineManager) {
+        scene.postProcessRenderPipelineManager
+          .attachCamerasToRenderPipeline('compositing', fpCamera);
+      }
+    } catch (e) {
+      console.warn('⚠️ Compositing non rattaché à la fpCamera :', e.message);
+    }
+  }
+  fpCamera.position.copyFrom(eyePos);
+  fpCamera.fov = CONFIG.firstPersonFovWide;
+
+  // Calculer la direction vers lookAt et en déduire les rotations Euler
+  const dir = lookAt.subtract(eyePos).normalize();
+  // dir.x = sin(yaw) * cos(pitch)
+  // dir.y = -sin(pitch)  (note: y positif = haut, pitch positif = regard vers bas)
+  // dir.z = cos(yaw) * cos(pitch)
+  const pitch = -Math.asin(BABYLON.Scalar.Clamp(dir.y, -0.999, 0.999)); // yaw négatif vers le bas
+  const yaw = Math.atan2(dir.x, dir.z);
+  fpCamera.rotation.x = pitch; // tangage
+  fpCamera.rotation.y = yaw;   // lacet
+  fpCamera.rotation.z = 0;      // roulis
+  const fixedPitch = pitch;     // verrouiller le tangage immédiatement
+
+  fpCamera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+
+  // ========== PANORAMIC (haut/bas/gauche/droite) avec garde-fou vertical ==========
+  // On autorise le regard vers le haut et vers le bas, mais on empêche le
+  // retournement complet (tête en bas) qui rend la vue illisible. Le pitch est
+  // clampé en douceur entre presque -90° et +90°.
+  if (fpPitchObserver) scene.onBeforeRenderObservable.remove(fpPitchObserver);
+  const PITCH_MAX = Math.PI / 2 - 0.08; // ~85° vers le haut et vers le bas
+  fpPitchObserver = scene.onBeforeRenderObservable.add(() => {
+    if (fpCamera.rotation.x >  PITCH_MAX) fpCamera.rotation.x =  PITCH_MAX;
+    if (fpCamera.rotation.x < -PITCH_MAX) fpCamera.rotation.x = -PITCH_MAX;
+    fpCamera.rotation.z = 0; // jamais de roulis
+  });
+
+  camera.detachControl();
+  scene.activeCamera = fpCamera;
+  fpCamera.attachControl(document.getElementById('canvas'), true);
+
+  // ========== POV EN GRAND ANGLE FIXE ==========
+  // Vue POV toujours en grand angle (plus simple et plus lisible).
+  fpCamera.fov = CONFIG.firstPersonFovWide;
+
+  // Active la rotation tactile personnalisée (1 doigt = la vue suit le doigt dans
+  // les deux axes), le pincement 2 doigts (zoom) et la molette (PC).
+  enablePovZoom();
+}
+
+/* Borne le FOV de la caméra POV entre l'ouverture de base (zoom max) et le grand angle. */
+function clampPovFov(v) {
+  return BABYLON.Scalar.Clamp(v, CONFIG.firstPersonFov, CONFIG.firstPersonFovWide);
+}
+
+/* Active le zoom FOV en vue POV : molette (PC) et pincement 2 doigts (mobile).
+   - Molette vers le haut / écarter les doigts  → on ZOOME (FOV diminue vers firstPersonFov)
+   - Molette vers le bas  / rapprocher les doigts → on DÉZOOME (FOV augmente vers firstPersonFovWide, grand angle) */
+function enablePovZoom() {
+  const canvas = document.getElementById('canvas');
+  disablePovZoom(); // garantit qu'on ne double pas les listeners
+
+  // --- Molette (PC) ---
+  povWheelObserver = (ev) => {
+    if (!isFirstPerson || !fpCamera) return;
+    ev.preventDefault();
+    // deltaY > 0 = molette vers le bas = dézoom (grand angle) → FOV augmente
+    const dir = ev.deltaY > 0 ? 1 : -1;
+    fpCamera.fov = clampPovFov(fpCamera.fov + dir * CONFIG.povZoomStep);
+  };
+  canvas.addEventListener('wheel', povWheelObserver, { passive: false });
+
+  // --- Tactile : 1 doigt = rotation (yaw + pitch), 2 doigts = pincement zoom ---
+  const dist2 = (t) => {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.hypot(dx, dy);
+  };
+  // Sensibilité de la rotation tactile : radians par pixel de déplacement du doigt.
+  // Plus la valeur est haute, plus la vue tourne vite. La vue "suit le doigt".
+  const TOUCH_LOOK_SPEED = 0.0042;
+  const PITCH_LIMIT = Math.PI / 2 - 0.08; // ~85° : empêche le retournement complet
+
+  const onTouchStart = (ev) => {
+    if (!isFirstPerson || !fpCamera) return;
+    if (ev.touches.length === 1) {
+      // Début d'un glissement à un doigt → on mémorise la position de départ.
+      povPinchActive = false;
+      povLookActive = true;
+      povLastTouchX = ev.touches[0].clientX;
+      povLastTouchY = ev.touches[0].clientY;
+    } else if (ev.touches.length === 2) {
+      // Deux doigts → pincement zoom, on suspend la rotation.
+      povLookActive = false;
+      povPinchActive = true;
+      povPinchStartDist = dist2(ev.touches);
+      povPinchStartFov = fpCamera.fov;
+    }
+  };
+
+  const onTouchMove = (ev) => {
+    if (!isFirstPerson || !fpCamera) return;
+
+    // Rotation à un doigt : la vue suit le doigt (gauche/droite ET haut/bas).
+    if (povLookActive && ev.touches.length === 1) {
+      ev.preventDefault();
+      const t = ev.touches[0];
+      const dx = t.clientX - povLastTouchX;
+      const dy = t.clientY - povLastTouchY;
+      povLastTouchX = t.clientX;
+      povLastTouchY = t.clientY;
+      // Glisser vers la droite → la vue tourne vers la droite ; glisser vers le
+      // haut → on lève la tête. (Signe choisi pour un rendu naturel "la vue suit".)
+      fpCamera.rotation.y += dx * TOUCH_LOOK_SPEED;
+      fpCamera.rotation.x += dy * TOUCH_LOOK_SPEED;
+      // Garde-fou vertical : pas de retournement.
+      if (fpCamera.rotation.x >  PITCH_LIMIT) fpCamera.rotation.x =  PITCH_LIMIT;
+      if (fpCamera.rotation.x < -PITCH_LIMIT) fpCamera.rotation.x = -PITCH_LIMIT;
+      fpCamera.rotation.z = 0;
+      return;
+    }
+
+    // Pincement à deux doigts : zoom (FOV).
+    if (povPinchActive && ev.touches.length === 2) {
+      ev.preventDefault();
+      const d = dist2(ev.touches);
+      const delta = (d - povPinchStartDist) * CONFIG.povPinchSensitivity;
+      fpCamera.fov = clampPovFov(povPinchStartFov - delta);
+    }
+  };
+
+  const onTouchEnd = (ev) => {
+    if (ev.touches.length === 0) {
+      povLookActive = false;
+      povPinchActive = false;
+    } else if (ev.touches.length === 1) {
+      // On repasse d'un pincement à un doigt : reprendre la rotation depuis ce doigt.
+      povPinchActive = false;
+      povLookActive = true;
+      povLastTouchX = ev.touches[0].clientX;
+      povLastTouchY = ev.touches[0].clientY;
+    }
+  };
+
+  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+  canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+  canvas.addEventListener('touchcancel', onTouchEnd, { passive: true });
+  povTouchHandlers = { start: onTouchStart, move: onTouchMove, end: onTouchEnd };
+}
+
+/* Désactive le zoom FOV en POV (retire molette + tactile). Appelé à la sortie du POV. */
+function disablePovZoom() {
+  const canvas = document.getElementById('canvas');
+  if (povWheelObserver) {
+    canvas.removeEventListener('wheel', povWheelObserver, { passive: false });
+    povWheelObserver = null;
+  }
+  if (povTouchHandlers) {
+    canvas.removeEventListener('touchstart', povTouchHandlers.start, { passive: false });
+    canvas.removeEventListener('touchmove', povTouchHandlers.move, { passive: false });
+    canvas.removeEventListener('touchend', povTouchHandlers.end, { passive: true });
+    canvas.removeEventListener('touchcancel', povTouchHandlers.end, { passive: true });
+    povTouchHandlers = null;
+  }
+  povPinchActive = false;
+}
+
+/* Restaure l'ArcRotateCamera en l'alignant sur la vue actuelle du panorama (transition douce) */
+function exitPanoramaCamera() {
+  disablePovZoom(); // retire la molette + le pincement liés au POV
+  if (fpPitchObserver) { scene.onBeforeRenderObservable.remove(fpPitchObserver); fpPitchObserver = null; }
+  if (fpCamera) {
+    const fwd = fpCamera.getForwardRay().direction;
+    const lookPoint = fpCamera.position.add(fwd.scale(2));
+    camera.setTarget(lookPoint);
+    camera.setPosition(fpCamera.position.clone());
+    fpCamera.detachControl();
+  }
+  scene.activeCamera = camera;
+  camera.attachControl(document.getElementById('canvas'), true);
+}
+
+function enterFirstPerson(poi) {
+  if (isAnimating) return;
+  isAnimating = true;
+  isTopView = false;
+  isFirstPerson = true;
+  currentPoiId = poi.id;
+  setHudVisible(false); // masque le HUD plan si on partait de la vue de dessus
+
+  // Stopper tout observer d'animation en cours
+  if (currentAnimObserver) {
+    scene.onBeforeRenderObservable.remove(currentAnimObserver);
+    currentAnimObserver = null;
+  }
+
+  camera.detachControl();
+  camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+
+  // Masquer les marqueurs pendant qu'on est immergé dans la pièce
+  setMarkersVisible(false);
+
+  const camPos = poiCamPos(poi);
+  const lookAt = poiCamTarget(poi);
+
+  // ArcRotateCamera : la cible = point regardé, le radius petit = on est "à" camPos.
+  // On calcule alpha/beta/radius pour que la caméra soit à camPos en visant lookAt.
+  const offset = camPos.subtract(lookAt);
+  const targetRadius = Math.max(offset.length(), 0.4);
+  // alpha/beta depuis l'offset (convention Babylon ArcRotate)
+  const targetBeta = Math.acos(BABYLON.Scalar.Clamp(offset.y / targetRadius, -1, 1));
+  const targetAlpha = Math.atan2(offset.z, offset.x);
+
+  // États de départ
+  const startTarget = camera.target.clone();
+  const startRadius = camera.radius;
+  const startAlpha = camera.alpha;
+  const startBeta = camera.beta;
+  const startVp = camera.viewport.width;
+  const targetVp = getEffectiveViewportWidth();
+  const startFov = camera.fov;
+  // On anime directement vers le GRAND ANGLE (firstPersonFovWide), la valeur finale
+  // de la caméra POV. Ainsi l'élargissement du champ se fait EN MÊME TEMPS que le vol
+  // de caméra, et le passage sur la caméra POV (même FOV) est invisible — plus de
+  // bascule brutale en grand angle à l'arrivée.
+  const targetFov = CONFIG.firstPersonFovWide;
+
+  // Délier temporairement les limites de zoom pour permettre le rapprochement
+  camera.lowerRadiusLimit = null;
+  camera.upperRadiusLimit = null;
+  camera.lowerBetaLimit = 0.01;
+  camera.upperBetaLimit = Math.PI - 0.01;
+
+  const totalFrames = 100;
+  let frame = 0;
+
+  currentAnimObserver = scene.onBeforeRenderObservable.add(() => {
+    frame++;
+    const t = Math.min(frame / totalFrames, 1);
+    const eased = easeInOut(t);
+
+    camera.viewport = new BABYLON.Viewport(0, 0, startVp + (targetVp - startVp) * eased, 1);
+    camera.target = BABYLON.Vector3.Lerp(startTarget, lookAt, eased);
+    camera.radius = startRadius + (targetRadius - startRadius) * eased;
+    camera.alpha = startAlpha + (targetAlpha - startAlpha) * eased;
+    camera.beta = startBeta + (targetBeta - startBeta) * eased;
+    camera.fov = startFov + (targetFov - startFov) * eased;
+
+    if (t >= 1) {
+      scene.onBeforeRenderObservable.remove(currentAnimObserver);
+      currentAnimObserver = null;
+      isAnimating = false;
+
+      // Bascule sur une caméra "tête" qui pivote sur son propre axe (vrai panorama sur place)
+      enterPanoramaCamera(camPos, lookAt);
+
+      showFirstPersonPhoto(poi);
+      flashLookHint();
+      updateToggleButton();
+      console.log('✅ Vue 1ère personne :', poi.id);
+    }
+  });
+}
+
+/* Re-render le panneau POV si la pièce qui vient de charger est celle du POV
+   courant → le switch « Éléments de la pièce » passe de « chargement… » à actif,
+   sans devoir ressortir puis revenir dans le POV. */
+function refreshFirstPersonPanelIfRoom(roomId) {
+  if (!isFirstPerson || !currentPoiId) return;
+  const poi = (propertyData && propertyData.poi ? propertyData.poi : [])
+                .find(p => p.id === currentPoiId);
+  if (!poi) return;
+  const poiRoomId = poi.roomId || poi.id;
+  if (poiRoomId === roomId) showFirstPersonPhoto(poi);
+}
+
+/* Panneau en mode POV : éléments de LA pièce (activables) + description + photos vendeur + autres POV */
+function showFirstPersonPhoto(poi) {
+  // Ouvrir le panneau s'il est fermé — SAUF sur mobile, où le panneau est en overlay
+  // plein écran : l'ouvrir automatiquement masquerait la pièce qu'on vient d'atteindre
+  // et empêcherait de regarder autour tout de suite. Sur mobile, l'utilisateur ouvre
+  // les infos via la flèche quand il le souhaite ; le contenu est tout de même préparé.
+  const isMobile = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  if (!isPoiPanelOpen && !isMobile) togglePoiPanel();
+
+  const panel = document.getElementById('poi-panel');
+  const baseUrl = CONFIG.assetsBase(CONFIG.propertyId);
+
+  // --- Pièce associée à ce POV (roomId explicite, sinon même id que le POV) ---
+  const roomId = poi.roomId || poi.id;
+  const room = roomList.find(r => r.id === roomId);
+  const rst = room ? roomState[room.id] : null;
+  const roomLoaded = !!(rst && rst.loaded && !rst.failed);
+
+  // Auto-activer les éléments de la pièce visitée (si configuré)
+  if (room && roomLoaded && CONFIG.autoEnableRoomOnPOV) {
+    rst.enabled = true;
+    if (roomNodes[room.id]) roomNodes[room.id].setEnabled(true);
+  }
+
+  // --- Section « Éléments de la pièce » (switch unique pour cette pièce) ---
+  let roomToggleHTML = '';
+  if (room) {
+    const checked  = (rst && rst.enabled) ? 'checked' : '';
+    const disabled = roomLoaded ? '' : 'disabled';
+    const status   = (rst && rst.failed) ? '<span class="room-status">indispo.</span>'
+                   : (!roomLoaded ? '<span class="room-status">chargement…</span>' : '');
+    roomToggleHTML = `
+      <div class="room-section">
+        <div class="room-section-head">
+          <h4 class="room-section-title">Éléments de la pièce</h4>
+        </div>
+        <div class="room-row">
+          <span><span class="room-name">${room.label}</span>${status}</span>
+          <label class="switch">
+            <input type="checkbox" ${checked} ${disabled}
+                   onchange="toggleRoom('${room.id}', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>`;
+  }
+
+  // --- Description ---
+  const descHTML = poi.description ? `
+    <div class="fp-desc">
+      <div class="fp-section-title">Description</div>
+      <p>${poi.description}</p>
+    </div>` : '';
+
+  // --- Photos vendeur : poi.photos (tableau) sinon poi.image (unique) ---
+  let photos = [];
+  if (Array.isArray(poi.photos) && poi.photos.length) photos = poi.photos;
+  else if (poi.image) photos = [poi.image];
+
+  const photosHTML = photos.length ? `
+    <div class="fp-photos">
+      <div class="fp-section-title">Photos</div>
+      ${photos.map((img, idx) => {
+        const src = baseUrl + encodeURIComponent(img) + '?v=' + CONFIG.photoVersion;
+        // Stocke le tableau global une fois, puis juste passe l'index à onclick
+        return `<div class="fp-photo-frame" onclick="openLightboxFromGallery(${idx})">
+                  <img src="${src}" alt="${poi.label || ''}">
+                </div>`;
+      }).join('')}
+      <div class="fp-photo-hint">Cliquez sur une photo pour l'agrandir.</div>
+    </div>` : '';
+  
+  // Pré-charge le tableau de photos globales pour la lightbox
+  poiPhotosGallery = photos.map(img => baseUrl + encodeURIComponent(img) + '?v=' + CONFIG.photoVersion);
+
+  // --- Toutes les pièces (switcher sans quitter 1ère personne) ---
+  // Ordre fixe (celui du manifest) ; le POV actif reste à sa place, désactivé et coloré.
+  const allPois = (propertyData && propertyData.poi ? propertyData.poi : []);
+  const otherPoiHTML = allPois.length ? `
+    <div class="fp-other-poi">
+      <div class="fp-section-title">Toutes les pièces</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        ${allPois.map(p => {
+          const isActive = p.id === poi.id;
+          return `
+          <button class="fp-poi-btn ${isActive ? 'active' : ''}"
+                  ${isActive ? 'disabled' : ''}
+                  onclick="goToPOI('${p.id}')">
+            ${p.label}
+          </button>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  panel.innerHTML = `
+    <div class="fp-photo-block">
+      <div class="fp-room-title">${poi.label || 'Pièce'}</div>
+      ${roomToggleHTML}
+      ${descHTML}
+      ${photosHTML}
+      ${otherPoiHTML}
+      <button class="fp-back-btn" onclick="exitFirstPerson()">← Revenir à la visite</button>
+    </div>
+  `;
+}
+
+/* Restaure le panneau "liste des pièces" et revient à la navigation orbite */
+function exitFirstPerson() {
+  // resetView() gère tout via son bloc isFirstPerson (rebascule ArcRotate, markers, liste, etc.)
+  resetView();
+}
+
+function flashLookHint() {
+  const hint = document.getElementById('fp-look-hint');
+  if (!hint) return;
+  // Message adapté au périphérique : tactile (1 doigt) vs souris (clic-glissé).
+  const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  hint.textContent = isTouch
+    ? 'Un doigt pour regarder autour'
+    : 'Cliquez-glissez pour regarder autour';
+  hint.classList.add('show');
+  setTimeout(() => hint.classList.remove('show'), 3600);
+}
+
+/* Indication affichée à l'arrivée sur la vue 3D (au chargement) : invite les
+   visiteurs peu familiers de la 3D à explorer le modèle. Réutilise la pastille
+   du hint POV. Message adapté tactile / souris. */
+function flashExploreHint() {
+  const hint = document.getElementById('fp-look-hint');
+  if (!hint) return;
+  const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  hint.textContent = isTouch
+    ? '👆 Explorez en 3D : glissez pour tourner, pincez pour zoomer'
+    : '🖱️ Explorez en 3D : glissez pour tourner, molette pour zoomer';
+  hint.classList.add('show');
+  setTimeout(() => hint.classList.remove('show'), 5000);
+}
+
+/* Indication affichée à l'entrée en vue de dessus (plan). */
+function flashTopViewHint() {
+  const hint = document.getElementById('fp-look-hint');
+  if (!hint) return;
+  const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  hint.textContent = isTouch
+    ? '🗺️ Vue de dessus : touchez une pièce dans le menu pour la visiter'
+    : '🗺️ Vue de dessus : cliquez une pièce dans le menu pour la visiter';
+  hint.classList.add('show');
+  setTimeout(() => hint.classList.remove('show'), 5000);
+}
+
+/* (Re)construit la liste de boutons de pièces dans le panneau droite */
+function rebuildPoiList() {
+  const panel = document.getElementById('poi-panel');
+  const pois = propertyData && propertyData.poi ? propertyData.poi : [];
+  panel.innerHTML = `
+    ${renderRoomSwitchesHTML()}
+    <details class="collapsible" open>
+      <summary>
+        <h3 style="color:#fff;font-size:0.95rem;font-weight:600;margin:0;border-bottom:2px solid rgba(255,255,255,0.18);padding-bottom:0.6rem;flex:1;">Visiter les pièces</h3>
+        <svg class="collapse-arrow" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div class="poi-container" id="poi-list" style="flex:1;overflow-y:auto;padding-top:0.7rem;">
+        ${pois.map(poi => {
+          const hasPhotos = (Array.isArray(poi.photos) && poi.photos.length) || !!poi.image;
+          // .poi-btn : titre (desktop = bouton POV inchangé ; téléphone = titre de carte).
+          // .poi-item-acts : visible UNIQUEMENT sur téléphone (Vue 3D + Photos).
+          return `
+          <div class="poi-item">
+            <button class="poi-btn" id="poi-${poi.id}" data-poi="${poi.id}" onclick="onPoiNameClick('${poi.id}')">${poi.label}</button>
+            <div class="poi-item-acts">
+              ${hasPhotos ? `<button class="poi-mini poi-mini-photo" onclick="event.stopPropagation(); openPhotosFromMenu('${poi.id}')" title="Photos de la pièce">
+                <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="10" r="1.6" fill="currentColor"/><path d="M21 16l-5-5-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Photos
+              </button>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </details>
+  `;
+}
+
+/* HTML de la section « Éléments par pièce » (switches cumulables).
+   Reflète l'état courant (chargé / en cours / indispo / activé). */
+function renderRoomSwitchesHTML() {
+  if (!roomList.length) return ''; // aucune pièce déclarée → section masquée
+  const rows = roomList.map(r => {
+    const st = roomState[r.id] || {};
+    let status = '';
+    if (st.failed)      status = '<span class="room-status">indispo.</span>';
+    else if (!st.loaded) status = '<span class="room-status">chargement…</span>';
+    const disabled = (!st.loaded || st.failed) ? 'disabled' : '';
+    const checked  = st.enabled ? 'checked' : '';
+    return `
+      <div class="room-row">
+        <span><span class="room-name">${r.label}</span>${status}</span>
+        <label class="switch">
+          <input type="checkbox" ${checked} ${disabled}
+                 onchange="toggleRoom('${r.id}', this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>`;
+  }).join('');
+  return `
+    <details class="collapsible room-section" open>
+      <summary>
+        <div class="room-section-head" style="flex:1;margin-bottom:0;padding-bottom:0;border-bottom:none;">
+          <h4 class="room-section-title" style="color:#fff;">Éléments par pièce</h4>
+          <div class="room-allnone">
+            <button onclick="event.preventDefault();event.stopPropagation();setAllRooms(true)">Tout</button>
+            <button onclick="event.preventDefault();event.stopPropagation();setAllRooms(false)">Aucun</button>
+          </div>
+        </div>
+        <svg class="collapse-arrow" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div style="border-top:2px solid var(--brand-accent);padding-top:0.7rem;margin-top:0.5rem;">
+        ${rows}
+      </div>
+    </details>`;
+}
+
+/* ====== LIGHTBOX AVEC NAVIGATION PHOTOS ====== */
+function openLightboxFromGallery(index) {
+  // Ouvre la lightbox avec le tableau global de photos du POI
+  if (poiPhotosGallery.length > 0) {
+    openLightbox(poiPhotosGallery[index], poiPhotosGallery, index);
+  }
+}
+
+/* MOBILE — Concept POV repensé pour le téléphone.
+   La vue 1ère personne est calibrée pour ordinateur (souris) : sur téléphone la
+   rotation tactile ne fonctionne pas et le cadrage est illisible. On remplace donc
+   l'immersion POV par l'affichage DIRECT des photos du point de vue, en plein écran
+   (lightbox existante : lisible, glissable, navigation avant/arrière).
+   Retourne false si le POV n'a aucune photo (pour laisser un éventuel repli). */
+function openPoiPhotosMobile(poi) {
+  const baseUrl = CONFIG.assetsBase(CONFIG.propertyId);
+  let photos = [];
+  if (Array.isArray(poi.photos) && poi.photos.length) photos = poi.photos;
+  else if (poi.image) photos = [poi.image];
+  if (!photos.length) return false;
+  // encodeURIComponent : les noms accentués/majuscules (ex: « Entrée_01.png ») sont
+  // correctement encodés pour l'URL. N'altère pas les noms simples déjà valides.
+  const urls = photos.map(img => baseUrl + encodeURIComponent(img) + '?v=' + CONFIG.photoVersion);
+  poiPhotosGallery = urls;
+  // Marque le POV actif dans la liste
+  document.querySelectorAll('.poi-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('poi-' + poi.id);
+  if (btn) btn.classList.add('active');
+  openLightbox(urls[0], urls, 0);
+  return true;
+}
+
+function openLightbox(src, photoArray = null, index = 0) {
+  // Si un tableau de photos est passé, on permet la navigation
+  if (Array.isArray(photoArray) && photoArray.length > 0) {
+    currentPhotos = photoArray;
+    currentPhotoIndex = Math.max(0, Math.min(index, photoArray.length - 1));
+    displayPhoto(currentPhotoIndex);
+    
+    // Affiche nav que si > 1 photo
+    const nav = document.getElementById('lightbox-nav');
+    if (photoArray.length > 1) {
+      nav.style.display = 'flex';
+      document.getElementById('lightbox-total').textContent = photoArray.length;
+    } else {
+      nav.style.display = 'none';
+    }
+  } else {
+    // Fallback : image unique, pas de navigation
+    currentPhotos = [];
+    currentPhotoIndex = 0;
+    lightboxImgOk();
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox-nav').style.display = 'none';
+  }
+  
+  document.getElementById('lightbox').classList.remove('hidden');
+}
+
+function displayPhoto(index) {
+  if (index < 0 || index >= currentPhotos.length) return;
+  currentPhotoIndex = index;
+  lightboxImgOk(); // repart d'un état sain avant chargement
+  document.getElementById('lightbox-img').src = currentPhotos[index];
+  document.getElementById('lightbox-index').textContent = index + 1;
+}
+
+function nextPhoto() {
+  if (currentPhotos.length > 1) {
+    displayPhoto((currentPhotoIndex + 1) % currentPhotos.length);
+  }
+}
+
+function prevPhoto() {
+  if (currentPhotos.length > 1) {
+    displayPhoto((currentPhotoIndex - 1 + currentPhotos.length) % currentPhotos.length);
+  }
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.add('hidden');
+  currentPhotos = [];
+}
+
+/* Repli si une photo ne se charge pas (404, nom de fichier incorrect, etc.) :
+   on affiche un message lisible au lieu d'un écran noir vide. */
+function lightboxImgError() {
+  const img = document.getElementById('lightbox-img');
+  const err = document.getElementById('lightbox-error');
+  if (img) img.style.visibility = 'hidden';
+  if (err) err.classList.remove('hidden');
+}
+function lightboxImgOk() {
+  const img = document.getElementById('lightbox-img');
+  const err = document.getElementById('lightbox-error');
+  if (img) img.style.visibility = 'visible';
+  if (err) err.classList.add('hidden');
+}
+
+/* ============================================================================
+   SKYBOX NOIR → BLANC (éclairage avec variations, pas plat)
+   ============================================================================ */
+function createGradientSkybox() {
+  // Sphère géante pour la skybox
+  const skybox = BABYLON.MeshBuilder.CreateSphere('skybox', { diameter: 2000, segments: 64 }, scene);
+  
+  // Créer une texture dégradée noir (bas) → blanc (haut)
+  const gradientTexture = new BABYLON.DynamicTexture('skyboxGradient', 512, scene);
+  const ctx = gradientTexture.getContext();
+  
+  // Dégradé noir (bas) → blanc (haut)
+  const gradient = ctx.createLinearGradient(0, 512, 0, 0);  // De bas en haut
+  gradient.addColorStop(0, '#000000');    // Noir en bas
+  gradient.addColorStop(0.5, '#404040');  // Gris foncé au milieu
+  gradient.addColorStop(1, '#ffffff');    // Blanc en haut
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 512, 512);
+  gradientTexture.update();
+  
+  // Matériau pour la skybox (émet de la lumière, pas de réflexion)
+  const skyMaterial = new BABYLON.StandardMaterial('skyboxMaterial', scene);
+  skyMaterial.emissiveTexture = gradientTexture;
+  skyMaterial.backFaceCulling = false;
+  skyMaterial.disableLighting = true;
+  
+  skybox.material = skyMaterial;
+  skybox.infiniteDistance = true;  // Suit la caméra
+  
+  console.log('✅ Skybox noir→blanc créée (éclairage avec variations)');
+}
+
+/* ============================================================================
+   HDRI ENVIRONNEMENT (non-bloquant) — éclairage réaliste sur matériaux PBR des GLB
+   ============================================================================ */
+function setupHDRI() {
+  const hdriUrl = 'Hdri_Viewer_3D.hdr';
+  console.log('💡 Chargement HDRi:', hdriUrl);
+  try {
+    const hdrTexture = new BABYLON.HDRCubeTexture(hdriUrl, scene, 512);
+    hdrTexture.onLoadObservable.add(() => {
+      scene.environmentTexture = hdrTexture;
+      scene.environmentIntensity = 3.5;  // Augmenté pour vraiment voir l'effet HDRi
+      console.log('✅ HDRi appliquée (IBL) - éclairage réaliste');
+    });
+    // En cas d'échec, on ne touche pas à la scène (elle reste éclairée par les lumières de base)
+    if (hdrTexture.onErrorObservable) {
+      hdrTexture.onErrorObservable.add((e) => console.warn('⚠️ Échec HDRi, lumières de base conservées:', e));
+    }
+  } catch (e) {
+    console.warn('⚠️ HDRi non chargée (exception), lumières de base conservées:', e);
+  }
+}
+
+/* ============================================================================
+   CRÉER LES MARQUEURS POV (taille écran constante, cliquables)
+   ============================================================================ */
+const POI_MARKER_SCREEN_SIZE = 0.0065; // taille apparente à l'écran (2x plus petit)
+// Pastilles un peu plus grandes sur tablette/téléphone (cibles tactiles plus faciles).
+const POI_MARKER_TOUCH_BOOST = 2.0;
+const _poiTouchMQL = (typeof window !== 'undefined' && window.matchMedia)
+  ? window.matchMedia('(max-width: 1200px)') : null;
+function poiMarkerScreenSize() {
+  return POI_MARKER_SCREEN_SIZE * ((_poiTouchMQL && _poiTouchMQL.matches) ? POI_MARKER_TOUCH_BOOST : 1);
+}
+const POI_MARKER_COLOR = (window.__BRAND__ && window.__BRAND__.navy) || '#0B1B3F';    // couleur du marqueur POV = bleu du header (mets '#0046FE' pour le bleu accent, plus vif)
+
+function createPoiMarkers() {
+  if (!propertyData || !propertyData.poi) return;
+
+  // Nettoyer d'éventuels anciens marqueurs
+  Object.values(poiMarkers).forEach(m => {
+    if (m.observer) scene.unregisterBeforeRender(m.observer);
+    if (m.plane) m.plane.dispose();
+    if (m.group) m.group.dispose();
+  });
+  poiMarkers = {};
+
+  const pois = propertyData.poi || [];
+  console.log('📍 Création marqueurs POV pour', pois.length, 'POI');
+
+  // Marqueur POV : anneau généré en procédural à la couleur POI_MARKER_COLOR
+  // (fond transparent). Indépendant de pov.png → couleur garantie, aucun souci de
+  // chargement/affichage de texture (fini le damier).
+  const base = CONFIG.assetsBase(CONFIG.propertyId);
+  const ringTex = new BABYLON.DynamicTexture('poi-ring', 256, scene, true);
+  ringTex.hasAlpha = true;
+  const rctx = ringTex.getContext();
+  rctx.clearRect(0, 0, 256, 256);
+  
+  // Convertir la couleur hex en RGB pour Canvas (qui n'accepte pas le hex directement)
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? `rgb(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)})` : 'blue';
+  };
+  const colorRgb = hexToRgb(POI_MARKER_COLOR);
+  
+  rctx.lineWidth = 26;
+  rctx.strokeStyle = colorRgb;     // anneau
+  rctx.beginPath();
+  rctx.arc(128, 128, 92, 0, Math.PI * 2);
+  rctx.stroke();
+  rctx.fillStyle = colorRgb;       // point central
+  rctx.beginPath();
+  rctx.arc(128, 128, 20, 0, Math.PI * 2);
+  rctx.fill();
+  ringTex.update();
+
+  pois.forEach(poi => {
+    // L'ancre du marqueur = camPos si défini, sinon position (rétro-compat)
+    const anchor = poi.camPos || poi.position;
+    if (!anchor) {
+      console.warn('⚠️ POI sans camPos/position:', poi.id);
+      return;
+    }
+    const [x, y, z] = anchor;
+
+    const markerGroup = new BABYLON.TransformNode('poi-group-' + poi.id, scene);
+    markerGroup.position = new BABYLON.Vector3(x, y, z);
+
+    const markerPlane = BABYLON.MeshBuilder.CreatePlane('poi-plane-' + poi.id, {
+      size: 1,
+      sideOrientation: BABYLON.Mesh.DOUBLESIDE
+    }, scene);
+    markerPlane.parent = markerGroup;
+    markerPlane.position = BABYLON.Vector3.Zero();
+    // Billboard automatique : le plan fait toujours face à la caméra 
+    markerPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+    const poiMat = new BABYLON.StandardMaterial('mat-poi-' + poi.id, scene);
+    poiMat.diffuseTexture = ringTex;
+    poiMat.emissiveTexture = ringTex;           // rendu lumineux → toujours bien visible
+    poiMat.useAlphaFromDiffuseTexture = true;   // transparence depuis la texture
+    poiMat.emissiveColor = new BABYLON.Color3(1, 1, 1); // couleur déjà dans l'anneau
+    poiMat.disableLighting = true;
+    poiMat.backFaceCulling = false;
+    markerPlane.material = poiMat;
+
+    markerPlane.isPickable = true;
+    markerPlane.poiId = poi.id;
+    // Sur téléphone : masqué et non-cliquable dès la création (aucune interaction 3D).
+    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
+      markerPlane.setEnabled(false);
+    }
+    // Toujours rendu par-dessus la géométrie pour rester cliquable même derrière un mur proche
+    markerPlane.renderingGroupId = 1;
+
+    // Taille écran constante : on compense la distance caméra à chaque frame
+    const sizeObserver = scene.registerBeforeRender(() => {
+      if (!camera) return;
+      const dist = BABYLON.Vector3.Distance(camera.position, markerGroup.position);
+      const refRadius = (initialFraming && initialFraming.radius) ? initialFraming.radius : 10;
+      // échelle proportionnelle à la distance => taille apparente stable
+      const scale = dist * poiMarkerScreenSize() * (refRadius / 10);
+      markerPlane.scaling.set(scale, scale, scale);
+    });
+
+    poiMarkers[poi.id] = {
+      group: markerGroup,
+      plane: markerPlane,
+      observer: sizeObserver
+    };
+  });
+
+  console.log('✅ Marqueurs POV créés :', Object.keys(poiMarkers).length);
+}
+
+function setMarkersVisible(visible) {
+  // Sur TÉLÉPHONE : jamais de pastilles dans le viewer 3D (trop petites, cassent la
+  // lecture). L'accès aux pièces se fait uniquement via le menu déroulant. Le viewer
+  // reste dédié à la navigation et à la vue de dessus (cotations). Aucune autre
+  // interaction dans la scène. Tablette et desktop : comportement inchangé.
+  const phone = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  if (phone) visible = false;
+  Object.values(poiMarkers).forEach(m => {
+    if (m.plane) m.plane.setEnabled(visible);
+  });
+}
+
+/* ============================================================================
+   ANIMATION VERS VUE DE DESSUS (PERSPECTIVE)
+   ============================================================================ */
+function playTopViewAnimation() {
+  if (!initialFraming || isAnimating) return;
+  isAnimating = true;
+
+  // Si on partait d'une vue 1ère personne, restaurer l'état "visite"
+  if (isFirstPerson) {
+    exitPanoramaCamera();               // rebascule sur l'ArcRotate, alignée sur la vue panorama
+    isFirstPerson = false;
+    currentPoiId = null;
+    setMarkersVisible(true);
+    rebuildPoiList();
+    camera.panningSensibility = 300;    // translation au clic droit réactivée
+    camera.angularSensibilityX = 1000;  // vitesse de rotation de navigation
+    camera.angularSensibilityY = 1000;
+  }
+
+  // Stopper tout observer en cours (sécurité anti-conflit)
+  if (currentAnimObserver) {
+    scene.onBeforeRenderObservable.remove(currentAnimObserver);
+    currentAnimObserver = null;
+  }
+
+  // Détacher les contrôles dès le départ : pas d'interaction pendant la montée
+  camera.detachControl();
+
+  // Libérer les limites de zoom (en 1ère personne elles bloquent le radius)
+  camera.lowerRadiusLimit = null;
+  camera.upperRadiusLimit = null;
+
+  // (la cible est recentrée en douceur dans la boucle d'animation ci-dessous)
+
+  // S'assurer qu'on est en perspective pour l'animation
+  camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+  camera.upperBetaLimit = Math.PI / 2 + 0.15;
+  camera.lowerBetaLimit = 0.001;
+
+  const finalBeta = 0.001; // ~0° = directement au-dessus (vraie vue top)
+  const finalAlpha = -Math.PI / 2; // Centré
+
+  // États de départ
+  const startViewportWidth = camera.viewport.width;
+  const targetViewportWidth = getEffectiveViewportWidth(); // Considère l'état du panneau
+  const startRadius = camera.radius;
+  const startBeta = camera.beta;
+  const startAlpha = wrapAlphaNear(camera.alpha, finalAlpha);
+  const startFov = camera.fov;
+  // Cible de départ (potentiellement décalée par une translation) → on l'interpole
+  // en douceur vers le centre du modèle pour TOUJOURS recadrer, sans saut.
+  const startTarget = camera.target.clone();
+  const targetCenter = modelBounds ? modelBounds.center.clone() : camera.target.clone();
+
+  const totalFrames = 120;
+  let frame = 0;
+
+  currentAnimObserver = scene.onBeforeRenderObservable.add(() => {
+    frame++;
+    const t = Math.min(frame / totalFrames, 1);
+    const eased = easeInOut(t);
+
+    // Viewport glisse vers la zone gauche (ou reste plein écran si panneau fermé)
+    const vpWidth = startViewportWidth + (targetViewportWidth - startViewportWidth) * eased;
+    camera.viewport = new BABYLON.Viewport(0, 0, vpWidth, 1);
+
+    // Cible recentrée progressivement (corrige toute translation préalable)
+    camera.target = BABYLON.Vector3.Lerp(startTarget, targetCenter, eased);
+
+    // Beta + alpha interpolés manuellement (synchronisés avec le viewport)
+    camera.beta = startBeta + (finalBeta - startBeta) * eased;
+    camera.alpha = startAlpha + (finalAlpha - startAlpha) * eased;
+    camera.fov = startFov + (defaultFov - startFov) * eased;
+
+    // Radius recalculé pour le viewport courant (cadrage continu)
+    const targetRadius = computeTopViewRadiusForViewport(vpWidth);
+    camera.radius = startRadius + (targetRadius - startRadius) * eased;
+
+    if (t >= 1) {
+      scene.onBeforeRenderObservable.remove(currentAnimObserver);
+      currentAnimObserver = null;
+      camera.fov = defaultFov;
+      camera.target = targetCenter.clone(); // verrouille le centre exact
+      // État final verrouillé (caméra reste détachée)
+      isAnimating = false;
+      isTopView = true;
+      updateToggleButton();
+      setHudVisible(true); // affiche le HUD plan (cotations + pièces)
+      setTimeout(() => { flashTopViewHint(); }, 300);
+      console.log('✅ Vue de dessus — clique le bouton pour revenir en navigation');
+    }
+  });
+}
+
+/* Bouton bascule : alterne entre vue de dessus et navigation */
+function toggleViewMode() {
+  if (isAnimating) return; // ignore les clics pendant une transition
+  if (isTopView) {
+    resetView();            // → revient en navigation
+  } else {
+    playTopViewAnimation(); // → monte en vue de dessus
+  }
+}
+
+/* Met à jour le libellé du bouton selon le mode courant */
+/* Icônes SVG en currentColor (blanc sur le bouton) */
+const ICON_TOPVIEW = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="19"/><polyline points="6 13 12 19 18 13"/></svg>`;
+
+const ICON_NAV = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><path d="M5 7a9 9 0 0 1 14 1"/><polyline points="19 4 19.5 8.5 15 8"/><path d="M19 17a9 9 0 0 1-14-1"/><polyline points="5 20 4.5 15.5 9 16"/></svg>`;
+
+function updateToggleButton() {
+  const icon = document.getElementById('btn-icon');
+  const label = document.getElementById('btn-label');
+  const btn = document.getElementById('btn-toggle-view');
+  if (!icon || !label || !btn) return;
+  if (isTopView) {
+    icon.innerHTML = ICON_NAV;
+    label.textContent = 'Navigation';
+    btn.title = 'Revenir en navigation libre';
+  } else {
+    icon.innerHTML = ICON_TOPVIEW;
+    label.textContent = 'Vue de dessus';
+    btn.title = 'Passer en vue de dessus';
+  }
+}
+
+// Courbe d'easing identique à CubicEase EASEINOUT
+function easeInOut(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+/* ============================================================================
+   HUD PLAN — COTATIONS + NOMS DE PIÈCES (vue de dessus)
+   Calque SVG superposé. Projette le 3D → écran à chaque frame tant qu'il est
+   visible. 1ère étape : cotation GLOBALE de l'appart (largeur + profondeur) avec
+   lignes d'attache + ticks aux deux extrémités, et nom de chaque pièce en son centre.
+   ============================================================================ */
+const HUD = {
+  enabled: true,
+  // Affichage des cotes : world units → unité affichée. Modèle en mètres par défaut.
+  unitScale: 1, unitSuffix: ' m', unitDecimals: 2,
+  // Géométrie des cotations (en pixels écran)
+  dimOffset: 170,    // distance de la cote GLOBALE (extérieure) à la cage du GLB
+  segOffset: 110,     // distance de la chaîne SEGMENTÉE (intérieure, par mur)
+  roomDimOffset: 36, // distance des cotes au contour d'une pièce isolée (plus serré)
+  dimExt: 7,         // dépassement des lignes d'attache au-delà de la ligne de cote
+  dimTick: 7,        // longueur des ticks (chanfreins) aux extrémités
+  // Côtés sur lesquels on garde EN PLUS la cote globale quand une chaîne segmentée existe
+  globalSides: ['top', 'left'],
+  // Couleurs (identité Laforêt)
+  navy: '#ffffff', accent: '#ffffff', halo: 'transparent',
+  roomColor: (window.__BRAND__ && window.__BRAND__.accent) || '#0046FE',   // couleur des NOMS de pièces sur le plan (bleu Laforêt)
+  dimFont: 12, roomFont: 14,
+  // Isolation de pièce (vue de dessus) : assombrissement des autres pièces
+  maskColor: (window.__BRAND__ && window.__BRAND__.navy) || '#0B1B3F', maskOpacity: 0.5,
+};
+let hudVisible = false;
+let hudObserver = null;
+let hudScale = 1; // facteur d'échelle des cotations/libellés (responsive)
+
+// Navigation dans la lightbox photo
+let currentPhotos = [];     // tableau des URLs des photos du POI actuel
+let currentPhotoIndex = 0;  // index de la photo affichée
+let poiPhotosGallery = []; // photos du POI actuel (stockées pour la lightbox)
+
+/* Échelle du HUD proportionnelle à la hauteur réelle de la zone de rendu (CSS px).
+   Référence ~1250px : sur un écran courant l'échelle vaut ~1 → cotations de la
+   MÊME taille qu'avant le responsive. Elles grandissent doucement en 4K et
+   rapetissent sur mobile, sans jamais devenir envahissantes. */
+function computeHudScale() {
+  const cv = document.getElementById('canvas');
+  const h = cv ? cv.clientHeight : window.innerHeight;
+  return Math.max(0.75, Math.min(2.2, h / 1250));
+}
+
+/* Facteur appliqué aux DISTANCES des cotations (en px) sur écran étroit : sur
+   téléphone les lignes de cote sont dessinées à offset fixe en pixels, ce qui les
+   fait sortir du cadre. On resserre l'offset proportionnellement à la largeur —
+   SANS toucher à la taille des libellés (lisibilité préservée). Desktop = 1. */
+function hudOffsetFactor() {
+  const cv = document.getElementById('canvas');
+  const w = cv ? cv.clientWidth : window.innerWidth;
+  if (w >= 900) return 1;
+  return Math.max(0.34, w / 900);
+}
+let hudIsolatedRoom = null; // pièce actuellement isolée (objet {label, world, rect})
+
+/* Projette une position monde → coordonnées écran CSS (px), en tenant compte du
+   viewport décalé de la caméra (panneau de droite). */
+function hudProject(world) {
+  const w = engine.getRenderWidth(), h = engine.getRenderHeight();
+  const vp = (scene.activeCamera || camera).viewport.toGlobal(w, h);
+  const p = BABYLON.Vector3.Project(
+    world, BABYLON.Matrix.Identity(), scene.getTransformMatrix(), vp);
+  const cv = document.getElementById('canvas');
+  return { x: p.x * (cv.clientWidth / w), y: p.y * (cv.clientHeight / h) };
+}
+
+function hudFormat(worldLen) {
+  return (worldLen * HUD.unitScale).toFixed(HUD.unitDecimals).replace('.', ',') + HUD.unitSuffix;
+}
+
+/* Centre (X,Z) d'une pièce à partir de son node de meubles (marche même masqué). */
+function hudRoomCenter(node) {
+  const r = hudRoomRect(node);
+  if (!r) return null;
+  return new BABYLON.Vector3((r[0] + r[2]) / 2, r[4], (r[1] + r[3]) / 2);
+}
+
+/* Emprise au sol [xMin, zMin, xMax, zMax] (+ yFloor en [4]) d'un node de meubles. */
+function hudRoomRect(node) {
+  let min = new BABYLON.Vector3(Infinity, Infinity, Infinity);
+  let max = new BABYLON.Vector3(-Infinity, -Infinity, -Infinity);
+  let found = false;
+  node.getChildMeshes(false).forEach(m => {
+    if (!m.getTotalVertices || m.getTotalVertices() === 0) return;
+    m.computeWorldMatrix(true);
+    const bb = m.getBoundingInfo().boundingBox;
+    min = BABYLON.Vector3.Minimize(min, bb.minimumWorld);
+    max = BABYLON.Vector3.Maximize(max, bb.maximumWorld);
+    found = true;
+  });
+  if (!found) return null;
+  return [min.x, min.z, max.x, max.z, min.y];
+}
+
+/* Normalise un rect manifest [a,b,c,d] → [xMin,zMin,xMax,zMax]. */
+function hudNormRect(c) {
+  if (!Array.isArray(c) || c.length < 4) return null;
+  return [Math.min(c[0], c[2]), Math.min(c[1], c[3]), Math.max(c[0], c[2]), Math.max(c[1], c[3])];
+}
+
+/* Liste {label, world, rect?, id?} des pièces à étiqueter.
+   Priorité 1 : manifest.json > "roomLabels" (nom + coords + bounds optionnels).
+   Priorité 2 : centres des nodes de meubles (roomNodes) + libellés roomList.
+   Priorité 3 : POI du manifest. */
+function hudRoomLabels() {
+  // --- 1) Déclaré dans le manifest (comme les POV) ---
+  const declared = propertyData && Array.isArray(propertyData.roomLabels)
+    ? propertyData.roomLabels : null;
+  if (declared && declared.length) {
+    const yFloor = modelBounds ? modelBounds.min.y : 0;
+    const out = [];
+    declared.forEach(r => {
+      const name = r.name || r.label || r.id || '';
+      // Coordonnées acceptées : position/coords/xz = [x,z] ou [x,y,z], ou champs x/y/z
+      const c = r.position || r.coords || r.xz;
+      let x, y, z;
+      if (Array.isArray(c)) {
+        if (c.length >= 3) { x = c[0]; y = c[1]; z = c[2]; }
+        else { x = c[0]; z = c[1]; }
+      } else {
+        x = r.x; y = r.y; z = r.z;
+      }
+      if (x == null || z == null) return; // entrée incomplète → ignorée
+      // Emprise (pour l'isolation) : bounds/rect manifest, sinon node de meubles
+      let rect = hudNormRect(r.bounds || r.rect);
+      if (!rect && r.id && roomNodes[r.id]) { const rr = hudRoomRect(roomNodes[r.id]); if (rr) rect = rr; }
+      out.push({ label: name, id: r.id, rect, world: new BABYLON.Vector3(x, (y != null ? y : yFloor), z) });
+    });
+    if (out.length) return out;
+  }
+
+  // --- 2) Centres des meubles + libellés roomList ---
+  const out = [];
+  if (roomList && roomList.length) {
+    roomList.forEach(r => {
+      const node = roomNodes[r.id];
+      if (!node) return;
+      const rect = hudRoomRect(node);
+      const c = hudRoomCenter(node);
+      if (c) out.push({ label: r.label || r.id, id: r.id, rect, world: c });
+    });
+  }
+  // --- 3) Repli : POI ---
+  if (!out.length && propertyData && Array.isArray(propertyData.poi)) {
+    const y = modelBounds ? modelBounds.min.y : 0;
+    propertyData.poi.forEach(p => {
+      const pos = p.camPos || p.position;
+      if (!pos) return;
+      out.push({ label: p.label || p.id, id: p.id, rect: null, world: new BABYLON.Vector3(pos[0], y, pos[2]) });
+    });
+  }
+  return out;
+}
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+/* Dessine une cotation entre 2 points écran e1,e2, décalée vers l'extérieur
+   (normale n = vecteur unitaire pointant hors du modèle). */
+function hudDimension(g, e1, e2, n, text, offParam) {
+  const off = (offParam != null ? offParam : HUD.dimOffset) * hudScale,
+        ext = HUD.dimExt * hudScale, tk = HUD.dimTick * hudScale;
+  const d1 = { x: e1.x + n.x * off, y: e1.y + n.y * off };
+  const d2 = { x: e2.x + n.x * off, y: e2.y + n.y * off };
+
+  // Lignes d'attache (un trait à chaque mur : début et fin)
+  [[e1, d1], [e2, d2]].forEach(([a, b]) => {
+    g.appendChild(svgEl('line', {
+      x1: a.x, y1: a.y, x2: b.x + n.x * ext, y2: b.y + n.y * ext,
+      stroke: HUD.navy, 'stroke-width': 1, 'stroke-opacity': 0.55
+    }));
+  });
+
+  // Ligne de cote principale
+  g.appendChild(svgEl('line', {
+    x1: d1.x, y1: d1.y, x2: d2.x, y2: d2.y,
+    stroke: HUD.navy, 'stroke-width': 1.4
+  }));
+
+  // Ticks (chanfreins à 45°) aux deux extrémités
+  const dir = { x: d2.x - d1.x, y: d2.y - d1.y };
+  const len = Math.hypot(dir.x, dir.y) || 1;
+  const u = { x: dir.x / len, y: dir.y / len };
+  const slash = { x: (u.x + n.x) * tk, y: (u.y + n.y) * tk };
+  [d1, d2].forEach(d => {
+    g.appendChild(svgEl('line', {
+      x1: d.x - slash.x, y1: d.y - slash.y, x2: d.x + slash.x, y2: d.y + slash.y,
+      stroke: HUD.navy, 'stroke-width': 1.4
+    }));
+  });
+
+  // Libellé de la cote, centré sur la ligne, légèrement décalé vers l'extérieur
+  const mid = { x: (d1.x + d2.x) / 2 + n.x * 14 * hudScale, y: (d1.y + d2.y) / 2 + n.y * 14 * hudScale };
+  let ang = Math.atan2(dir.y, dir.x) * 180 / Math.PI;
+  if (ang > 90 || ang < -90) ang += 180; // garde le texte lisible
+  const t = svgEl('text', {
+    x: mid.x, y: mid.y, transform: `rotate(${ang} ${mid.x} ${mid.y})`,
+    'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    'font-family': 'system-ui, sans-serif', 'font-size': HUD.dimFont * hudScale,
+    'font-weight': 600, fill: HUD.accent,
+    stroke: HUD.halo, 'stroke-width': 3 * hudScale, 'paint-order': 'stroke'
+  });
+  t.textContent = text;
+  g.appendChild(t);
+}
+
+function hudRoomLabel(g, p, label, dim) {
+  const t = svgEl('text', {
+    x: p.x, y: p.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    'font-family': 'system-ui, sans-serif', 'font-size': HUD.roomFont * hudScale,
+    'font-weight': 700, 'letter-spacing': '0.04em',
+    fill: HUD.roomColor, stroke: HUD.halo, 'stroke-width': 3.5 * hudScale, 'paint-order': 'stroke',
+    opacity: dim ? 0.4 : 1
+  });
+  t.textContent = (label || '').toUpperCase();
+  g.appendChild(t);
+  return t;
+}
+
+/* Projette un rect monde [xMin,zMin,xMax,zMax] (au sol y) → 4 coins écran {a,b,c,d}. */
+function hudProjectRect(rect, y) {
+  return {
+    a: hudProject(new BABYLON.Vector3(rect[0], y, rect[1])),
+    b: hudProject(new BABYLON.Vector3(rect[2], y, rect[1])),
+    c: hudProject(new BABYLON.Vector3(rect[2], y, rect[3])),
+    d: hudProject(new BABYLON.Vector3(rect[0], y, rect[3])),
+  };
+}
+
+/* Chaîne de cotation SEGMENTÉE le long d'une arête monde Sworld→Eworld.
+   segments = longueurs (m) cumulées depuis Sworld ; un trait d'attache + tick
+   à chaque rupture de mur. Les breaks sont positionnés à la vraie distance réelle. */
+function hudChain(g, Sworld, Eworld, n, segments, off) {
+  const worldLen = BABYLON.Vector3.Distance(Sworld, Eworld) || 1;
+  let cum = 0;
+  let prevP = hudProject(Sworld);
+  segments.forEach(seg => {
+    cum += seg;
+    const f = Math.min(cum / worldLen, 1);
+    const wpt = BABYLON.Vector3.Lerp(Sworld, Eworld, f);
+    const ppt = hudProject(wpt);
+    hudDimension(g, prevP, ppt, n, hudFormat(seg), off);
+    prevP = ppt;
+  });
+}
+
+/* Cotation sur les 4 côtés d'un quad écran P={a,b,c,d}. */
+function hudQuadDimensions(g, P, wText, dText, off) {
+  const avgY = e => (e[0].y + e[1].y) / 2, avgX = e => (e[0].x + e[1].x) / 2;
+  const eMinZ = [P.a, P.b], eMaxZ = [P.d, P.c];
+  const top = avgY(eMinZ) <= avgY(eMaxZ) ? eMinZ : eMaxZ;
+  const bottom = top === eMinZ ? eMaxZ : eMinZ;
+  const eMinX = [P.a, P.d], eMaxX = [P.b, P.c];
+  const left = avgX(eMinX) <= avgX(eMaxX) ? eMinX : eMaxX;
+  const right = left === eMinX ? eMaxX : eMinX;
+  hudDimension(g, top[0], top[1], { x: 0, y: -1 }, wText, off);
+  hudDimension(g, bottom[0], bottom[1], { x: 0, y: 1 }, wText, off);
+  hudDimension(g, left[0], left[1], { x: -1, y: 0 }, dText, off);
+  hudDimension(g, right[0], right[1], { x: 1, y: 0 }, dText, off);
+}
+
+/* Masque sombre plein écran avec un trou sur le quad de la pièce active. */
+function hudDrawMask(g, Q) {
+  const cv = document.getElementById('canvas');
+  const W = cv.clientWidth, H = cv.clientHeight;
+  const d = `M0,0 L${W},0 L${W},${H} L0,${H} Z `
+          + `M${Q.a.x},${Q.a.y} L${Q.b.x},${Q.b.y} L${Q.c.x},${Q.c.y} L${Q.d.x},${Q.d.y} Z`;
+  const path = svgEl('path', {
+    d, 'fill-rule': 'evenodd', fill: HUD.maskColor, 'fill-opacity': HUD.maskOpacity
+  });
+  path.style.pointerEvents = 'none';
+  g.appendChild(path);
+}
+
+function hudMakeIsolable(el, entry) {
+  // Isolation au clic désactivée : le HUD ne capte plus aucun événement tactile,
+  // ce qui garantit que le menu et la navigation restent interactifs en vue de dessus.
+  return;
+}
+
+/* Recalcule et redessine tout le HUD (appelé chaque frame en vue de dessus). */
+function hudUpdate() {
+  const g = document.getElementById('hud-content');
+  if (!g || !modelBounds) return;
+  hudScale = computeHudScale(); // recalcule l'échelle à chaque frame (suit les resize)
+  while (g.firstChild) g.removeChild(g.firstChild);
+
+  const { min, max } = modelBounds;
+  const y = min.y; // plan du sol
+  const labels = hudRoomLabels();
+
+  // ===== MODE ISOLATION : une pièce active, le reste assombri =====
+  if (hudIsolatedRoom && hudIsolatedRoom.rect) {
+    const r = hudIsolatedRoom.rect;
+    const yR = (r[4] != null ? r[4] : y);
+    const Q = hudProjectRect(r, yR);
+    hudDrawMask(g, Q);                                   // assombrit les autres pièces
+    hudQuadDimensions(g, Q, hudFormat(r[2] - r[0]),      // cotations de la pièce (4 côtés)
+                      hudFormat(r[3] - r[1]), HUD.roomDimOffset * hudOffsetFactor());
+    hudRoomLabel(g, hudProject(hudIsolatedRoom.world), hudIsolatedRoom.label); // libellé actif
+    // Autres libellés, atténués, cliquables pour basculer directement
+    labels.forEach(e => {
+      if (e === hudIsolatedRoom || (e.id && e.id === hudIsolatedRoom.id)) return;
+      hudMakeIsolable(hudRoomLabel(g, hudProject(e.world), e.label, true), e);
+    });
+    return;
+  }
+
+  // ===== MODE NORMAL : chaînes segmentées (par mur) + cote globale + noms =====
+  const A = new BABYLON.Vector3(min.x, y, min.z), B = new BABYLON.Vector3(max.x, y, min.z);
+  const C = new BABYLON.Vector3(max.x, y, max.z), D = new BABYLON.Vector3(min.x, y, max.z);
+  const pA = hudProject(A), pB = hudProject(B), pC = hudProject(C), pD = hudProject(D);
+  const edges = {
+    minZ: { w: [A, B], p: [pA, pB] }, maxZ: { w: [D, C], p: [pD, pC] },
+    minX: { w: [A, D], p: [pA, pD] }, maxX: { w: [B, C], p: [pB, pC] },
+  };
+  const avgY = e => (e.p[0].y + e.p[1].y) / 2, avgX = e => (e.p[0].x + e.p[1].x) / 2;
+  const topE = avgY(edges.minZ) <= avgY(edges.maxZ) ? edges.minZ : edges.maxZ;
+  const botE = topE === edges.minZ ? edges.maxZ : edges.minZ;
+  const leftE = avgX(edges.minX) <= avgX(edges.maxX) ? edges.minX : edges.maxX;
+  const rightE = leftE === edges.minX ? edges.maxX : edges.minX;
+
+  const dims = (propertyData && propertyData.dimensions) || {};
+  const wWidth = hudFormat(max.x - min.x), wDepth = hudFormat(max.z - min.z);
+
+  // Dessine un côté : chaîne segmentée (si déclarée) + cote globale (selon globalSides / fallback)
+  function drawSide(name, edge, normal, horizontal, overallText) {
+    let w0 = edge.w[0], w1 = edge.w[1], p0 = edge.p[0], p1 = edge.p[1];
+    const swap = horizontal ? (p0.x > p1.x) : (p0.y > p1.y); // sens de lecture
+    if (swap) { const tw = w0; w0 = w1; w1 = tw; const tp = p0; p0 = p1; p1 = tp; }
+    const segs = dims[name];
+    if (segs && segs.length) hudChain(g, w0, w1, normal, segs, HUD.segOffset * hudOffsetFactor());
+    if (HUD.globalSides.includes(name) || !(segs && segs.length)) {
+      hudDimension(g, p0, p1, normal, overallText, HUD.dimOffset * hudOffsetFactor());
+    }
+  }
+  drawSide('top',    topE,   { x: 0, y: -1 }, true,  wWidth);
+  drawSide('bottom', botE,   { x: 0, y: 1 },  true,  wWidth);
+  drawSide('left',   leftE,  { x: -1, y: 0 }, false, wDepth);
+  drawSide('right',  rightE, { x: 1, y: 0 },  false, wDepth);
+
+  labels.forEach(e => hudMakeIsolable(hudRoomLabel(g, hudProject(e.world), e.label), e));
+}
+
+function setHudVisible(on) {
+  if (!HUD.enabled) on = false;
+  hudVisible = on;
+  if (!on) hudIsolatedRoom = null; // on sort toujours de l'isolation en quittant la vue
+  const svg = document.getElementById('hud-svg');
+  if (svg) svg.style.opacity = on ? '1' : '0';
+  if (on) {
+    hudUpdate();
+    if (!hudObserver) {
+      hudObserver = scene.onAfterRenderObservable.add(() => { if (hudVisible) hudUpdate(); });
+    }
+  } else if (hudObserver) {
+    scene.onAfterRenderObservable.remove(hudObserver);
+    hudObserver = null;
+    const g = document.getElementById('hud-content');
+    if (g) while (g.firstChild) g.removeChild(g.firstChild);
+  }
+}
+
+/* ============================================================================
+   TOGGLE PANNEAU POI (OUVERT/FERMÉ)
+   ============================================================================ */
+function togglePoiPanel() {
+  isPoiPanelOpen = !isPoiPanelOpen;
+  const panel = document.getElementById('poi-panel');
+  const btn = document.getElementById('btn-toggle-panel');
+  const container = document.querySelector('.right-panel-container');
+
+  if (isPoiPanelOpen) {
+    panel.classList.remove('closed');
+  } else {
+    panel.classList.add('closed');
+  }
+
+  // Coupe le flou du verre pendant le glissement + le recadrage caméra (perf),
+  // puis le restaure une fois immobile.
+  if (container) {
+    container.classList.add('reframing');
+    clearTimeout(container._reframeTimer);
+    container._reframeTimer = setTimeout(() => container.classList.remove('reframing'), 760);
+  }
+
+  // Une transition est déjà en cours : son état final prendra en compte le panneau
+  if (isAnimating) return;
+
+  // En 1ère personne : seul le viewport de la caméra panorama est ajusté (pas de recadrage)
+  if (isFirstPerson && fpCamera) {
+    fpCamera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+    return;
+  }
+
+  // Navigation OU vue de dessus : recadrage doux et cohérent du GLB
+  reframeForPanel(true);
+}
+
+/* ============================================================================
+   VIEWPORT DÉCALÉ — déporte le rendu 3D sur la gauche pour libérer la droite
+   ============================================================================ */
+function getTopViewViewportWidth() {
+  // Sur petit écran (téléphone / tablette portrait), le panneau passe en overlay
+  // plein écran : on ne réserve aucun espace 3D, le viewport reste plein.
+  if (window.innerWidth < 900) return 1;
+  const cv = document.getElementById('canvas');
+  const canvasW = cv ? cv.clientWidth : window.innerWidth;
+  // Largeur RÉELLE du panneau (responsive via CSS) → fraction réservée à droite.
+  const wrap = document.querySelector('.right-panel-wrapper');
+  const panelW = wrap ? wrap.getBoundingClientRect().width : 0;
+  const panelFraction = canvasW > 0 ? panelW / canvasW : 0;
+  return Math.max(0.25, 1 - panelFraction); // largeur mini 25%
+}
+
+function getEffectiveViewportWidth() {
+  // Si le panneau est ouvert, utiliser la largeur réduite; sinon, plein écran
+  return isPoiPanelOpen ? getTopViewViewportWidth() : 1;
+}
+
+function applyTopViewViewport() {
+  camera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+}
+
+function resetViewport() {
+  camera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+}
+
+/* ============================================================================
+   CADRAGE COHÉRENT — le GLB est toujours margé de la même manière
+   quel que soit l'état du panneau (ouvert/fermé) et le mode (nav/top).
+   ============================================================================ */
+
+/* Distance de cadrage "fit" en NAVIGATION pour une largeur de viewport donnée.
+   Indépendant du camera.viewport courant → on calcule l'aspect effectif nous-mêmes. */
+function computeFitRadiusForViewport(viewportWidth) {
+  if (!modelBounds) return initialFraming ? initialFraming.radius : 10;
+  const fovV = camera.fov;
+  const renderW = engine.getRenderWidth();
+  const renderH = engine.getRenderHeight();
+  const aspect = (renderW * viewportWidth) / renderH;     // aspect de la zone réellement rendue
+  const fovH = 2 * Math.atan(Math.tan(fovV / 2) * aspect);
+  const limitingFov = Math.min(fovV, fovH);
+  return (modelBounds.radius / Math.sin(limitingFov / 2)) * CONFIG.fitMargin;
+}
+
+/* Anime en douceur le viewport ET le rayon (et éventuellement la cible) vers leurs
+   valeurs cibles. Utilisé lors de l'ouverture/fermeture du panneau pour « remettre
+   en place » le GLB sans saut. */
+function animateViewportAndRadius(targetViewport, targetRadius, targetCenter, frames) {
+  frames = frames || 40;
+  if (currentAnimObserver) {
+    scene.onBeforeRenderObservable.remove(currentAnimObserver);
+    currentAnimObserver = null;
+  }
+  isAnimating = true;
+  camera.detachControl();
+
+  const startVp     = camera.viewport.width;
+  const startRadius = camera.radius;
+  const startTarget = camera.target.clone();
+
+  // Libère temporairement les limites de zoom pour autoriser le changement de rayon
+  camera.lowerRadiusLimit = null;
+  camera.upperRadiusLimit = null;
+
+  let frame = 0;
+  currentAnimObserver = scene.onBeforeRenderObservable.add(() => {
+    frame++;
+    const t = Math.min(frame / frames, 1);
+    const e = easeInOut(t);
+
+    const vp = startVp + (targetViewport - startVp) * e;
+    camera.viewport = new BABYLON.Viewport(0, 0, vp, 1);
+    camera.radius = startRadius + (targetRadius - startRadius) * e;
+    if (targetCenter) camera.target = BABYLON.Vector3.Lerp(startTarget, targetCenter, e);
+
+    if (t >= 1) {
+      scene.onBeforeRenderObservable.remove(currentAnimObserver);
+      currentAnimObserver = null;
+      camera.viewport = new BABYLON.Viewport(0, 0, targetViewport, 1);
+      isAnimating = false;
+      if (isTopView) {
+        // La vue de dessus reste verrouillée (caméra détachée)
+        camera.radius = computeTopViewRadiusForViewport(targetViewport);
+      } else {
+        // Navigation : restaure des limites de zoom cohérentes + réactive les contrôles
+        camera.lowerRadiusLimit = modelBounds.radius * CONFIG.zoomInLimitRatio;
+        camera.upperRadiusLimit = (initialFraming ? initialFraming.radius : targetRadius) * CONFIG.zoomOutLimitRatio;
+        camera.attachControl(document.getElementById('canvas'), true);
+      }
+    }
+  });
+}
+
+/* Recadre le GLB dans la zone visible courante (gauche si panneau ouvert, plein écran
+   sinon), en conservant l'orientation. C'est LE point d'entrée unique appelé à chaque
+   ouverture/fermeture du panneau pour garantir une marge constante. */
+function reframeForPanel(animated) {
+  if (!modelBounds || isAnimating) return;
+  const targetViewport = getEffectiveViewportWidth();
+
+  // Cible : recentrer sur le modèle ; rayon : « fit » selon le mode courant
+  const center = modelBounds.center.clone();
+  const targetRadius = isTopView
+    ? computeTopViewRadiusForViewport(targetViewport)
+    : computeFitRadiusForViewport(targetViewport);
+
+  if (animated) {
+    animateViewportAndRadius(targetViewport, targetRadius, center);
+  } else {
+    camera.viewport = new BABYLON.Viewport(0, 0, targetViewport, 1);
+    camera.target = center;
+    camera.radius = targetRadius;
+  }
+}
+
+/* ============================================================================
+   CALCUL DYNAMIQUE DU RADIUS POUR LA VUE DE DESSUS
+   Vu du dessus, on regarde un rectangle (largeur X × profondeur Z).
+   On calcule la distance pour que ce rectangle tienne pile dans la fenêtre,
+   selon le FOV vertical/horizontal le plus contraignant.
+   ============================================================================ */
+function computeTopViewRadius() {
+  return computeTopViewRadiusForViewport(camera.viewport.width);
+}
+
+function computeTopViewRadiusForViewport(viewportWidth) {
+  if (!modelBounds) return initialFraming.radius * 1.4;
+
+  const halfWidth = (modelBounds.max.x - modelBounds.min.x) / 2;  // demi-largeur (X)
+  const halfDepth = (modelBounds.max.z - modelBounds.min.z) / 2;  // demi-profondeur (Z)
+  const fovV = camera.fov;                                        // FOV vertical (radians)
+
+  const canvasWidth  = engine.getRenderWidth();
+  const canvasHeight = engine.getRenderHeight();
+  const viewportWidthPx = canvasWidth * viewportWidth; // largeur réellement rendue (hors panneau)
+
+  // FOV horizontal correspondant à la largeur rendue (avant marges)
+  const fovH = 2 * Math.atan(Math.tan(fovV / 2) * (viewportWidthPx / canvasHeight));
+
+  // Fractions UTILES restantes après marges proportionnelles (responsive).
+  // Sur téléphone : marges élargies → le plan occupe moins de place, laissant
+  // entrer les cotations dans le cadre. (Branche isolée : desktop inchangé.)
+  const phone = (typeof window !== 'undefined' && window.innerWidth < 900);
+  const mL = phone ? 0.14 : CONFIG.topViewMarginLeftF;
+  const mR = phone ? 0.14 : CONFIG.topViewMarginRightF;
+  const mT = phone ? 0.17 : CONFIG.topViewMarginTopF;
+  const mB = phone ? 0.14 : CONFIG.topViewMarginBottomF;
+  const usableW = Math.max(0.2, 1 - mL - mR);
+  const usableH = Math.max(0.2, 1 - mT - mB);
+
+  // Distance pour que le modèle tienne dans la fraction utile : il occupe donc
+  // toujours la même proportion d'écran, quelle que soit la résolution / le DPR.
+  const distForDepth = (halfDepth / Math.tan(fovV / 2)) / usableH;
+  const distForWidth = (halfWidth / Math.tan(fovH / 2)) / usableW;
+
+  // On prend la plus contraignante → tout rentre dans la zone visible
+  return Math.max(distForDepth, distForWidth) * CONFIG.topViewPadding;
+}
+
+/* Passer en mode orthographique avec cadrage sur le modèle */
+function switchToOrthographic() {
+  if (!modelBounds) return;
+
+  camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+
+  // Calibrer la taille ortho sur les dimensions réelles du modèle
+  const width = modelBounds.max.x - modelBounds.min.x;
+  const depth = modelBounds.max.z - modelBounds.min.z;
+  const aspect = engine.getAspectRatio(camera);
+
+  // Prendre la plus grande dimension pour que tout rentre
+  const halfSize = Math.max(width, depth) / 2 * 1.15; // 15% de marge
+
+  camera.orthoTop = halfSize;
+  camera.orthoBottom = -halfSize;
+  camera.orthoLeft = -halfSize * aspect;
+  camera.orthoRight = halfSize * aspect;
+}
+
+/* ============================================================================
+   AXES DE COORDONNÉES (pour vérifier le centrage)
+   ============================================================================ */
+function createAxesHelper() {
+  const size = 5;
+  const lines = BABYLON.MeshBuilder.CreateTube('axis', {
+    path: [
+      new BABYLON.Vector3(0, 0, 0),
+      new BABYLON.Vector3(size, 0, 0),
+    ],
+    radius: 0.05,
+    updatable: false,
+  }, scene);
+  
+  const matX = new BABYLON.StandardMaterial('matX', scene);
+  matX.emissiveColor = new BABYLON.Color3(1, 0, 0); // Rouge = X
+  lines.material = matX;
+
+  const matY = new BABYLON.StandardMaterial('matY', scene);
+  matY.emissiveColor = new BABYLON.Color3(0, 1, 0); // Vert = Y
+  const lineY = BABYLON.MeshBuilder.CreateTube('axisY', {
+    path: [
+      new BABYLON.Vector3(0, 0, 0),
+      new BABYLON.Vector3(0, size, 0),
+    ],
+    radius: 0.05,
+  }, scene);
+  lineY.material = matY;
+
+  const matZ = new BABYLON.StandardMaterial('matZ', scene);
+  matZ.emissiveColor = new BABYLON.Color3(0, 0, 1); // Bleu = Z
+  const lineZ = BABYLON.MeshBuilder.CreateTube('axisZ', {
+    path: [
+      new BABYLON.Vector3(0, 0, 0),
+      new BABYLON.Vector3(0, 0, size),
+    ],
+    radius: 0.05,
+  }, scene);
+  lineZ.material = matZ;
+
+  console.log('✅ Axes affichés : Rouge=X, Vert=Y, Bleu=Z');
+}
+
+/* ============================================================================
+   DEBUG INFO
+   ============================================================================ */
+function updateDebugInfo() {
+  const pos = camera.position;
+  const target = camera.target;
+  document.getElementById('debug-pos').textContent = `${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}`;
+  document.getElementById('debug-target').textContent = `${target.x.toFixed(2)}, ${target.y.toFixed(2)}, ${target.z.toFixed(2)}`;
+  document.getElementById('debug-radius').textContent = camera.radius.toFixed(2);
+  document.getElementById('debug-alpha').textContent = ((camera.alpha * 180) / Math.PI).toFixed(1) + '°';
+  document.getElementById('debug-beta').textContent = ((camera.beta * 180) / Math.PI).toFixed(1) + '°';
+}
+
+function toggleDebug() {
+  document.getElementById('debug-info').style.display = 
+    document.getElementById('debug-info').style.display === 'none' ? 'block' : 'none';
+}
+
+// Touche 'D' pour afficher debug
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'd' || e.key === 'D') toggleDebug();
+});
+
+/* ============================================================================
+   MODE PLACEMENT POV (outil interne pour générer les coordonnées du manifest)
+   ============================================================================ */
+let placementMode = false;
+let capturedPOVs = [];
+
+function togglePlacementMode() {
+  placementMode = !placementMode;
+  const btn = document.getElementById('placement-toggle');
+  const panel = document.getElementById('placement-panel');
+  btn.classList.toggle('active', placementMode);
+  panel.classList.toggle('hidden', !placementMode);
+  btn.textContent = placementMode ? '✕ Fermer placement' : '⊕ Placer un POV';
+}
+
+function capturePOV() {
+  const idInput = document.getElementById('pp-id');
+  const labelInput = document.getElementById('pp-label');
+  const imageInput = document.getElementById('pp-image');
+  const roomIdInput = document.getElementById('pp-roomId');
+  const descInput = document.getElementById('pp-description');
+  const photosInput = document.getElementById('pp-photos');
+
+  const id = (idInput.value || '').trim() || ('pov-' + (capturedPOVs.length + 1));
+  const label = (labelInput.value || '').trim() || id;
+  const image = (imageInput.value || '').trim() || (id + '.jpg');
+  const roomId = (roomIdInput.value || '').trim() || id; // par défaut = id du POV
+  const description = (descInput.value || '').trim() || '';
+  const photosStr = (photosInput.value || '').trim();
+  const photos = photosStr ? photosStr.split(',').map(s => s.trim()) : [];
+
+  // Position réelle de la caméra = position de l'appareil photo
+  const pos = camera.position;
+  // Point regardé = cible de la caméra ArcRotate
+  const tgt = camera.target;
+
+  const round = (v) => Math.round(v * 100) / 100;
+
+  const entry = {
+    id,
+    label,
+    roomId,
+    description,
+    ...(photos.length ? { photos } : {}),
+    image,
+    camPos: [round(pos.x), round(pos.y), round(pos.z)],
+    camTarget: [round(tgt.x), round(tgt.y), round(tgt.z)]
+  };
+
+  // Remplacer si l'id existe déjà, sinon ajouter
+  const existingIdx = capturedPOVs.findIndex(p => p.id === id);
+  if (existingIdx >= 0) capturedPOVs[existingIdx] = entry;
+  else capturedPOVs.push(entry);
+
+  updatePlacementOutput();
+
+  // Vider les champs pour le suivant
+  idInput.value = '';
+  labelInput.value = '';
+  imageInput.value = '';
+  roomIdInput.value = '';
+  descInput.value = '';
+  photosInput.value = '';
+  idInput.focus();
+}
+
+function updatePlacementOutput() {
+  const out = document.getElementById('pp-output');
+  const count = document.getElementById('pp-count');
+  count.textContent = capturedPOVs.length + ' POV capturé(s)';
+  // On génère le bloc "poi" prêt à coller dans manifest.json
+  const json = JSON.stringify({ poi: capturedPOVs }, null, 2);
+  out.value = json;
+}
+
+function copyPlacementJSON() {
+  const out = document.getElementById('pp-output');
+  out.select();
+  navigator.clipboard.writeText(out.value).then(() => {
+    const count = document.getElementById('pp-count');
+    const old = count.textContent;
+    count.textContent = '✅ Copié dans le presse-papier !';
+    setTimeout(() => { count.textContent = old; }, 1500);
+  }).catch(() => {
+    document.execCommand('copy'); // fallback
+  });
+}
+
+function resetPlacement() {
+  if (capturedPOVs.length && !confirm('Vider tous les POV capturés ?')) return;
+  capturedPOVs = [];
+  updatePlacementOutput();
+}
+
+/* ============================================================================
+   ★ CONTRÔLEUR BOTTOM-SHEET MOBILE
+   ----------------------------------------------------------------------------
+   Module autonome, actif UNIQUEMENT sur téléphone (max-width: 900px). Il
+   transforme le panneau de droite en feuille glissante à paliers, sans jamais
+   toucher à la caméra (le viewport reste plein sur mobile) ni au desktop.
+   - PORTRAIT : paliers verticaux  peek → demi → plein  (translateY).
+   - PAYSAGE  : replié / ouvert     (translateX, tranche à droite).
+   Le contexte (liste des pièces vs POV) pilote le palier par défaut ; l'usager
+   ajuste ensuite librement en glissant / tapant la poignée.
+   ============================================================================ */
+(function mobileSheet(){
+  const wrapper   = document.querySelector('.right-panel-wrapper');
+  const container = document.querySelector('.right-panel-container');
+  const panel     = document.getElementById('poi-panel');
+  if (!wrapper || !container || !panel) return;
+
+  const mqMobile   = window.matchMedia('(max-width: 900px)');
+  const mqPortrait = window.matchMedia('(orientation: portrait)');
+  const mqTablet   = window.matchMedia('(max-width: 1200px)');
+  const isMobile   = () => mqMobile.matches;
+  const isTablet   = () => mqTablet.matches;  // tablette: 900px < width <= 1200px
+  const isMobile_strict = () => isMobile() && !isTablet();  // mobile <900px seulement
+  const isPortrait = () => mqPortrait.matches;
+
+  // --- Poignée (insérée avant le panneau, hors du innerHTML régénéré) ---
+  const handle = document.createElement('div');
+  handle.className = 'sheet-handle';
+  handle.id = 'sheet-handle';
+  handle.innerHTML =
+    '<div class="sheet-grip-wrap"><div class="sheet-grip"></div></div>' +
+    '<div class="sheet-handle-row">' +
+      '<span class="sheet-handle-label" id="sheet-handle-label">Visiter les pièces</span>' +
+      '<span class="sheet-handle-hint" id="sheet-handle-hint">Glisser \u25B2</span>' +
+    '</div>';
+  container.insertBefore(handle, panel);
+
+  // --- Voile (palier plein) ---
+  const scrim = document.createElement('div');
+  scrim.className = 'sheet-scrim';
+  scrim.id = 'sheet-scrim';
+  document.body.appendChild(scrim);
+
+  // Glissé tactile sur les photos plein écran (mobile) : gauche/droite = photo
+  // suivante/précédente, vers le bas = fermer. Complète les boutons ‹ ›.
+  const lb = document.getElementById('lightbox');
+  if (lb){
+    let sx = 0, sy = 0, swiping = false;
+    lb.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) { swiping = false; return; }
+      swiping = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    }, { passive: true });
+    lb.addEventListener('touchend', e => {
+      if (!swiping) return; swiping = false;
+      const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy)){
+        if (dx < 0 && typeof window.nextPhoto === 'function') window.nextPhoto();
+        else if (dx > 0 && typeof window.prevPhoto === 'function') window.prevPhoto();
+      } else if (dy > 70 && Math.abs(dy) > Math.abs(dx)){
+        if (typeof window.closeLightbox === 'function') window.closeLightbox();
+      }
+    }, { passive: true });
+  }
+
+  let context = 'list';   // 'list' | 'pov'
+  let detent  = 'peek';   // 'peek' (fermé) | 'open' (ouvert, ~demi-écran)
+  let armPovRaise = false; // ne remonter la feuille qu'à l'ENTRÉE dans un POV
+
+  function metrics(){
+    const rect = container.getBoundingClientRect();
+    if (isPortrait()){
+      const H = rect.height || (window.innerHeight * 0.5);
+      const P = parseFloat(getComputedStyle(container).getPropertyValue('--peek')) || 88;
+      return { axis:'y', min:0, max: Math.max(0, H - P),
+               pos:{ peek: Math.max(0, H - P), open: 0 } };
+    }
+    const W = rect.width || Math.min(340, window.innerWidth * 0.46);
+    const E = parseFloat(getComputedStyle(container).getPropertyValue('--edge')) || 30;
+    return { axis:'x', min:0, max: Math.max(0, W - E),
+             pos:{ peek: Math.max(0, W - E), open: 0 } };
+  }
+
+  function setTranslate(axis, px){
+    if (axis === 'y'){ container.style.transform = 'translateY(' + px + 'px)'; }
+    else { container.style.transform = 'translateX(' + px + 'px)'; }
+    container.style.setProperty(axis === 'y' ? '--sheet-ty' : '--sheet-tx', px + 'px');
+  }
+
+  function applyDetent(name, animate){
+    detent = name;
+    const m = metrics();
+    const target = m.pos[name];               // open = 0 (les deux axes), peek = max
+    if (animate === false) container.classList.add('dragging');
+    setTranslate(m.axis, target);
+    if (animate === false) requestAnimationFrame(() => container.classList.remove('dragging'));
+    updateHint();
+    fitCanvasToBand(animate);
+  }
+
+  function updateHint(){
+    const hint = document.getElementById('sheet-handle-hint');
+    if (!hint) return;
+    if (!isPortrait()){ hint.textContent = ''; return; }
+    hint.textContent = detent === 'peek' ? 'Ouvrir \u25B2' : 'Fermer \u25BC';
+  }
+  function setLabel(txt){
+    const el = document.getElementById('sheet-handle-label');
+    if (el) el.textContent = txt;
+  }
+
+  // --- Le modèle 3D s'adapte à la fenêtre réduite quand la feuille s'ouvre ---
+  // Quand la feuille est ouverte (portrait), elle masque le bas de l'écran. On
+  // recadre le modèle pour qu'il tienne ENTIÈREMENT dans la bande haute encore
+  // visible : on DÉZOOME (le modèle rapetisse pour tenir dans ~54% de la hauteur)
+  // et on le REMONTE pour le recentrer dans cette bande. Animé pour accompagner la
+  // montée/descente de la feuille, et restauré à la fermeture. On ne touche qu'à des
+  // propriétés caméra (rayon + décalage écran) : desktop et logique viewport intacts.
+  // Si jamais le modèle remontait dans le mauvais sens, inverser le signe devant
+  // (SHEET_RESERVE / 2) dans offsetTo.
+  const SHEET_RESERVE = 0.38;   // moins de réserve = modèle plus grand
+  let camPreRadius = null, camAnimRAF = null, camLimits = null;
+
+  function camTween(cam, radiusTo, offsetTo, targetDeltaY){
+    targetDeltaY = targetDeltaY || 0;  // décalage du pivot (pour suivre l'offset écran)
+    const rFrom = cam.radius;
+    const oFrom = (cam.targetScreenOffset && cam.targetScreenOffset.y) || 0;
+    const tFrom = (cam.target && cam.target.y) || 0;
+    if (Math.abs(radiusTo - rFrom) < 1e-3 && Math.abs(offsetTo - oFrom) < 1e-3 && Math.abs(targetDeltaY) < 1e-3){
+      cam.radius = radiusTo;
+      if (cam.targetScreenOffset) cam.targetScreenOffset.y = offsetTo;
+      if (cam.target) cam.target.y = tFrom + targetDeltaY;
+      return;
+    }
+    const t0 = performance.now(), dur = 340;
+    if (camAnimRAF) cancelAnimationFrame(camAnimRAF);
+    (function step(now){
+      const t = Math.min((now - t0) / dur, 1);
+      const e = t < 0.5 ? 2*t*t : -1 + (4 - 2*t) * t;
+      cam.radius = rFrom + (radiusTo - rFrom) * e;
+      if (cam.targetScreenOffset) cam.targetScreenOffset.y = oFrom + (offsetTo - oFrom) * e;
+      if (cam.target) cam.target.y = tFrom + targetDeltaY * e;
+      if (t < 1) camAnimRAF = requestAnimationFrame(step);
+    })(t0);
+  }
+
+  // Adapte la 3D à l'espace RÉELLEMENT visible : on réduit le canvas à la bande
+  // au-dessus de la feuille (portrait) ou à sa gauche (paysage), puis on recadre le
+  // modèle pour qu'il tienne entièrement dedans. Marche en NAVIGATION comme en VUE DE
+  // DESSUS, pour n'importe quelle position du menu. Desktop/tablette : canvas plein.
+  function fitCanvasToBand(animate){
+    const cv = document.getElementById('canvas');
+    if (!cv || typeof engine === 'undefined' || !engine || typeof camera === 'undefined' || !camera) return;
+
+    // Desktop / tablette : canvas plein écran (c'est le viewport largeur qui gère le panneau droite).
+    if (!isMobile()){
+      if (cv.style.width || cv.style.height){
+        cv.style.width = ''; cv.style.height = '';
+        engine.resize();
+        if (typeof reframeForPanel === 'function') reframeForPanel(false);
+      }
+      return;
+    }
+
+    // Réduit le canvas à la bande visible.
+    const m = metrics();
+    const target = m.pos[detent];
+    const rect = container.getBoundingClientRect();
+    if (m.axis === 'y'){
+      const H = rect.height || (window.innerHeight * 0.5);
+      cv.style.width = '';
+      cv.style.height = Math.max(140, Math.round(window.innerHeight - H + target)) + 'px'; // du haut au sommet de la feuille
+    } else {
+      const W = rect.width || Math.min(340, window.innerWidth * 0.46);
+      cv.style.height = '';
+      cv.style.width = Math.max(180, Math.round(window.innerWidth - W + target)) + 'px';    // de gauche au bord de la feuille
+    }
+    engine.resize();   // le moteur relit la nouvelle taille → aspect à jour
+
+    // Recadre le modèle dans le canvas redimensionné, sans se faire brider par les
+    // limites de zoom (calées sur le plein écran).
+    if (!modelBounds) return;
+    const topView = (typeof isTopView !== 'undefined' && isTopView);
+    const fp = (typeof isFirstPerson !== 'undefined' && isFirstPerson);
+    if (fp) return;    // en POV (photo plein écran) : rien à recadrer côté 3D
+
+    const fitR = topView
+      ? computeTopViewRadiusForViewport(1)
+      : computeFitRadiusForViewport(1);
+
+    camera.lowerRadiusLimit = null;
+    camera.upperRadiusLimit = null;
+    camera.targetScreenOffset.x = 0; camera.targetScreenOffset.y = 0;
+    camera.target = modelBounds.center.clone();
+    camera.radius = fitR;
+    if (!topView){
+      camera.lowerRadiusLimit = modelBounds.radius * CONFIG.zoomInLimitRatio;
+      camera.upperRadiusLimit = Math.max(fitR, (initialFraming ? initialFraming.radius : fitR) * CONFIG.zoomOutLimitRatio);
+    }
+  }
+
+  // --- Contexte piloté par les fonctions existantes ---
+  function onList(){
+    const wasPov = context === 'pov';
+    context = 'list';
+    if (!isMobile()) return;
+    setLabel('Visiter les pièces');
+    if (wasPov) applyDetent('peek', true);   // on sort d'un POV → on redescend
+  }
+  function onPov(poi){
+    context = 'pov';
+    if (!isMobile()) return;
+    setLabel(poi && poi.label ? poi.label : 'Pièce');
+    if (armPovRaise){ applyDetent('open', true); armPovRaise = false; }
+  }
+  function onGoToPOI(){
+    armPovRaise = true;                        // prochaine entrée POV → on remonte
+    if (isMobile()) applyDetent('peek', true); // on redescend pour admirer le fondu 3D
+  }
+
+  // --- Gestes (glisser + tap) ---
+  let drag = null;
+  function down(e){
+    if (!isMobile()) return;
+    const m = metrics();
+    const startPos = m.axis === 'y' ? e.clientY : e.clientX;
+    const cur = parseFloat(container.style.getPropertyValue(m.axis === 'y' ? '--sheet-ty' : '--sheet-tx'));
+    const base = isNaN(cur) ? ((m.axis === 'x' && detent !== 'peek') ? 0 : m.pos[detent]) : cur;
+    drag = { m, startPos, base, moved:0, last: base };
+    container.classList.add('dragging');
+    // NB : pas de setPointerCapture ici. Les écouteurs move/up sont sur `window`
+    // (ils reçoivent le pointeur partout), et la capture provoquait sur certains
+    // navigateurs mobiles des taps/glissés « avalés » → menu qui ne s'ouvrait pas.
+  }
+  function move(e){
+    if (!drag) return;
+    const p = drag.m.axis === 'y' ? e.clientY : e.clientX;
+    const d = p - drag.startPos;
+    drag.moved = Math.max(drag.moved, Math.abs(d));
+    let t = drag.base + d;
+    if (t < drag.m.min) t = drag.m.min;
+    if (t > drag.m.max) t = drag.m.max;
+    drag.last = t;
+    setTranslate(drag.m.axis, t);
+  }
+  function up(){
+    if (!drag) return;
+    const st = drag; drag = null;
+    container.classList.remove('dragging');
+    if (st.moved < 8){ tapCycle(); return; }
+    // 2 états seulement : on ouvre si la feuille a été montée de plus de 35% de
+    // sa course (ou tirée vers le haut), sinon on referme. Jamais de position libre.
+    const dir = st.last - st.base;               // <0 = tiré vers l'ouverture
+    const openIf = (st.last < st.m.max * 0.65) || (dir < -40);
+    applyDetent(openIf ? 'open' : 'peek', true);
+  }
+  function tapCycle(){
+    applyDetent(detent === 'peek' ? 'open' : 'peek', true);
+  }
+
+  handle.addEventListener('pointerdown', down);
+  window.addEventListener('pointermove', move, { passive: true });
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+  scrim.addEventListener('click', () => applyDetent('peek', true));
+
+  // --- Réagencrage à la rotation / redimensionnement ---
+  function reposition(){
+    if (!isMobile()){
+      container.style.transform = '';
+      container.style.removeProperty('--sheet-ty');
+      container.style.removeProperty('--sheet-tx');
+      scrim.classList.remove('show');
+      fitCanvasToBand(false);   // canvas rendu plein écran + recadrage
+      return;
+    }
+    applyDetent(detent, false);   // applyDetent recadre déjà via fitCanvasToBand
+  }
+  // À la rotation, on efface immédiatement la transform (l'axe change : translateY
+  // portrait ↔ translateX paysage) pour éviter un décalage transitoire, puis on
+  // recalcule le palier une fois la nouvelle mise en page stabilisée.
+  function onOrientation(){
+    if (isMobile()){ container.style.transform = ''; container.classList.add('dragging'); }
+    setTimeout(() => { reposition(); }, 260);
+  }
+  window.addEventListener('resize', reposition);
+  window.addEventListener('orientationchange', onOrientation);
+  if (mqPortrait.addEventListener) mqPortrait.addEventListener('change', onOrientation);
+  if (mqMobile.addEventListener)   mqMobile.addEventListener('change', reposition);
+
+  // --- Enrobage non intrusif des fonctions existantes ---
+  function wrap(name, after){
+    const orig = window[name];
+    if (typeof orig !== 'function') return;
+    window[name] = function(){
+      const r = orig.apply(this, arguments);
+      try { after.apply(this, arguments); } catch(_){}
+      return r;
+    };
+  }
+  wrap('rebuildPoiList', onList);
+  wrap('showFirstPersonPhoto', function(poi){ onPov(poi); });
+  wrap('goToPOI', onGoToPOI);
+  wrap('toggleViewMode', function(){ fitCanvasToBand(false); });
+
+  // Palier initial
+  if (isMobile()) applyDetent('peek', false);
+})();
+
+init();
+</script>
+</body>
+</html>

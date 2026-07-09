@@ -1,0 +1,225 @@
+{
+  "name": "La Forêt - Demo Rambouillet",
+  "description": "Visite virtuelle 3D de la propriété demo-rambouillet",
+  "rooms": [
+    {
+      "id": "cuisine",
+      "label": "Cuisine",
+      "glb": "cuisine.glb"
+    },
+    {
+      "id": "toilette",
+      "label": "Toilette",
+      "glb": "toilette.glb"
+    },
+    {
+      "id": "grande chambre",
+      "label": "Grande chambre",
+      "glb": "grandechambre.glb"
+    },
+    {
+      "id": "petite chambre",
+      "label": "Petite chambre",
+      "glb": "petitechambre.glb"
+    },
+    {
+      "id": "salon",
+      "label": "Salon",
+      "glb": "salon.glb"
+    },
+    {
+      "id": "salledebain",
+      "label": "Salle de Bain",
+      "glb": "salledebain.glb"
+    },
+    {
+      "id": "entree",
+      "label": "Entrée",
+      "glb": "entree.glb"
+    },
+    {
+      "id": "balcon",
+      "label": "Balcon",
+      "glb": "balcon.glb"
+    }
+  ],
+  "poi": [
+    {
+      "id": "cuisine",
+      "label": "Cuisine",
+      "roomId": "cuisine",
+      "description": "Cuisine équipée avec plan de travail en quartz, électroménager encastré et rangements sur-mesure. Exposition lumineuse le matin.",
+      "photos": [
+        "Cuisine_01.png",
+        "Cuisine_02.png"
+      ],
+      "image": "Cuisine_01.png",
+      "camPos": [
+        -3.57,
+        1.7,
+        1.17
+      ],
+      "camTarget": [
+        -3.6,
+        1.49,
+        5.76
+      ]
+    },
+    {
+      "id": "entree",
+      "label": "Entrée",
+      "roomId": "entree",
+      "description": "Entrée avec rangements et accès direct aux pièces de vie.",
+      "photos": [
+        "Entrée_01.png"
+      ],
+      "image": "Entrée_01.png",
+      "camPos": [
+        4.26,
+        1.7,
+        1.57
+      ],
+      "camTarget": [
+        2.88,
+        0.94,
+        5.94
+      ]
+    },
+    {
+      "id": "salon",
+      "label": "Salon",
+      "roomId": "salon",
+      "description": "Vaste salon traversant avec parquet point de Hongrie, double exposition et accès direct au balcon.",
+      "photos": [
+        "Salon_01.png"
+      ],
+      "image": "Salon_01.png",
+      "camPos": [
+        -5.21,
+        1.7,
+        3.16
+      ],
+      "camTarget": [
+        0.76,
+        0.46,
+        -1.91
+      ]
+    },
+    {
+      "id": "grande chambre",
+      "label": "Grande chambre",
+      "roomId": "grande chambre",
+      "description": "Chambre parentale avec dressing et grande fenêtre donnant sur l'extérieur.",
+      "photos": [
+        "Grandechambre_01.png"
+      ],
+      "image": "Grandechambre_01.png",
+      "camPos": [
+        6.98,
+        1.7,
+        -3.04
+      ],
+      "camTarget": [
+        3.48,
+        0.76,
+        2.08
+      ]
+    },
+    {
+      "id": "petite chambre",
+      "label": "Petite chambre",
+      "roomId": "petite chambre",
+      "description": "Seconde chambre, idéale en bureau ou chambre d'enfant.",
+      "photos": [
+        "Petitechambre_01.png"
+      ],
+      "image": "Petitechambre_01.png",
+      "camPos": [
+        3.29,
+        1.7,
+        0.44
+      ],
+      "camTarget": [
+        0.2,
+        0.73,
+        -2.83
+      ]
+    },
+    {
+      "id": "salledebain",
+      "label": "Salle de Bain",
+      "roomId": "salledebain",
+      "description": "Salle de bain avec double vasque, douche à l'italienne et meuble suspendu.",
+      "photos": [
+        "Salledebain_01.png"
+      ],
+      "image": "Salledebain_01.png",
+      "camPos": [
+        4.76,
+        1.7,
+        2.29
+      ],
+      "camTarget": [
+        10.73,
+        1,
+        4.36
+      ]
+    },
+    {
+      "id": "toilette",
+      "label": "Toilette",
+      "roomId": "toilette",
+      "description": "WC séparé avec lave-mains.",
+      "photos": [
+        "Toilette_01.png"
+      ],
+      "image": "Toilette_01.png",
+      "camPos": [
+        1.8,
+        1.7,
+        3.99
+      ],
+      "camTarget": [
+        -1.88,
+        0.8,
+        1.27
+      ]
+    },
+    {
+      "id": "balcon",
+      "label": "Balcon",
+      "roomId": "balcon",
+      "description": "Balcon orienté sud, sans vis-à-vis.",
+      "photos": [
+        "Balcon_01.png"
+      ],
+      "image": "Balcon_01.png",
+      "camPos": [
+        -0.1,
+        1.7,
+        -3.41
+      ],
+      "camTarget": [
+        -4.49,
+        1.17,
+        -1.83
+      ]
+    }
+  ],
+  "roomLabels": [
+    { "id": "salon",          "name": "Salon",          "position": [-3.01, 1.16] },
+    { "id": "cuisine",        "name": "Cuisine",        "position": [-3.01, 3.17] },
+    { "id": "entree",         "name": "Entrée",         "position": [3.26, 2.01] },
+    { "id": "toilette",       "name": "Toilette",       "position": [1.70, 3.99] },
+    { "id": "salledebain",    "name": "Salle de Bain",  "position": [6.76, 3.29] },
+    { "id": "petite chambre", "name": "Petite chambre", "position": [2.40, -1.80] },
+    { "id": "grande chambre", "name": "Grande chambre", "position": [5.50, -1.80] },
+    { "id": "balcon",         "name": "Balcon",         "position": [-3.01, -3.01] }
+  ],
+  "dimensions": {
+    "top": [7.0, 2.0, 2.4, 2.76],
+    "bottom": [6.55, 3.8, 4.5],
+    "left": [6.2, 2.27],
+    "right": [3.0, 5.47]
+  }
+}

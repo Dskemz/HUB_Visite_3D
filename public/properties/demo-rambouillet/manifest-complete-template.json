@@ -1,0 +1,118 @@
+{
+  "name": "La Forêt - Demo Rambouillet",
+  "description": "Visite virtuelle 3D de la propriété demo-rambouillet",
+  
+  "rooms": [
+    {
+      "id": "entree",
+      "label": "Entrée",
+      "glb": "entree.glb"
+    },
+    {
+      "id": "couloir",
+      "label": "Couloir",
+      "glb": "couloir.glb"
+    },
+    {
+      "id": "salle-bain",
+      "label": "Salle de bain",
+      "glb": "salle-bain.glb"
+    },
+    {
+      "id": "toilettes",
+      "label": "Toilettes",
+      "glb": "toilettes.glb"
+    },
+    {
+      "id": "balcon",
+      "label": "Balcon",
+      "glb": "balcon.glb"
+    },
+    {
+      "id": "cuisine",
+      "label": "Cuisine",
+      "glb": "cuisine.glb"
+    },
+    {
+      "id": "chambre-1",
+      "label": "Chambre 1",
+      "glb": "chambre-1.glb"
+    },
+    {
+      "id": "chambre-2",
+      "label": "Chambre 2",
+      "glb": "chambre-2.glb"
+    },
+    {
+      "id": "salon",
+      "label": "Salon",
+      "glb": "salon.glb"
+    }
+  ],
+
+  "poi": [
+    {
+      "id": "entree",
+      "label": "Entrée",
+      "image": "entree.jpg",
+      "camPos": [-4.96, 1.43, 3.18],
+      "camTarget": [0.4, 1.27, 0.41]
+    },
+    {
+      "id": "couloir",
+      "label": "Couloir",
+      "image": "couloir.jpg",
+      "camPos": [-4.96, 1.43, 3.18],
+      "camTarget": [0.4, 1.27, 0.41]
+    },
+    {
+      "id": "salle-bain",
+      "label": "Salle de bain",
+      "image": "salle-bain.jpg",
+      "camPos": [-4.96, 1.43, 3.18],
+      "camTarget": [0.4, 1.27, 0.41]
+    },
+    {
+      "id": "toilettes",
+      "label": "Toilettes",
+      "image": "toilettes.jpg",
+      "camPos": [-4.96, 1.43, 3.18],
+      "camTarget": [0.4, 1.27, 0.41]
+    },
+    {
+      "id": "balcon",
+      "label": "Balcon",
+      "image": "balcon.jpg",
+      "camPos": [-4.96, 1.43, 3.18],
+      "camTarget": [0.4, 1.27, 0.41]
+    },
+    {
+      "id": "cuisine",
+      "label": "Cuisine",
+      "image": "cuisine.jpg",
+      "camPos": [-4.96, 1.43, 3.18],
+      "camTarget": [0.4, 1.27, 0.41]
+    },
+    {
+      "id": "chambre-1",
+      "label": "Chambre 1",
+      "image": "chambre-1.jpg",
+      "camPos": [-4.96, 1.43, 3.18],
+      "camTarget": [0.4, 1.27, 0.41]
+    },
+    {
+      "id": "chambre-2",
+      "label": "Chambre 2",
+      "image": "chambre-2.jpg",
+      "camPos": [-4.96, 1.43, 3.18],
+      "camTarget": [0.4, 1.27, 0.41]
+    },
+    {
+      "id": "salon",
+      "label": "Salon",
+      "image": "salon.jpg",
+      "camPos": [-4.96, 1.43, 3.18],
+      "camTarget": [0.4, 1.27, 0.41]
+    }
+  ]
+}

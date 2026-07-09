@@ -1,0 +1,59 @@
+{
+  "hdri": {
+    "url": "Hdrichaude_Viewer_3D.hdr",
+    "intensity": 1,
+    "exposure": 1.1,
+    "contrast": 1.2
+  },
+  "spotLight": {
+    "name": "keyLight",
+    "position": [12, 1.8, 3],
+    "direction": [-1, -0.2, -0.1],
+    "angle": 1.256,
+    "exponent": 2,
+    "intensity": 1.2,
+    "range": 40
+  },
+  "directionalLight": {
+    "name": "shadowLight",
+    "direction": [0.7, -1, 0.2],
+    "intensity": 1.8,
+    "color": [1.0, 0.93, 0.8]
+  },
+  "ambientLight": {
+    "intensity": 0.45,
+    "groundColor": [0.3, 0.3, 0.35]
+  },
+  "fillLight": {
+    "intensity": 0.25,
+    "groundColor": [0.25, 0.25, 0.3]
+  },
+  "interiorLights": [
+    {
+      "name": "window-fill-1",
+      "position": [5, 1.2, 2],
+      "intensity": 0.9,
+      "range": 15,
+      "color": [1, 0.98, 0.95]
+    },
+    {
+      "name": "window-fill-2",
+      "position": [8, 0.8, 3],
+      "intensity": 0.6,
+      "range": 12,
+      "color": [1, 0.98, 0.95]
+    },
+    {
+      "name": "corner-fill",
+      "position": [2, 1.5, 1],
+      "intensity": 0.4,
+      "range": 10,
+      "color": [0.95, 0.95, 1]
+    }
+  ],
+  "shadows": {
+    "mapResolution": 1024,
+    "blurKernel": 16,
+    "useBlurExponential": true
+  }
+}
