@@ -1122,8 +1122,9 @@ async function init() {
   // Couleurs du dégradé dérivées de la teinte de marque (navy de l'agence).
   // Laforêt → identique à l'origine ; ERA → bordeaux ; Sixième → vert d'eau sombre.
   const _bn = (window.__BRAND__ && window.__BRAND__.navyRgb) ? window.__BRAND__.navyRgb.split(',').map(Number) : [11,27,63];
-  const _ctr = [Math.min(255,Math.round(_bn[0]*1.45)), Math.min(255,Math.round(_bn[1]*1.37)), Math.min(255,Math.round(_bn[2]*1.25))];
-  const _edg = [Math.round(_bn[0]*0.9), Math.round(_bn[1]*0.74), Math.round(_bn[2]*0.6)];
+  const _desat = (c, amt) => { const l = 0.3*c[0] + 0.59*c[1] + 0.11*c[2]; return [Math.round(c[0]+(l-c[0])*amt), Math.round(c[1]+(l-c[1])*amt), Math.round(c[2]+(l-c[2])*amt)]; };
+  const _ctr = _desat([Math.min(255,Math.round(_bn[0]*1.45)), Math.min(255,Math.round(_bn[1]*1.37)), Math.min(255,Math.round(_bn[2]*1.25))], 0.30);
+  const _edg = _desat([Math.round(_bn[0]*0.9), Math.round(_bn[1]*0.74), Math.round(_bn[2]*0.6)], 0.30);
 
   for (let i = 0; i < 512; i++) {
     for (let j = 0; j < 512; j++) {

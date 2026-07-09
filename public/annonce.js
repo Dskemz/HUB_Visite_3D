@@ -96,7 +96,7 @@
   /* sidebar cards */
   .side{position:sticky;top:84px;display:flex;flex-direction:column;gap:1rem}
   .card3d{border-radius:16px;padding:1.3rem;color:#fff;background:var(--navy);position:relative;overflow:hidden}
-  .card3d::after{content:"";position:absolute;inset:0;background:radial-gradient(90% 130% at 100% 0%,rgba(var(--accent-rgb),.4),transparent 60%)}
+  .card3d::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(90% 130% at 100% 0%,rgba(var(--accent-rgb),.4),transparent 60%)}
   .card3d > *{position:relative}
   .card3d .k{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;opacity:.85}
   .card3d h3{font-size:1.25rem;font-weight:800;margin:.35rem 0 .3rem}
