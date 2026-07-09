@@ -11,8 +11,6 @@
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Inter',system-ui,sans-serif;background:#0a0f1c;color:#e8ecf6;min-height:100vh}
     a{text-decoration:none;color:inherit}
-
-    /* Gate */
     #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0f1c;z-index:50;flex-direction:column;gap:1rem;padding:1.5rem}
     #gate h1{font-size:1.3rem;font-weight:800}
     #gate p{color:#8b96ad;font-size:.9rem}
@@ -21,23 +19,20 @@
     #gate input:focus{border-color:#4a6cff}
     #gate button{background:#4a6cff;color:#fff;border:none;border-radius:10px;padding:.75rem 1.2rem;font-weight:700;cursor:pointer}
     #gate .err{color:#ff6b6b;font-size:.82rem;height:1rem}
-
     .wrap{max-width:1080px;margin:0 auto;padding:3rem 1.5rem}
-    .head{margin-bottom:2rem}
     .head .eyebrow{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:#6f7c99;font-weight:700}
     .head h1{font-size:2rem;font-weight:800;margin-top:.4rem}
     .head p{color:#8b96ad;margin-top:.5rem}
-
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.2rem}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.2rem;margin-top:2rem}
     .card{background:#111827;border:1px solid #212c44;border-radius:16px;overflow:hidden;transition:transform .15s ease,border-color .15s ease}
     .card:hover{transform:translateY(-3px);border-color:#33405f}
-    .card .top{height:88px;display:flex;align-items:center;gap:.6rem;padding:0 1.2rem;font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:.02em}
+    .card .top{height:92px;display:flex;align-items:center;gap:.6rem;padding:0 1.2rem;font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:.02em}
     .card .top svg{width:26px;height:26px}
     .card .body{padding:1.1rem 1.2rem 1.3rem}
-    .card .swatches{display:flex;gap:.4rem;margin-bottom:1rem}
+    .card .sws{display:flex;gap:.4rem;margin-bottom:1rem}
     .card .sw{width:22px;height:22px;border-radius:6px;border:1px solid rgba(255,255,255,.15)}
     .card .links{display:flex;gap:.6rem}
-    .card .links a{flex:1;text-align:center;padding:.6rem;border-radius:9px;font-weight:600;font-size:.88rem}
+    .card .links a{flex:1;text-align:center;padding:.62rem;border-radius:9px;font-weight:600;font-size:.88rem}
     .card .links .primary{background:#fff;color:#0a0f1c}
     .card .links .ghost{background:transparent;border:1px solid #2c3854;color:#c7d0e4}
     .card .links a:hover{opacity:.85}
@@ -54,57 +49,41 @@
     </div>
     <div class="err" id="err"></div>
   </div>
-
   <div class="wrap" id="app" style="display:none">
     <div class="head">
       <div class="eyebrow">Panneau interne</div>
-      <h1>Déclinaisons par agence</h1>
-      <p>Chaque agence a son accueil brandé et son viewer indépendant. Pour en ajouter une, édite <b>branding.js</b> — la carte apparaît ici automatiquement.</p>
+      <h1>Agences</h1>
+      <p>Chaque agence a son annonce brandée et son viewer 3D. Pour en ajouter une : bloc dans <b>branding.js</b> + copie d'un <b>index-*.html</b> — la carte apparaît ici automatiquement.</p>
     </div>
     <div class="grid" id="grid"></div>
-    <div class="foot">Édite les couleurs / logos dans <b>branding.js</b>, puis un seul <b>git push</b> met tout à jour.</div>
+    <div class="foot">Un seul <b>git push</b> met tout à jour.</div>
   </div>
-
   <script>
-    /* ==== Mot de passe (à changer) — protection simple côté client ==== */
-    var HUB_PASSWORD = 'visite2026';
-
-    function unlock(){
-      document.getElementById('gate').style.display='none';
-      document.getElementById('app').style.display='block';
-      render();
-    }
-    function tryPwd(){
-      var v=document.getElementById('pwd').value;
-      if(v===HUB_PASSWORD){ try{sessionStorage.setItem('hub_ok','1');}catch(e){} unlock(); }
-      else { document.getElementById('err').textContent='Mot de passe incorrect.'; }
-    }
+    var HUB_PASSWORD = 'visite2026';   /* a changer */
+    function unlock(){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block';render();}
+    function tryPwd(){var v=document.getElementById('pwd').value;
+      if(v===HUB_PASSWORD){try{sessionStorage.setItem('hub_ok','1');}catch(e){}unlock();}
+      else{document.getElementById('err').textContent='Mot de passe incorrect.';}}
     document.getElementById('go').addEventListener('click',tryPwd);
     document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')tryPwd();});
-    try{ if(sessionStorage.getItem('hub_ok')==='1') unlock(); }catch(e){}
-
+    try{if(sessionStorage.getItem('hub_ok')==='1')unlock();}catch(e){}
     function render(){
-      var grid=document.getElementById('grid');
-      grid.innerHTML='';
+      var grid=document.getElementById('grid');grid.innerHTML='';
       var ag=window.AGENCIES||{};
       Object.keys(ag).forEach(function(k){
         var A=ag[k];
         var logo=(window.brandLogoHTML&&window.brandLogoHTML(A))||A.name;
-        var card=document.createElement('div');
-        card.className='card';
-        card.innerHTML=
+        var c=document.createElement('div');c.className='card';
+        c.innerHTML=
           '<div class="top" style="background:'+A.navy+'">'+logo+'</div>'+
           '<div class="body">'+
-            '<div class="swatches">'+
-              '<span class="sw" style="background:'+A.navy+'"></span>'+
-              '<span class="sw" style="background:'+A.accent+'"></span>'+
-            '</div>'+
+            '<div class="sws"><span class="sw" style="background:'+A.navy+'"></span><span class="sw" style="background:'+A.accent+'"></span></div>'+
             '<div class="links">'+
-              '<a class="primary" href="index.html?agency='+A.id+'">Accueil</a>'+
+              '<a class="primary" href="index-'+A.id+'.html">Annonce</a>'+
               '<a class="ghost" href="viewer.html?agency='+A.id+'&property='+(A.property||'demo-rambouillet')+'">Viewer</a>'+
             '</div>'+
           '</div>';
-        grid.appendChild(card);
+        grid.appendChild(c);
       });
     }
   </script>

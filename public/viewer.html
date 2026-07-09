@@ -21,7 +21,7 @@
     document.addEventListener('DOMContentLoaded',function(){
       try{document.title=A.name+' \u2014 Visite virtuelle 3D';}catch(e){}
       if(A.logo!=='laforet'&&window.brandLogoHTML){var el=document.querySelector('.brand-logo'); if(el) el.innerHTML=window.brandLogoHTML(A);}
-      try{var bb=document.querySelector('.back-btn'); if(bb&&A.id) bb.setAttribute('href','index.html?agency='+A.id);}catch(e){}
+      try{var bb=document.querySelector('.back-btn'); if(bb&&A.id) bb.setAttribute('href','index-'+A.id+'.html');}catch(e){}
     });
   })();
   </script>
