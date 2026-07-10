@@ -23,7 +23,7 @@
     },
     'era': {
       id: 'era', name: 'ERA Immobilier',
-      navy: '#3A0E14', navyRgb: '58,14,20',
+      navy: '#7e5b5f', navyRgb: '58,14,20',
       accent: '#E2001A', accentRgb: '226,0,26', accentDark: '#B00016',
       logo: 'era', property: 'demo-rambouillet',
       site: {
@@ -39,7 +39,7 @@
     'sixieme-avenue': {
       id: 'sixieme-avenue', name: 'Sixième Avenue',
       navy: '#0C2C2B', navyRgb: '12,44,43',
-      accent: '#2E7E7C', accentRgb: '46,126,124', accentDark: '#93b9b7',
+      accent: '#2E7E7C', accentRgb: '46,126,124', accentDark: '#245F5C',
       logo: 'sixieme', property: 'demo-rambouillet',
       site: {
         nav: ['Acheter', 'Louer', 'Vendre', 'Gestion Locative', "L'agence"],
