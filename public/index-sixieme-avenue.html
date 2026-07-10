@@ -1,17 +1,341 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Annonce — Visite 3D</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- === Cette page = annonce de l'agence "sixieme-avenue" === -->
-  <!-- Pour créer une nouvelle agence : duplique ce fichier, change l'ID ci-dessous,
-       et ajoute le bloc correspondant dans branding.js. Rien d'autre à toucher. -->
-  <script>window.AGENCY_ID = "sixieme-avenue";</script>
-  <script src="branding.js"></script>
-  <script src="annonce.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appartement À vendre 3 pièces — Sixième Avenue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#2C7C7A; --teal-dark:#236261; --teal-tint:#E9F2F1;
+  --ink:#2a2f36; --muted:#7a828e; --line:#e7e9ee; --soft:#f3f4f7; --band:#eceef1; --bg:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none} img{display:block;max-width:100%}
+.wrap{max-width:1120px;margin:0 auto;padding:0 1.25rem}
+button{font-family:inherit;cursor:pointer;border:none}
+
+/* header */
+header{border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:40}
+.hrow{display:flex;align-items:center;justify-content:space-between;height:64px;gap:1rem}
+.logo{display:flex;align-items:center;gap:.5rem}
+.logo .tri{width:30px;height:30px}
+.logo .txt{line-height:1}
+.logo .txt b{font-size:1.2rem;font-weight:800;letter-spacing:.01em}
+.logo .txt i{display:block;font-style:normal;font-size:.6rem;color:var(--muted);letter-spacing:.03em}
+nav.main{display:flex;gap:1.5rem;font-size:.9rem;font-weight:600}
+nav.main a:hover{color:var(--teal)}
+.hphone{display:flex;align-items:center;gap:.5rem;color:var(--teal);font-weight:700;font-size:.9rem}
+@media(max-width:920px){nav.main{display:none}}
+
+/* carousel */
+.hero{position:relative;height:400px;background:#000;overflow:hidden}
+.hero .slide{position:absolute;inset:0;opacity:0;transition:opacity .4s}
+.hero .slide.on{opacity:1}
+.hero .slide img{width:100%;height:100%;object-fit:cover}
+.hero .nv{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.9);color:#333;font-size:1.4rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.hero .prev{left:16px}.hero .next{right:16px}
+.hero .dots{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:7px}
+.hero .dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.6);cursor:pointer}
+.hero .dots i.on{background:var(--teal);width:20px;border-radius:5px}
+.hero .icons{position:absolute;top:16px;right:16px;display:flex;gap:.5rem}
+.hero .icons span{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;color:var(--teal)}
+.hero .v3d{position:absolute;top:16px;left:16px;background:var(--teal);color:#fff;font-weight:700;font-size:.82rem;padding:.55rem .9rem;border-radius:8px;display:flex;gap:.45rem;align-items:center;box-shadow:0 6px 16px rgba(44,124,122,.5)}
+.hero .v3d:hover{background:var(--teal-dark)}
+
+/* title band */
+.tband{background:var(--band)}
+.trow{display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem;padding:1.4rem 0}
+.trow h1{font-size:1.5rem;font-weight:800}
+.trow .loc{color:var(--muted);font-size:.92rem;margin:.2rem 0}
+.trow .price{font-size:1.5rem;font-weight:800;color:var(--teal);margin-top:.3rem}
+.trow .price small{color:var(--muted);font-size:.8rem;font-weight:600;margin-left:.4rem}
+.trow .ref{display:flex;gap:.7rem;align-items:flex-start;font-size:.78rem;color:var(--muted);text-align:right}
+.trow .ref .tri{width:34px;height:34px;flex:0 0 auto}
+
+/* subnav */
+.subnav{border-bottom:1px solid var(--line);background:#fff;position:sticky;top:64px;z-index:30}
+.subnav .r{display:flex;gap:1.6rem;height:48px;align-items:center;font-size:.86rem;font-weight:600;color:var(--muted);overflow-x:auto}
+.subnav a{white-space:nowrap;padding:.2rem 0;border-bottom:2px solid transparent}
+.subnav a.on,.subnav a:hover{color:var(--teal);border-color:var(--teal)}
+
+/* layout */
+.cols{display:grid;grid-template-columns:1fr 360px;gap:2.2rem;padding:1.8rem 0}
+@media(max-width:960px){.cols{grid-template-columns:1fr}}
+.blk{margin-bottom:2rem}
+.blk h2{font-size:1.15rem;font-weight:800;color:var(--teal);margin-bottom:.7rem}
+.blk .strong{font-weight:700;margin-bottom:.5rem}
+.blk p{color:#3d454f;font-size:.94rem}
+.afficher{color:var(--teal);font-weight:700;font-size:.85rem;display:inline-block;margin-top:.5rem}
+.hono{font-size:.72rem;color:var(--muted);margin-top:.6rem}
+
+.chips{display:flex;flex-wrap:wrap;gap:1.4rem;margin-top:.5rem}
+.chip{display:flex;flex-direction:column;align-items:center;gap:.35rem;font-size:.82rem;font-weight:600;color:var(--ink);min-width:60px}
+.chip svg{width:26px;height:26px;color:var(--teal)}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;margin-top:.4rem}
+@media(max-width:560px){.two{grid-template-columns:1fr}}
+.subh{font-weight:700;margin-bottom:.4rem;font-size:.92rem}
+.kv{display:flex;justify-content:space-between;font-size:.88rem;padding:.35rem 0}
+.kv b{font-weight:700}
+
+.enrow{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem}
+@media(max-width:560px){.enrow{grid-template-columns:1fr}}
+.enlbl{font-size:.85rem;color:var(--muted);margin-bottom:.5rem}
+.scale{display:flex;gap:4px;align-items:center}
+.scale span{flex:1;height:16px;border-radius:8px;background:#dfe3e9}
+.scale span.on{height:26px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.75rem;flex:0 0 34px}
+.scale.dpe span.on{background:#68BA36} .scale.ges span.on{background:#8E74CE}
+
+.map{border-radius:12px;overflow:hidden;border:1px solid var(--line);height:280px;position:relative;background:linear-gradient(135deg,#e7f0ea,#dfe9f1)}
+.map .gl{position:absolute;inset:0;background-image:linear-gradient(rgba(44,124,122,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(44,124,122,.06) 1px,transparent 1px);background-size:36px 36px}
+.map .blob{position:absolute;left:50%;top:50%;width:220px;height:220px;background:rgba(44,124,122,.13);border-radius:50%;transform:translate(-50%,-50%)}
+.map .btn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--teal);color:#fff;font-weight:700;font-size:.85rem;padding:.65rem 1.1rem;border-radius:8px}
+
+.credit .intro{font-size:.88rem;color:var(--muted);margin-bottom:1rem}
+.credit .grid{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;align-items:stretch}
+@media(max-width:560px){.credit .grid{grid-template-columns:1fr}}
+.credit label{display:block;font-size:.8rem;font-weight:600;margin:.5rem 0 .25rem}
+.credit input{width:100%;border:1px solid var(--line);border-radius:8px;padding:.6rem .7rem;font-size:.95rem;font-family:inherit}
+.credit .res{background:var(--teal);color:#fff;border-radius:10px;padding:1.6rem;display:flex;flex-direction:column;justify-content:center}
+.credit .res .m{font-size:1.9rem;font-weight:800}
+.credit .res .m small{font-size:.9rem;font-weight:600;opacity:.9}
+.credit .res .row{display:flex;justify-content:space-between;font-size:.82rem;opacity:.92;margin-top:.5rem;border-top:1px solid rgba(255,255,255,.25);padding-top:.5rem}
+
+/* right contact card */
+.side{position:sticky;top:124px;display:flex;flex-direction:column;gap:1rem}
+.v3dcard{background:var(--teal);color:#fff;border-radius:12px;padding:1.2rem;position:relative;overflow:hidden}
+.v3dcard h3{font-size:1.15rem;font-weight:800;margin-bottom:.3rem}
+.v3dcard p{font-size:.83rem;opacity:.9;margin-bottom:.9rem}
+.v3dcard a{display:block;text-align:center;background:#fff;color:var(--teal);font-weight:800;padding:.75rem;border-radius:9px;font-size:.95rem}
+.v3dcard a:hover{background:var(--teal-tint)}
+.lead{background:var(--teal-tint);border-radius:12px;padding:1.2rem}
+.lead h3{font-size:1.05rem;font-weight:800;margin-bottom:.8rem}
+.lead .rowc{display:flex;align-items:center;gap:.7rem;padding:.6rem 0;border-bottom:1px solid rgba(0,0,0,.06)}
+.lead .av{width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--teal);font-weight:800;font-size:.85rem}
+.lead .rowc b{font-size:.88rem}.lead .rowc span{font-size:.76rem;color:var(--muted)}
+.lead .rowc .chev{margin-left:auto;color:var(--muted)}
+.lead .send-t{font-weight:700;margin:.9rem 0 .2rem;font-size:.92rem}
+.lead .oblig{font-size:.72rem;color:var(--muted);margin-bottom:.7rem}
+.lead .f2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.lead input,.lead textarea{width:100%;border:1px solid #d6dedc;border-radius:8px;padding:.6rem;font-size:.86rem;font-family:inherit;margin-bottom:.5rem;background:#fff}
+.lead textarea{min-height:70px;resize:vertical}
+.lead .tg-row{display:flex;align-items:center;gap:.6rem;font-size:.82rem;font-weight:600;margin:.3rem 0 .7rem}
+.toggle{width:44px;height:24px;background:var(--teal);border-radius:20px;position:relative;cursor:pointer}
+.toggle i{position:absolute;top:3px;left:23px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.15s}
+.toggle.off{background:#c3ccd3}.toggle.off i{left:3px}
+.lead .cgu{font-size:.68rem;color:var(--muted);display:flex;gap:.4rem;margin:.4rem 0}
+.lead .valider{width:100%;background:var(--teal);color:#fff;font-weight:800;padding:.8rem;border-radius:9px;font-size:.95rem;margin-top:.4rem}
+.lead .valider:hover{background:var(--teal-dark)}
+.lead .legal{font-size:.66rem;color:var(--muted);margin-top:.7rem}
+.lead .legal a{color:var(--teal);font-weight:600}
+
+/* voir aussi + legal */
+.voiraussi{padding:1.4rem 0;border-top:1px solid var(--line);font-size:.85rem}
+.voiraussi b{font-weight:700} .voiraussi a{color:var(--teal);font-weight:600;margin:0 .3rem}
+.legaltxt{padding:1.2rem 0 2rem;font-size:.68rem;color:#9aa2ac;line-height:1.5}
+.crumbf{font-size:.75rem;color:var(--muted);padding:.6rem 0 1.4rem} .crumbf a:hover{color:var(--teal)}
+
+/* footer */
+footer .clip{height:70px;background:var(--teal);clip-path:polygon(0 100%,100% 100%,100% 0,68% 62%,0 0)}
+footer .body{background:var(--teal);color:#fff;padding:0 0 2rem;text-align:center}
+footer .A{width:60px;height:60px;margin:-10px auto .6rem}
+footer .follow{font-size:.85rem;opacity:.9;margin-bottom:.6rem}
+footer .soc{display:flex;justify-content:center;gap:.6rem;margin-bottom:1rem}
+footer .soc a{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem}
+footer .soc a:hover{background:rgba(255,255,255,.3)}
+footer .cp{font-size:.85rem;font-weight:700;margin-bottom:.5rem}
+footer .fnav{display:flex;justify-content:center;flex-wrap:wrap;gap:1rem;font-size:.78rem;opacity:.9}
+footer .fnav a:hover{text-decoration:underline}
+</style>
 </head>
-<body></body>
+<body>
+
+<header><div class="wrap"><div class="hrow">
+  <a class="logo" href="index-sixieme-avenue.html">
+    <svg class="tri" viewBox="0 0 24 24" fill="none"><path d="M12 3L3 20h18L12 3z" fill="none" stroke="var(--teal)" stroke-width="2.2" stroke-linejoin="round"/><path d="M9 14h6" stroke="var(--teal)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span class="txt"><b>Sixième Avenue</b><i>Immobilier par A.</i></span>
+  </a>
+  <nav class="main"><a href="#">Acheter</a><a href="#">Louer</a><a href="#">Vendre</a><a href="#">Gestion Locative</a><a href="#">L'agence ▾</a></nav>
+  <div class="hphone">📞 05 56 83 98 02</div>
+</div></div></header>
+
+<div class="hero">
+  <div class="slide on"><img src="properties/demo-rambouillet/Balcon_01.png" alt="Balcon"></div>
+  <div class="slide"><img src="properties/demo-rambouillet/Salon_01.png" alt="Salon"></div>
+  <div class="slide"><img src="properties/demo-rambouillet/Cuisine_01.png" alt="Cuisine"></div>
+  <div class="slide"><img src="properties/demo-rambouillet/Grandechambre_01.png" alt="Chambre"></div>
+  <div class="slide"><img src="properties/demo-rambouillet/Salledebain_01.png" alt="Salle de bain"></div>
+  <a class="v3d" href="viewer.html?agency=sixieme-avenue&property=demo-rambouillet">◉ Visite virtuelle 3D</a>
+  <div class="icons"><span>↗</span><span>♡</span></div>
+  <button class="nv prev" id="pv">‹</button>
+  <button class="nv next" id="nx">›</button>
+  <div class="dots" id="dots"></div>
+</div>
+
+<div class="tband"><div class="wrap"><div class="trow">
+  <div>
+    <h1>Appartement À vendre 3 pièces - 68 m²</h1>
+    <div class="loc">78120 RAMBOUILLET</div>
+    <div class="price">289 000 €* <small>4 250 €/m²</small></div>
+  </div>
+  <div class="ref">
+    <svg class="tri" viewBox="0 0 24 24" fill="none"><path d="M12 3L3 20h18L12 3z" fill="none" stroke="#9aa2ac" stroke-width="2" stroke-linejoin="round"/></svg>
+    <div>Référence : 2048A<br>Annonce éditée par l'agence<br>Sixième Avenue</div>
+  </div>
+</div></div></div>
+
+<div class="subnav"><div class="wrap"><div class="r">
+  <a class="on" href="#desc">Description</a><a href="#carac">Caractéristiques</a><a href="#energie">Bilan énergétique</a><a href="#quartier">Localisation</a><a href="#credit">Simuler mon prêt</a>
+</div></div></div>
+
+<div class="wrap"><div class="cols">
+  <div>
+    <div class="blk" id="desc">
+      <div class="strong">Appartement 3 pièces · 78120 RAMBOUILLET</div>
+      <p>Au cœur de Rambouillet, commerces et gare à pied, venez découvrir cet appartement lumineux au 1er étage avec ascenseur, au sein d'une belle résidence. Il comprend une entrée avec placard, un séjour avec cuisine américaine donnant accès à un joli extérieur, deux chambres avec placard et une salle de bain.</p>
+      <a class="afficher" href="#">Afficher plus ▾</a>
+      <div class="hono">* Honoraires à la charge du vendeur · vos frais notariés, de publicité et d'enregistrement.</div>
+    </div>
+
+    <div class="blk" id="carac">
+      <h2>Caractéristiques</h2>
+      <div class="chips" id="chips"></div>
+      <div class="two" style="margin-top:1.4rem">
+        <div><div class="subh">Général</div>
+          <div class="kv"><span>Prix de vente</span><b>289 000 €</b></div>
+          <div class="kv"><span>Type de bien</span><b>Appartement</b></div>
+        </div>
+        <div><div class="subh">Aspects Financiers</div>
+          <div class="kv"><span>Taxe foncière</span><b>928 €</b></div>
+        </div>
+      </div>
+      <a class="afficher" href="#">Afficher plus ▾</a>
+    </div>
+
+    <div class="blk" id="energie">
+      <h2>Bilan énergétique</h2>
+      <div class="enrow">
+        <div><div class="enlbl">Performance énergétique</div><div class="scale dpe" id="dpe"></div></div>
+        <div><div class="enlbl">Émission de gaz à effet de serre</div><div class="scale ges" id="ges"></div></div>
+      </div>
+      <a class="afficher" href="#">Afficher plus ▾</a>
+    </div>
+
+    <div class="blk" id="quartier">
+      <h2>Découvrir le quartier</h2>
+      <div class="map"><div class="gl"></div><div class="blob"></div><div class="btn">Découvrir le quartier</div></div>
+    </div>
+
+    <div class="blk credit" id="credit">
+      <h2>Simulation de crédit</h2>
+      <div class="intro">Entrez les caractéristiques de votre projet dans les champs ci-dessous : la mensualité se met à jour automatiquement.</div>
+      <div class="grid">
+        <div>
+          <label>Taux d'emprunt (%)</label><input id="taux" type="number" value="3" step="0.1">
+          <label>Votre apport (20% recommandé)</label><input id="apport" type="number" value="57800" step="1000">
+          <label>Durée souhaitée de votre prêt (en années)</label><input id="duree" type="number" value="20" step="1">
+        </div>
+        <div class="res">
+          <div class="m" id="month">—<small> / par mois¹</small></div>
+          <div class="row"><span>Frais de notaire (8%)</span><b id="notaire"></b></div>
+          <div class="row"><span>Prix du bien</span><b>289 000 €</b></div>
+        </div>
+      </div>
+      <div class="hono">¹ Estimation donnée à titre indicatif, hors assurance.</div>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div class="v3dcard">
+      <h3>Visite virtuelle 3D</h3>
+      <p>Parcourez chaque pièce à 360°, comme si vous y étiez.</p>
+      <a href="viewer.html?agency=sixieme-avenue&property=demo-rambouillet">Lancer la visite 3D →</a>
+    </div>
+    <div class="lead">
+      <h3>Ce bien vous intéresse ?</h3>
+      <div class="rowc"><div class="av">ML</div><div><b>Marie Lefèvre</b><span>Conseillère</span></div><span class="chev">›</span></div>
+      <div class="rowc"><div class="av">◮</div><div><b>Sixième Avenue</b><span>Agence immobilière</span></div><span class="chev">›</span></div>
+      <div class="send-t">Envoyez-nous un message</div>
+      <div class="oblig">Les champs marqués d'un astérisque (*) sont obligatoires.</div>
+      <div class="f2"><input placeholder="Nom *"><input placeholder="Prénom *"></div>
+      <input placeholder="Téléphone *"><input placeholder="Adresse e-mail *">
+      <textarea placeholder="Message *"></textarea>
+      <div class="tg-row"><div class="toggle" id="sell"><i></i></div><span>J'ai également un bien à vendre</span></div>
+      <div class="cgu">☐ J'accepte de recevoir les lettres d'information de l'agence Sixième Avenue.</div>
+      <div class="cgu">☐ J'accepte que mes informations personnelles soient transmises à l'agence pour être recontacté(e).</div>
+      <button class="valider" id="valider">Valider</button>
+      <div class="legal">Les informations recueillies sont nécessaires au traitement de votre demande. <a href="#">En savoir plus</a></div>
+    </div>
+  </aside>
+</div>
+
+<div class="voiraussi"><b>Voir aussi :</b><a href="#">Vente à Gazeran</a>·<a href="#">Vente aux Essarts-le-Roi</a>·<a href="#">Vente à Rambouillet</a></div>
+<div class="legaltxt">Commerçant juridiquement et financièrement indépendant, franchisé du réseau Sixième Avenue. Les photographies, images, plans et illustrations n'ont pas de valeur contractuelle et sont fournis à titre indicatif. Les informations cartographiques relatives aux quartiers sont fournies par un prestataire tiers, à partir de données agrégées issues de plusieurs bases de données dont les dates de mise à jour peuvent varier.</div>
+<div class="crumbf"><a href="#">🏠 / À vendre / Yvelines (78) / Appartement Rambouillet / 3 pièces / Réf. 2048A</a></div>
+</div>
+
+<footer>
+  <div class="clip"></div>
+  <div class="body">
+    <svg class="A" viewBox="0 0 24 24" fill="none"><path d="M12 3L3 20h18L12 3z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M9 14h6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+    <div class="follow">Suivez-nous sur :</div>
+    <div class="soc"><a href="#">f</a><a href="#">in</a><a href="#">▶</a><a href="#">◎</a></div>
+    <div class="cp">© Sixième Avenue</div>
+    <div class="fnav"><a href="#">Contact</a><a href="#">Données personnelles</a><a href="#">Cookies</a><a href="#">Gestion des cookies</a><a href="#">Mentions légales</a><a href="#">Accessibilité</a></div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var PRICE=289000;
+  // carousel
+  var slides=[].slice.call(document.querySelectorAll('.hero .slide'));
+  var dotsWrap=document.getElementById('dots');
+  dotsWrap.innerHTML=slides.map(function(_,i){return '<i data-i="'+i+'" class="'+(i===0?'on':'')+'"></i>';}).join('');
+  var dots=[].slice.call(dotsWrap.children), cur=0;
+  function show(i){cur=(i+slides.length)%slides.length;slides.forEach(function(s,k){s.classList.toggle('on',k===cur);});dots.forEach(function(d,k){d.classList.toggle('on',k===cur);});}
+  document.getElementById('pv').onclick=function(){show(cur-1);};
+  document.getElementById('nx').onclick=function(){show(cur+1);};
+  dots.forEach(function(d){d.onclick=function(){show(+d.getAttribute('data-i'));};});
+
+  // chips
+  var ic={
+    ch:'<path d="M3 17v-5a2 2 0 012-2h14a2 2 0 012 2v5M3 17h18M6 10V8a2 2 0 012-2h8a2 2 0 012 2v2" stroke="currentColor" stroke-width="1.8" fill="none"/>',
+    pi:'<path d="M4 9h16M9 4v16M4 4h16v16H4z" stroke="currentColor" stroke-width="1.8" fill="none"/>',
+    m2:'<path d="M4 20L20 4M8 4H4v4M20 16v4h-4" stroke="currentColor" stroke-width="1.8" fill="none"/>',
+    ca:'<path d="M3 10h18v9H3z M7 10V6h10v4" stroke="currentColor" stroke-width="1.8" fill="none"/>',
+    pa:'<rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M9 16V8h4a3 3 0 010 6H9" stroke="currentColor" stroke-width="1.8" fill="none"/>'
+  };
+  var chips=[[ic.ch,'2 chambres'],[ic.pi,'3 pièces'],[ic.m2,'68 m²'],[ic.ca,'1 cave'],[ic.pa,'Parking']];
+  document.getElementById('chips').innerHTML=chips.map(function(c){return '<div class="chip"><svg viewBox="0 0 24 24">'+c[0]+'</svg>'+c[1]+'</div>';}).join('');
+
+  // DPE / GES (7 segments, C mis en avant)
+  function scale(el,active){el.innerHTML='ABCDEFG'.split('').map(function(l){return '<span class="'+(l===active?'on':'')+'">'+(l===active?l:'')+'</span>';}).join('');}
+  scale(document.getElementById('dpe'),'C');
+  scale(document.getElementById('ges'),'C');
+
+  // crédit
+  function eur(n){return Math.round(n).toLocaleString('fr-FR')+' €';}
+  function calc(){
+    var taux=parseFloat(document.getElementById('taux').value)||0;
+    var apport=parseFloat(document.getElementById('apport').value)||0;
+    var years=parseFloat(document.getElementById('duree').value)||1;
+    var cap=Math.max(0,PRICE-apport);var i=(taux/100)/12,n=years*12;
+    var m=i>0?cap*i/(1-Math.pow(1+i,-n)):cap/n;
+    document.getElementById('month').innerHTML=eur(m)+'<small> / par mois¹</small>';
+    document.getElementById('notaire').textContent=eur(PRICE*0.08);
+  }
+  ['taux','apport','duree'].forEach(function(id){document.getElementById(id).addEventListener('input',calc);});
+  calc();
+
+  // toggles
+  var sell=document.getElementById('sell');sell.onclick=function(){sell.classList.toggle('off');};
+  document.querySelectorAll('.subnav a').forEach(function(a){a.onclick=function(){document.querySelectorAll('.subnav a').forEach(function(x){x.classList.remove('on');});a.classList.add('on');};});
+  var v=document.getElementById('valider');v.onclick=function(){v.textContent='Message envoyé ✓';v.style.background='var(--teal-dark)';};
+})();
+</script>
+</body>
 </html>
