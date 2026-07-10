@@ -23,7 +23,7 @@
     },
     'era': {
       id: 'era', name: 'ERA Immobilier',
-      navy: '#944a54', navyRgb: '60,60,60',
+      navy: '#3A0E14', navyRgb: '58,14,20',
       accent: '#E2001A', accentRgb: '226,0,26', accentDark: '#B00016',
       logo: 'era', property: 'demo-rambouillet',
       site: {
