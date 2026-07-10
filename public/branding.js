@@ -39,7 +39,7 @@
     'sixieme-avenue': {
       id: 'sixieme-avenue', name: 'Sixième Avenue',
       navy: '#0C2C2B', navyRgb: '12,44,43',
-      accent: '#2E7E7C', accentRgb: '46,126,124', accentDark: '#245F5C',
+      accent: '#a1c4c3', accentRgb: '46,126,124', accentDark: '#245F5C',
       logo: 'sixieme', property: 'demo-rambouillet',
       site: {
         nav: ['Acheter', 'Louer', 'Vendre', 'Gestion Locative', "L'agence"],
