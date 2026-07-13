@@ -929,6 +929,17 @@ const CONFIG = {
   clipNearRatio:     0.02,
   clipFarRatio:      8.0,
 
+  // === ZOOM PINCEMENT (tactile) ===
+  // Mode « pourcentage » : le pas de zoom est proportionnel au radius courant et
+  // INDÉPENDANT de angularSensibility. Indispensable ici, car la vitesse adaptative
+  // ci-dessous gonfle angularSensibility jusqu'à ×navSpeedMaxSlow quand on approche —
+  // avec pinchPrecision, cela divisait le zoom d'autant, exactement au moment où l'on
+  // cherche à entrer dans une pièce (d'où les pincements à répétition).
+  // Proportionnel au radius = un pincement couvre toujours la même FRACTION de la
+  // distance restante, qu'on soit loin ou déjà dans le salon.
+  pinchDeltaPercentage:  0.012, // ↑ = zoom pincement plus vif
+  zoomInLimitRatioTouch: 0.40,  // tactile : on autorise à s'approcher davantage (0.55 → 0.40)
+
   lockPanning: true,
 
   // === VITESSE ADAPTATIVE (navigation) ===
@@ -1007,6 +1018,14 @@ let defaultFov = 0.8; // FOV de navigation (sauvegardé au boot, restauré à la
    liste des pièces + photos. Les réglages fins (switches « éléments par pièce »)
    et les libellés redondants sont retirés — voir l'épuration dans la media-query. */
 const isPhoneUI = () => !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+
+/* Pointeur tactile (téléphone/tablette) : le zoom se fait au pincement, pas à la molette.
+   On lui applique un réglage dédié (voir CONFIG.pinchDeltaPercentage). */
+const isCoarsePointer = () => !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
+/* Distance minimale autorisée à la caméra, en fraction du rayon du modèle.
+   Plus permissive au doigt : on veut pouvoir entrer franchement dans les pièces. */
+const zoomInRatio = () => (isCoarsePointer() ? CONFIG.zoomInLimitRatioTouch : CONFIG.zoomInLimitRatio);
 
 // --- Éléments par pièce ---
 let roomList = [];      // [{id, label, glb}] effectif (manifest.rooms ?? CONFIG.rooms)
@@ -1103,9 +1122,14 @@ async function init() {
   camera.panningInertia = 0.7;        // amortissement translation : aligné sur la rotation (0.7) → la translation stoppe aussi franchement après un lâcher rapide (0.9 = défaut Sandbox)
   camera.panningAxis = new BABYLON.Vector3(1, 1, 0); // pan dans le plan écran (défaut Sandbox)
   camera.wheelPrecision = 15;         // zoom molette très adouci (plus haut = plus doux)
-  camera.pinchPrecision = 120;        // zoom pincement tactile TRÈS adouci (plus haut = plus doux, ~10x moins fort)
+  // --- ZOOM PINCEMENT (tactile) ---
+  // pinchPrecision divise par angularSensibility, que la vitesse adaptative gonfle
+  // jusqu'à ×navSpeedMaxSlow à l'approche → le zoom se bridait tout seul dès qu'on
+  // s'approchait d'une pièce. On bascule donc, au doigt, sur pinchDeltaPercentage :
+  // pas de zoom proportionnel au radius, insensible à angularSensibility.
+  camera.pinchPrecision = 120;        // conservé pour le tactile-sur-desktop (ignoré si pinchDeltaPercentage > 0)
+  camera.pinchDeltaPercentage = isCoarsePointer() ? CONFIG.pinchDeltaPercentage : 0;
   camera.wheelDeltaPercentage = 0;    // désactive le mode pourcentage → utilise wheelPrecision
-  camera.pinchDeltaPercentage = 0;
   camera.useNaturalPinchZoom = false; // comportement zoom standard (défaut)
 
   // === VITESSE ADAPTATIVE selon la proximité du modèle ===
@@ -1747,7 +1771,7 @@ function frameModel(root) {
   camera.setTarget(center.clone());
   camera.radius = distance;
 
-  camera.lowerRadiusLimit = radius * CONFIG.zoomInLimitRatio;
+  camera.lowerRadiusLimit = radius * zoomInRatio();
   camera.upperRadiusLimit = distance * CONFIG.zoomOutLimitRatio;
 
   camera.minZ = radius * CONFIG.clipNearRatio;
@@ -1845,7 +1869,7 @@ function resetView() {
       scene.onBeforeRenderObservable.remove(currentAnimObserver);
       currentAnimObserver = null;
       // Restaurer les limites de zoom de navigation
-      camera.lowerRadiusLimit = modelBounds.radius * CONFIG.zoomInLimitRatio;
+      camera.lowerRadiusLimit = modelBounds.radius * zoomInRatio();
       camera.upperRadiusLimit = initialFraming.radius * CONFIG.zoomOutLimitRatio;
       camera.minZ = modelBounds.radius * CONFIG.clipNearRatio;
       camera.fov = defaultFov;
@@ -3614,7 +3638,7 @@ function animateViewportAndRadius(targetViewport, targetRadius, targetCenter, fr
         camera.radius = computeTopViewRadiusForViewport(targetViewport);
       } else {
         // Navigation : restaure des limites de zoom cohérentes + réactive les contrôles
-        camera.lowerRadiusLimit = modelBounds.radius * CONFIG.zoomInLimitRatio;
+        camera.lowerRadiusLimit = modelBounds.radius * zoomInRatio();
         camera.upperRadiusLimit = (initialFraming ? initialFraming.radius : targetRadius) * CONFIG.zoomOutLimitRatio;
         camera.attachControl(document.getElementById('canvas'), true);
       }
@@ -4063,7 +4087,7 @@ function resetPlacement() {
     camera.target = modelBounds.center.clone();
     camera.radius = fitR;
     if (!topView){
-      camera.lowerRadiusLimit = modelBounds.radius * CONFIG.zoomInLimitRatio;
+      camera.lowerRadiusLimit = modelBounds.radius * zoomInRatio();
       camera.upperRadiusLimit = Math.max(fitR, (initialFraming ? initialFraming.radius : fitR) * CONFIG.zoomOutLimitRatio);
     }
   }
