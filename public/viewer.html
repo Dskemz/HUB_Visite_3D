@@ -628,6 +628,37 @@
       .sheet-handle-hint { display: none !important; } /* « Glisser ▲ » (la poignée suffit) */
       .reset-lbl { display: none; }                 /* « Recentrer » → icône seule */
 
+      /* ====== CIBLES TACTILES ======
+         Seuil de confort reconnu (Apple HIG / Material) : 44px. Plusieurs commandes
+         étaient nettement en dessous. Deux stratégies, selon le coût en encombrement :
+
+         1) TAILLE RÉELLE portée à 44px pour les commandes isolées (barre du haut,
+            pastille Recentrer) et pour le NOM DE PIÈCE — cible principale du menu,
+            qui n'était qu'une ligne de texte sans hauteur de clic.
+         2) ZONE DE CLIC élargie SANS grossir le visuel, via un pseudo-élément
+            transparent qui déborde du bouton, pour tout ce qui vit dans la feuille :
+            on garde la compacité gagnée à l'épuration. */
+      .back-btn, .toggle-view-btn { min-height: 44px; justify-content: center; }
+      .back-btn { min-width: 44px; }
+
+      /* Nom de la pièce : vraie hauteur de frappe (avant : ~24px de texte nu). */
+      .poi-item .poi-btn {
+        min-height: 44px; display: flex; align-items: center;
+        padding: 0 0.1rem;
+      }
+
+      /* Élargissement de la zone de clic — le visuel ne bouge pas d'un pixel. */
+      .poi-mini, .fp-poi-btn, .lightbox-btn { position: relative; }
+      .poi-mini::after, .fp-poi-btn::after, .lightbox-btn::after {
+        content: ""; position: absolute; inset: -7px;   /* +7px tout autour */
+      }
+
+      /* Supprime le délai de 300 ms des navigateurs mobiles → frappe immédiate. */
+      .back-btn, .toggle-view-btn, .reset-btn, .poi-btn, .poi-mini,
+      .fp-poi-btn, .fp-back-btn, .lightbox-btn, .lightbox-close {
+        touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+      }
+
       /* On masque la flèche desktop (remplacée par la poignée de la feuille)
          et l'outil interne de placement POV (flux d'édition, pas de visite). */
       .toggle-panel-btn { display: none !important; }
@@ -637,8 +668,8 @@
          derrière la feuille — pastille ronde, icône seule. */
       .reset-btn {
         top: 3.4rem; right: 0.7rem; bottom: auto; left: auto;
-        width: 38px; height: 38px; padding: 0; gap: 0;
-        justify-content: center; font-size: 1.05rem; line-height: 1;
+        width: 44px; height: 44px; padding: 0; gap: 0;
+        justify-content: center; font-size: 1.1rem; line-height: 1;
       }
 
       /* L'astuce « regarder autour » passe au-dessus de la feuille repliée. */
@@ -738,7 +769,7 @@
          les noms longs se coupaient sur 2 lignes et mangeaient la hauteur utile. */
       .fp-poi-grid { grid-template-columns: 1fr; gap: 0.45rem; }
       .fp-poi-btn { padding: 0.62rem 0.8rem; font-size: 0.85rem; text-align: left; }
-      .fp-back-btn { padding: 0.85rem 1rem; font-size: 0.92rem; }
+      .fp-back-btn { min-height: 46px; padding: 0.7rem 1rem; font-size: 0.92rem; }
       .room-row { padding: 0.55rem 0.2rem; }
       .switch { width: 46px; height: 26px; }
       .switch .slider::before { height: 20px; width: 20px; }
