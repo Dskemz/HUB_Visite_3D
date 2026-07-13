@@ -107,7 +107,7 @@
     },
     {
       "id": "grande chambre",
-      "label": "Chambre 01",
+      "label": "Cbr 01",
       "roomId": "grande chambre",
       "description": "Chambre parentale avec dressing et grande fenêtre donnant sur l'extérieur.",
       "photos": [
@@ -127,7 +127,7 @@
     },
     {
       "id": "petite chambre",
-      "label": "Chambre 02",
+      "label": "Cbr 02",
       "roomId": "petite chambre",
       "description": "Seconde chambre, idéale en bureau ou chambre d'enfant.",
       "photos": [
