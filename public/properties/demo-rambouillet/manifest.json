@@ -10,17 +10,20 @@
     {
       "id": "toilette",
       "label": "Toilette",
-      "glb": "toilette.glb"
+      "glb": "toilette.glb",
+      "labelShort": "WC"
     },
     {
       "id": "grande chambre",
-      "label": "Chambre 01",
-      "glb": "grandechambre.glb"
+      "label": "Chambre 1",
+      "glb": "grandechambre.glb",
+      "labelShort": "Ch. 1"
     },
     {
       "id": "petite chambre",
-      "label": "Chambre 02",
-      "glb": "petitechambre.glb"
+      "label": "Chambre 2",
+      "glb": "petitechambre.glb",
+      "labelShort": "Ch. 2"
     },
     {
       "id": "salon",
@@ -29,8 +32,9 @@
     },
     {
       "id": "salledebain",
-      "label": "Salle de Bain",
-      "glb": "salledebain.glb"
+      "label": "Salle de bain",
+      "glb": "salledebain.glb",
+      "labelShort": "SdB"
     },
     {
       "id": "entree",
@@ -107,7 +111,7 @@
     },
     {
       "id": "grande chambre",
-      "label": "Cbr 01",
+      "label": "Chambre 1",
       "roomId": "grande chambre",
       "description": "Chambre parentale avec dressing et grande fenêtre donnant sur l'extérieur.",
       "photos": [
@@ -123,11 +127,12 @@
         3.48,
         0.76,
         2.08
-      ]
+      ],
+      "labelShort": "Ch. 1"
     },
     {
       "id": "petite chambre",
-      "label": "Cbr 02",
+      "label": "Chambre 2",
       "roomId": "petite chambre",
       "description": "Seconde chambre, idéale en bureau ou chambre d'enfant.",
       "photos": [
@@ -143,11 +148,12 @@
         0.2,
         0.73,
         -2.83
-      ]
+      ],
+      "labelShort": "Ch. 2"
     },
     {
       "id": "salledebain",
-      "label": "Salle de Bain",
+      "label": "Salle de bain",
       "roomId": "salledebain",
       "description": "Salle de bain avec double vasque, douche à l'italienne et meuble suspendu.",
       "photos": [
@@ -163,7 +169,8 @@
         10.73,
         1,
         4.36
-      ]
+      ],
+      "labelShort": "SdB"
     },
     {
       "id": "toilette",
@@ -183,7 +190,8 @@
         -1.88,
         0.8,
         1.27
-      ]
+      ],
+      "labelShort": "WC"
     },
     {
       "id": "balcon",
@@ -207,19 +215,94 @@
     }
   ],
   "roomLabels": [
-    { "id": "salon",          "name": "Salon",          "position": [-3.01, 1.16] },
-    { "id": "cuisine",        "name": "Cuisine",        "position": [-3.01, 3.17] },
-    { "id": "entree",         "name": "Entrée",         "position": [3.26, 2.01] },
-    { "id": "toilette",       "name": "Toilette",       "position": [1.70, 3.99] },
-    { "id": "salledebain",    "name": "Salle de Bain",  "position": [6.76, 3.29] },
-    { "id": "petite chambre", "name": "Chambre 02", "position": [2.40, -1.80] },
-    { "id": "grande chambre", "name": "Chambre 01", "position": [5.50, -1.80] },
-    { "id": "balcon",         "name": "Balcon",         "position": [-3.01, -3.01] }
+    {
+      "id": "salon",
+      "name": "Salon",
+      "position": [
+        -3.01,
+        1.16
+      ]
+    },
+    {
+      "id": "cuisine",
+      "name": "Cuisine",
+      "position": [
+        -3.01,
+        3.17
+      ]
+    },
+    {
+      "id": "entree",
+      "name": "Entrée",
+      "position": [
+        3.26,
+        2.01
+      ]
+    },
+    {
+      "id": "toilette",
+      "name": "Toilette",
+      "position": [
+        1.7,
+        3.99
+      ],
+      "nameShort": "WC"
+    },
+    {
+      "id": "salledebain",
+      "name": "Salle de bain",
+      "position": [
+        6.76,
+        3.29
+      ],
+      "nameShort": "SdB"
+    },
+    {
+      "id": "petite chambre",
+      "name": "Chambre 2",
+      "position": [
+        2.4,
+        -1.8
+      ],
+      "nameShort": "Ch. 2"
+    },
+    {
+      "id": "grande chambre",
+      "name": "Chambre 1",
+      "position": [
+        5.5,
+        -1.8
+      ],
+      "nameShort": "Ch. 1"
+    },
+    {
+      "id": "balcon",
+      "name": "Balcon",
+      "position": [
+        -3.01,
+        -3.01
+      ]
+    }
   ],
   "dimensions": {
-    "top": [7.0, 2.0, 2.4, 2.76],
-    "bottom": [6.55, 3.8, 4.5],
-    "left": [6.2, 2.27],
-    "right": [3.0, 5.47]
+    "top": [
+      7.0,
+      2.0,
+      2.4,
+      2.76
+    ],
+    "bottom": [
+      6.55,
+      3.8,
+      4.5
+    ],
+    "left": [
+      6.2,
+      2.27
+    ],
+    "right": [
+      3.0,
+      5.47
+    ]
   }
 }

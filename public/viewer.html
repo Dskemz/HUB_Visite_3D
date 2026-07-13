@@ -1030,6 +1030,18 @@ const isCoarsePointer = () => !!(window.matchMedia && window.matchMedia('(pointe
    Plus permissive au doigt : on veut pouvoir entrer franchement dans les pièces. */
 const zoomInRatio = () => (isCoarsePointer() ? CONFIG.zoomInLimitRatioTouch : CONFIG.zoomInLimitRatio);
 
+/* ===== NOMS DE PIÈCES : version courte sur écran tactile uniquement =====
+   Le manifest peut porter, à côté du nom complet, une variante abrégée :
+     rooms[] / poi[]  → "label"  + "labelShort"
+     roomLabels[]     → "name"   + "nameShort"
+   Sur TÉLÉPHONE ET TABLETTE (pointeur grossier) on affiche la version courte ;
+   sur ORDINATEUR le nom complet, inchangé. Le critère est le type de pointeur —
+   pas la largeur — donc réduire la fenêtre d'un PC n'abrège rien.
+   Si la variante courte est absente, on retombe simplement sur le nom complet. */
+const shortNames = () => isCoarsePointer();
+const poiLabel  = (o) => (o ? ((shortNames() && o.labelShort) || o.label || o.id || '') : '');
+const planLabel = (r) => (r ? ((shortNames() && r.nameShort) || r.name || r.label || r.id || '') : '');
+
 // --- Éléments par pièce ---
 let roomList = [];      // [{id, label, glb}] effectif (manifest.rooms ?? CONFIG.rooms)
 let roomNodes = {};     // id pièce -> TransformNode des meubles hi-poly
@@ -2072,7 +2084,11 @@ let manifestLoaded = false;
 
 async function loadManifest() {
   try {
-    const res = await fetch(CONFIG.assetsBase(CONFIG.propertyId) + 'manifest.json');
+    // cache:'no-cache' → le navigateur revalide TOUJOURS auprès du serveur (ETag).
+    // Sans ça, une modif du manifest (renommage de pièce, nouveau POV…) pouvait
+    // rester invisible pendant des heures, servie depuis le cache navigateur/CDN.
+    const res = await fetch(CONFIG.assetsBase(CONFIG.propertyId) + 'manifest.json',
+                            { cache: 'no-cache' });
     if (!res.ok) throw new Error('manifest ' + res.status);
     propertyData = await res.json();
     manifestLoaded = true;
@@ -2535,7 +2551,7 @@ function showFirstPersonPhoto(poi) {
           <h4 class="room-section-title">Éléments de la pièce</h4>
         </div>
         <div class="room-row">
-          <span><span class="room-name">${room.label}</span>${status}</span>
+          <span><span class="room-name">${poiLabel(room)}</span>${status}</span>
           <label class="switch">
             <input type="checkbox" ${checked} ${disabled}
                    onchange="toggleRoom('${room.id}', this.checked)">
@@ -2586,7 +2602,7 @@ function showFirstPersonPhoto(poi) {
           <button class="fp-poi-btn ${isActive ? 'active' : ''}"
                   ${isActive ? 'disabled' : ''}
                   onclick="goToPOI('${p.id}')">
-            ${p.label}
+            ${poiLabel(p)}
           </button>`;
         }).join('')}
       </div>
@@ -2594,7 +2610,7 @@ function showFirstPersonPhoto(poi) {
 
   panel.innerHTML = `
     <div class="fp-photo-block">
-      <div class="fp-room-title">${poi.label || 'Pièce'}</div>
+      <div class="fp-room-title">${poiLabel(poi) || 'Pièce'}</div>
       ${roomToggleHTML}
       ${descHTML}
       ${photosHTML}
@@ -2661,7 +2677,7 @@ function rebuildPoiList() {
     // .poi-item-acts : visible UNIQUEMENT sur téléphone (bouton Photos).
     return `
       <div class="poi-item">
-        <button class="poi-btn" id="poi-${poi.id}" data-poi="${poi.id}" onclick="onPoiNameClick('${poi.id}')">${poi.label}</button>
+        <button class="poi-btn" id="poi-${poi.id}" data-poi="${poi.id}" onclick="onPoiNameClick('${poi.id}')">${poiLabel(poi)}</button>
         <div class="poi-item-acts">
           ${hasPhotos ? `<button class="poi-mini poi-mini-photo" onclick="event.stopPropagation(); openPhotosFromMenu('${poi.id}')" title="Photos de la pièce">
             <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="10" r="1.6" fill="currentColor"/><path d="M21 16l-5-5-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2711,7 +2727,7 @@ function renderRoomSwitchesHTML() {
     const checked  = st.enabled ? 'checked' : '';
     return `
       <div class="room-row">
-        <span><span class="room-name">${r.label}</span>${status}</span>
+        <span><span class="room-name">${poiLabel(r)}</span>${status}</span>
         <label class="switch">
           <input type="checkbox" ${checked} ${disabled}
                  onchange="toggleRoom('${r.id}', this.checked)">
@@ -3262,7 +3278,7 @@ function hudRoomLabels() {
     const yFloor = modelBounds ? modelBounds.min.y : 0;
     const out = [];
     declared.forEach(r => {
-      const name = r.name || r.label || r.id || '';
+      const name = planLabel(r);
       // Coordonnées acceptées : position/coords/xz = [x,z] ou [x,y,z], ou champs x/y/z
       const c = r.position || r.coords || r.xz;
       let x, y, z;
@@ -3289,7 +3305,7 @@ function hudRoomLabels() {
       if (!node) return;
       const rect = hudRoomRect(node);
       const c = hudRoomCenter(node);
-      if (c) out.push({ label: r.label || r.id, id: r.id, rect, world: c });
+      if (c) out.push({ label: poiLabel(r), id: r.id, rect, world: c });
     });
   }
   // --- 3) Repli : POI ---
@@ -3298,7 +3314,7 @@ function hudRoomLabels() {
     propertyData.poi.forEach(p => {
       const pos = p.camPos || p.position;
       if (!pos) return;
-      out.push({ label: p.label || p.id, id: p.id, rect: null, world: new BABYLON.Vector3(pos[0], y, pos[2]) });
+      out.push({ label: poiLabel(p), id: p.id, rect: null, world: new BABYLON.Vector3(pos[0], y, pos[2]) });
     });
   }
   return out;
@@ -4106,7 +4122,7 @@ function resetPlacement() {
   function onPov(poi){
     context = 'pov';
     if (!isMobile()) return;
-    setLabel(poi && poi.label ? poi.label : 'Pièce');
+    setLabel(poiLabel(poi) || 'Pièce');
     if (armPovRaise){ applyDetent('open', true); armPovRaise = false; }
   }
   function onGoToPOI(){
