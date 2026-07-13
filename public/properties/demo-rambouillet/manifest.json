@@ -14,12 +14,12 @@
     },
     {
       "id": "grande chambre",
-      "label": "Grande chambre",
+      "label": "Chambre 01",
       "glb": "grandechambre.glb"
     },
     {
       "id": "petite chambre",
-      "label": "Petite chambre",
+      "label": "Chambre 02",
       "glb": "petitechambre.glb"
     },
     {
@@ -107,7 +107,7 @@
     },
     {
       "id": "grande chambre",
-      "label": "Grande chambre",
+      "label": "Chambre 01",
       "roomId": "grande chambre",
       "description": "Chambre parentale avec dressing et grande fenêtre donnant sur l'extérieur.",
       "photos": [
@@ -127,7 +127,7 @@
     },
     {
       "id": "petite chambre",
-      "label": "Petite chambre",
+      "label": "Chambre 02",
       "roomId": "petite chambre",
       "description": "Seconde chambre, idéale en bureau ou chambre d'enfant.",
       "photos": [
@@ -212,8 +212,8 @@
     { "id": "entree",         "name": "Entrée",         "position": [3.26, 2.01] },
     { "id": "toilette",       "name": "Toilette",       "position": [1.70, 3.99] },
     { "id": "salledebain",    "name": "Salle de Bain",  "position": [6.76, 3.29] },
-    { "id": "petite chambre", "name": "Petite chambre", "position": [2.40, -1.80] },
-    { "id": "grande chambre", "name": "Grande chambre", "position": [5.50, -1.80] },
+    { "id": "petite chambre", "name": "Chambre 02", "position": [2.40, -1.80] },
+    { "id": "grande chambre", "name": "Chambre 01", "position": [5.50, -1.80] },
     { "id": "balcon",         "name": "Balcon",         "position": [-3.01, -3.01] }
   ],
   "dimensions": {

@@ -937,7 +937,10 @@ const CONFIG = {
   // cherche à entrer dans une pièce (d'où les pincements à répétition).
   // Proportionnel au radius = un pincement couvre toujours la même FRACTION de la
   // distance restante, qu'on soit loin ou déjà dans le salon.
-  pinchDeltaPercentage:  0.012, // ↑ = zoom pincement plus vif
+  // Repère : un pincement franc (doigts 100 → 260 px) parcourt ~35 % du radius,
+  // un petit pincement ~8 %. Monter à 0.008 si c'est trop mou, descendre à 0.004
+  // si c'est encore trop nerveux.
+  pinchDeltaPercentage:  0.006, // ↑ = zoom pincement plus vif
   zoomInLimitRatioTouch: 0.40,  // tactile : on autorise à s'approcher davantage (0.55 → 0.40)
 
   lockPanning: true,
