@@ -941,6 +941,12 @@ const CONFIG = {
   // un petit pincement ~8 %. Monter à 0.008 si c'est trop mou, descendre à 0.004
   // si c'est encore trop nerveux.
   pinchDeltaPercentage:  0.006, // ↑ = zoom pincement plus vif
+  // FREIN D'APPROCHE : le pas de zoom AVANT ne peut jamais dépasser cette fraction
+  // de la marge restante (radius − lowerRadiusLimit). Loin, la marge est grande →
+  // le plafond ne se déclenche pas, la vitesse actuelle est intacte. Près de la cage,
+  // la marge tend vers 0 → le pas aussi : on s'en approche en douceur au lieu de la
+  // percuter. N'affecte JAMAIS le zoom arrière. ↓ = approche plus douce.
+  zoomApproachMaxStep:   0.18,
   zoomInLimitRatioTouch: 0.40,  // tactile : on autorise à s'approcher davantage (0.55 → 0.40)
 
   lockPanning: true,
@@ -1161,6 +1167,28 @@ async function init() {
     camera.panningSensibility  = CONFIG.navPanSensibility     * slow;
     camera.angularSensibilityX = CONFIG.navAngularSensibility * slow;
     camera.angularSensibilityY = CONFIG.navAngularSensibility * slow;
+  });
+
+  // === FREIN D'APPROCHE DU ZOOM ===
+  // Le pas de zoom est proportionnel au RADIUS (pinchDeltaPercentage), alors que la
+  // marge réellement disponible est « radius − lowerRadiusLimit ». Près de la butée
+  // cette marge est minuscule tandis que le pas, lui, reste large → on traversait
+  // toute la marge restante en quelques frames (sensation de choc contre la cage).
+  // Correctif : on plafonne le pas à une fraction de la marge restante. Loin, la marge
+  // est grande → le plafond ne mord pas (vitesse actuelle intacte). Près, la marge tend
+  // vers 0 → le pas aussi : l'approche devient asymptotique, on ne percute plus rien.
+  // Le zoom ARRIÈRE n'est jamais bridé.
+  // NB : dans Babylon, radius -= inertialRadiusOffset → offset POSITIF = zoom avant.
+  scene.onBeforeRenderObservable.add(() => {
+    if (!camera || isFirstPerson || isTopView || isAnimating) return;
+    const off = camera.inertialRadiusOffset;
+    if (off <= 0) return;                                   // zoom arrière : libre
+    const rMin = camera.lowerRadiusLimit;
+    if (rMin === null || rMin === undefined) return;        // pas de butée active
+    const headroom = camera.radius - rMin;                  // marge avant la butée
+    if (headroom <= 0) { camera.inertialRadiusOffset = 0; return; }
+    const maxStep = headroom * CONFIG.zoomApproachMaxStep;
+    if (off > maxStep) camera.inertialRadiusOffset = maxStep;
   });
 
   camera.lowerBetaLimit = 0.05;
