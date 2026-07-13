@@ -360,7 +360,7 @@
     .poi-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: 4px; margin-bottom: 1rem; background: #222; }
     .poi-image[src=""] { display: none; }
     
-    .reset-btn { position: absolute; bottom: 1rem; right: 1rem; pointer-events: auto; background: rgba(255,255,255,0.95); border: 1px solid #ddd; border-radius: 999px; padding: 0.6rem 1.1rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .reset-btn { position: absolute; bottom: 1rem; right: 1rem; pointer-events: auto; background: rgba(255,255,255,0.95); border: 1px solid #ddd; border-radius: 999px; padding: 0.6rem 1.1rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 0.4rem; font-family: inherit; }
     .reset-btn:hover { background: var(--brand-accent); color: white; border-color: var(--brand-accent); }
     
     .loading-bar { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; }
@@ -606,13 +606,25 @@
       .brand-logo { display: none; }
       .ttl small { display: none; }
       .ttl { margin-left: 0; }
-      .back-btn { padding: 0.45rem 0.7rem; font-size: 0.8rem; }
-      .toggle-view-btn { padding: 0.45rem 0.7rem; font-size: 0.78rem; }
-      /* Libellé texte conservé (compréhensible) ; on laisse le titre se tronquer
+      /* Bouton retour : icône seule (l'écran est trop étroit pour un libellé). */
+      .back-btn { padding: 0.45rem 0.55rem; gap: 0; font-size: 0; }
+      .back-btn svg { width: 18px; height: 18px; }
+      .toggle-view-btn { padding: 0.45rem 0.75rem; font-size: 0.78rem; }
+      /* Libellé raccourci en JS (« Plan » / « 3D ») ; on laisse le titre se tronquer
          pour que le bouton tienne toujours dans le bandeau. */
       .header-left { min-width: 0; }
       .ttl { min-width: 0; }
       .property-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+      /* ====== ÉPURATION TÉLÉPHONE ======
+         L'écran est trop petit pour la totalité du panneau desktop. On ne garde
+         que l'essentiel de la visite : la liste des pièces et leurs photos.
+         Tout le reste (réglages fins, astuces textuelles, libellés redondants)
+         est retiré. Filet de sécurité CSS : le JS ne les construit déjà plus. */
+      .room-section { display: none !important; }   /* switches « éléments par pièce » */
+      .fp-photo-hint { display: none !important; }  /* « Cliquez sur une photo… » */
+      .sheet-handle-hint { display: none !important; } /* « Glisser ▲ » (la poignée suffit) */
+      .reset-lbl { display: none; }                 /* « Recentrer » → icône seule */
 
       /* On masque la flèche desktop (remplacée par la poignée de la feuille)
          et l'outil interne de placement POV (flux d'édition, pas de visite). */
@@ -620,10 +632,11 @@
       .placement-toggle, .placement-panel { display: none !important; }
 
       /* Bouton « Recentrer » remonté en haut à droite pour ne jamais passer
-         derrière la feuille. */
+         derrière la feuille — pastille ronde, icône seule. */
       .reset-btn {
         top: 3.4rem; right: 0.7rem; bottom: auto; left: auto;
-        padding: 0.5rem 0.9rem; font-size: 0.8rem;
+        width: 38px; height: 38px; padding: 0; gap: 0;
+        justify-content: center; font-size: 1.05rem; line-height: 1;
       }
 
       /* L'astuce « regarder autour » passe au-dessus de la feuille repliée. */
@@ -643,7 +656,7 @@
         display: flex;
         background: transparent; box-shadow: none;
         overflow: hidden;
-        --peek: 88px;
+        --peek: 74px;   /* feuille allégée (plus de section « éléments ») */
         transition: transform 0.34s cubic-bezier(.25,.46,.45,.94);
         will-change: transform;
       }
@@ -775,8 +788,6 @@
     /* Très petits écrans (téléphone compact). */
     @media (max-width: 480px) {
       html { font-size: 14px; }
-      .back-btn { padding: 0.45rem 0.5rem; gap: 0; font-size: 0; }
-      .back-btn svg { width: 18px; height: 18px; }
     }
   </style>
 </head>
@@ -841,7 +852,7 @@
     <div>Beta: <span id="debug-beta">0</span></div>
   </div>
 
-  <button class="reset-btn" onclick="resetView()" title="Recentrer la vue">⟳ Recentrer</button>
+  <button class="reset-btn" onclick="resetView()" title="Recentrer la vue"><span class="reset-ico">⟳</span><span class="reset-lbl">Recentrer</span></button>
 
   <!-- INDICATION "REGARDER AUTOUR" (vue 1ère personne) -->
   <div class="fp-look-hint" id="fp-look-hint">Cliquez-glissez horizontalement pour balayer la pièce du regard</div>
@@ -987,6 +998,11 @@ let povLastTouchX = 0;        // dernière position X du doigt (pour le delta de
 let povLastTouchY = 0;        // dernière position Y du doigt
 let savedRadiusLimits = null; // sauvegarde des limites de zoom hors 1ère personne
 let defaultFov = 0.8; // FOV de navigation (sauvegardé au boot, restauré à la sortie du 1ère personne)
+
+/* Téléphone (< 900px). Sur cet écran on n'affiche QUE l'essentiel de la visite :
+   liste des pièces + photos. Les réglages fins (switches « éléments par pièce »)
+   et les libellés redondants sont retirés — voir l'épuration dans la media-query. */
+const isPhoneUI = () => !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
 
 // --- Éléments par pièce ---
 let roomList = [];      // [{id, label, glb}] effectif (manifest.rooms ?? CONFIG.rooms)
@@ -2474,8 +2490,10 @@ function showFirstPersonPhoto(poi) {
   }
 
   // --- Section « Éléments de la pièce » (switch unique pour cette pièce) ---
+  // Téléphone : retirée. C'est un réglage fin qui n'a pas sa place sur un écran
+  // où chaque ligne compte ; les éléments restent dans l'état par défaut.
   let roomToggleHTML = '';
-  if (room) {
+  if (room && !isPhoneUI()) {
     const checked  = (rst && rst.enabled) ? 'checked' : '';
     const disabled = roomLoaded ? '' : 'disabled';
     const status   = (rst && rst.failed) ? '<span class="room-status">indispo.</span>'
@@ -2518,7 +2536,7 @@ function showFirstPersonPhoto(poi) {
                   <img src="${src}" alt="${poi.label || ''}">
                 </div>`;
       }).join('')}
-      <div class="fp-photo-hint">Cliquez sur une photo pour l'agrandir.</div>
+      ${isPhoneUI() ? '' : `<div class="fp-photo-hint">Cliquez sur une photo pour l'agrandir.</div>`}
     </div>` : '';
   
   // Pré-charge le tableau de photos globales pour la lightbox
@@ -2603,6 +2621,38 @@ function flashTopViewHint() {
 function rebuildPoiList() {
   const panel = document.getElementById('poi-panel');
   const pois = propertyData && propertyData.poi ? propertyData.poi : [];
+  const phone = isPhoneUI();
+
+  // Cartes de pièce — identiques sur les deux plateformes.
+  const itemsHTML = pois.map(poi => {
+    const hasPhotos = (Array.isArray(poi.photos) && poi.photos.length) || !!poi.image;
+    // .poi-btn : titre (desktop = bouton POV inchangé ; téléphone = titre de carte).
+    // .poi-item-acts : visible UNIQUEMENT sur téléphone (bouton Photos).
+    return `
+      <div class="poi-item">
+        <button class="poi-btn" id="poi-${poi.id}" data-poi="${poi.id}" onclick="onPoiNameClick('${poi.id}')">${poi.label}</button>
+        <div class="poi-item-acts">
+          ${hasPhotos ? `<button class="poi-mini poi-mini-photo" onclick="event.stopPropagation(); openPhotosFromMenu('${poi.id}')" title="Photos de la pièce">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="10" r="1.6" fill="currentColor"/><path d="M21 16l-5-5-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Photos
+          </button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // TÉLÉPHONE — la feuille ne contient QUE la liste des pièces :
+  //   • pas de section « Éléments par pièce » (réglage fin, illisible au doigt) ;
+  //   • pas de <details> repliable (une seule section → le repli n'a plus d'objet) ;
+  //   • pas de titre « Visiter les pièces » (la poignée de la feuille le porte déjà).
+  if (phone) {
+    panel.innerHTML = `
+      <div class="poi-container" id="poi-list" style="flex:1;overflow-y:auto;padding-top:0.4rem;">
+        ${itemsHTML}
+      </div>`;
+    return;
+  }
+
+  // DESKTOP / TABLETTE — rendu d'origine inchangé.
   panel.innerHTML = `
     ${renderRoomSwitchesHTML()}
     <details class="collapsible" open>
@@ -2611,21 +2661,7 @@ function rebuildPoiList() {
         <svg class="collapse-arrow" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </summary>
       <div class="poi-container" id="poi-list" style="flex:1;overflow-y:auto;padding-top:0.7rem;">
-        ${pois.map(poi => {
-          const hasPhotos = (Array.isArray(poi.photos) && poi.photos.length) || !!poi.image;
-          // .poi-btn : titre (desktop = bouton POV inchangé ; téléphone = titre de carte).
-          // .poi-item-acts : visible UNIQUEMENT sur téléphone (Vue 3D + Photos).
-          return `
-          <div class="poi-item">
-            <button class="poi-btn" id="poi-${poi.id}" data-poi="${poi.id}" onclick="onPoiNameClick('${poi.id}')">${poi.label}</button>
-            <div class="poi-item-acts">
-              ${hasPhotos ? `<button class="poi-mini poi-mini-photo" onclick="event.stopPropagation(); openPhotosFromMenu('${poi.id}')" title="Photos de la pièce">
-                <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="10" r="1.6" fill="currentColor"/><path d="M21 16l-5-5-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Photos
-              </button>` : ''}
-            </div>
-          </div>`;
-        }).join('')}
+        ${itemsHTML}
       </div>
     </details>
   `;
@@ -3063,13 +3099,16 @@ function updateToggleButton() {
   const label = document.getElementById('btn-label');
   const btn = document.getElementById('btn-toggle-view');
   if (!icon || !label || !btn) return;
+  // Téléphone : libellés courts (« 3D » / « Plan ») pour laisser respirer le titre
+  // du bien dans le bandeau. Desktop/tablette : libellés complets, inchangés.
+  const phone = isPhoneUI();
   if (isTopView) {
     icon.innerHTML = ICON_NAV;
-    label.textContent = 'Navigation';
+    label.textContent = phone ? '3D' : 'Navigation';
     btn.title = 'Revenir en navigation libre';
   } else {
     icon.innerHTML = ICON_TOPVIEW;
-    label.textContent = 'Vue de dessus';
+    label.textContent = phone ? 'Plan' : 'Vue de dessus';
     btn.title = 'Passer en vue de dessus';
   }
 }
@@ -4112,7 +4151,18 @@ function resetPlacement() {
   window.addEventListener('resize', reposition);
   window.addEventListener('orientationchange', onOrientation);
   if (mqPortrait.addEventListener) mqPortrait.addEventListener('change', onOrientation);
-  if (mqMobile.addEventListener)   mqMobile.addEventListener('change', reposition);
+  // Passage du seuil 900px (rotation, fenêtre redimensionnée) : le contenu du
+  // panneau diffère entre téléphone et desktop → on le reconstruit dans la bonne
+  // variante, et on remet le libellé du bouton de bascule au bon format.
+  function onBreakpoint(){
+    reposition();
+    try {
+      if (typeof updateToggleButton === 'function') updateToggleButton();
+      if (typeof isFirstPerson !== 'undefined' && !isFirstPerson
+          && typeof rebuildPoiList === 'function') rebuildPoiList();
+    } catch(_){}
+  }
+  if (mqMobile.addEventListener)   mqMobile.addEventListener('change', onBreakpoint);
 
   // --- Enrobage non intrusif des fonctions existantes ---
   function wrap(name, after){
