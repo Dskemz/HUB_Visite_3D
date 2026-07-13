@@ -17,18 +17,24 @@ a{color:inherit;text-decoration:none} img{display:block;max-width:100%}
 .wrap{max-width:1120px;margin:0 auto;padding:0 1.25rem}
 button{font-family:inherit;cursor:pointer;border:none}
 
-/* header */
+/* header — hauteur verrouillée à 64px : la subnav est sticky à top:64px, donc le
+   contenu ne doit JAMAIS passer à la ligne (sinon il déborde sous le bandeau). */
 header{border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:40}
-.hrow{display:flex;align-items:center;justify-content:space-between;height:64px;gap:1rem}
-.logo{display:flex;align-items:center;gap:.5rem}
-.logo .tri{width:30px;height:30px}
-.logo .txt{line-height:1}
-.logo .txt b{font-size:1.2rem;font-weight:800;letter-spacing:.01em}
-.logo .txt i{display:block;font-style:normal;font-size:.6rem;color:var(--muted);letter-spacing:.03em}
+.hrow{display:flex;align-items:center;justify-content:space-between;height:64px;gap:1rem;flex-wrap:nowrap;min-width:0}
+.logo{display:flex;align-items:center;gap:.5rem;min-width:0}
+.logo .tri{width:30px;height:30px;flex:0 0 auto}
+.logo .txt{line-height:1;min-width:0}
+.logo .txt b{font-size:1.2rem;font-weight:800;letter-spacing:.01em;white-space:nowrap}
+.logo .txt i{display:block;font-style:normal;font-size:.6rem;color:var(--muted);letter-spacing:.03em;white-space:nowrap}
 nav.main{display:flex;gap:1.5rem;font-size:.9rem;font-weight:600}
 nav.main a:hover{color:var(--teal)}
-.hphone{display:flex;align-items:center;gap:.5rem;color:var(--teal);font-weight:700;font-size:.9rem}
+.hphone{display:flex;align-items:center;gap:.5rem;color:var(--teal);font-weight:700;font-size:.9rem;white-space:nowrap;flex:0 0 auto}
 @media(max-width:920px){nav.main{display:none}}
+@media(max-width:520px){
+  .logo .txt b{font-size:1rem}
+  .logo .txt i{font-size:.55rem}
+  .hphone{font-size:.8rem;gap:.3rem}
+}
 
 /* carousel */
 .hero{position:relative;height:400px;background:#000;overflow:hidden}

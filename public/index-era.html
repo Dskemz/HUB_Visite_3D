@@ -19,8 +19,8 @@ button{font-family:inherit;cursor:pointer;border:none}
 
 /* header */
 header{border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:40}
-.hrow{display:flex;align-items:center;justify-content:space-between;height:60px;gap:1rem}
-.logo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.3rem;letter-spacing:.03em}
+.hrow{display:flex;align-items:center;justify-content:space-between;min-height:60px;gap:1rem;flex-wrap:nowrap}
+.logo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.3rem;letter-spacing:.03em;white-space:nowrap}
 .logo .m{width:34px;height:34px;background:var(--red);border-radius:5px;display:flex;align-items:center;justify-content:center}
 .logo .m svg{width:22px;height:22px}
 .logo b{color:var(--red)} .logo i{color:var(--blue);font-style:normal;font-size:.62rem;font-weight:700;letter-spacing:.02em;display:block;line-height:1}
@@ -32,12 +32,25 @@ nav.main a:hover{color:var(--red)}
 
 /* subbar */
 .subbar{border-bottom:1px solid var(--line);background:#fff}
-.subrow{display:flex;align-items:center;justify-content:space-between;height:52px;gap:1rem;flex-wrap:wrap}
+/* min-height, PAS height : avec height fixe + flex-wrap, les boutons qui passent
+   à la ligne débordaient du bandeau et la galerie leur passait dessus. */
+.subrow{display:flex;align-items:center;justify-content:space-between;min-height:52px;gap:.5rem 1rem;flex-wrap:wrap;padding:.45rem 0}
 .crumb{font-size:.82rem;color:var(--muted)} .crumb a:hover{color:var(--red)}
-.acts{display:flex;gap:.6rem}
-.acts button{padding:.5rem .9rem;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:.82rem;font-weight:600}
+.acts{display:flex;gap:.6rem;flex-wrap:nowrap;min-width:0}
+.acts button{padding:.5rem .9rem;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:.82rem;font-weight:600;white-space:nowrap}
 .acts .fav{background:var(--red);color:#fff;border-color:var(--red)}
 .acts .fav:hover{background:var(--red-dark)}
+.acts .short{display:none}
+/* Téléphone : fil d'Ariane sur sa ligne, actions sur la leur (libellés courts). */
+@media(max-width:760px){
+  .subrow{flex-direction:column;align-items:stretch;gap:.5rem;min-width:0}
+  .crumb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .acts{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .acts::-webkit-scrollbar{display:none}
+  .acts button{flex:1 1 0;min-width:0;font-size:.78rem;padding:.5rem .5rem}
+  .acts .full{display:none}
+  .acts .short{display:inline}
+}
 
 /* gallery */
 .gal{display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;margin-top:1rem;height:420px}
@@ -69,6 +82,7 @@ nav.main a:hover{color:var(--red)}
 
 /* main grid */
 .cols{display:grid;grid-template-columns:1fr 380px;gap:2.4rem;padding:1.6rem 0}
+.cols>*{min-width:0}
 @media(max-width:960px){.cols{grid-template-columns:1fr}}
 h2.sec{font-size:1.25rem;font-weight:800;margin-bottom:.9rem}
 .ref{font-size:.75rem;color:var(--muted);font-weight:600}
@@ -126,6 +140,7 @@ h2.sec{font-size:1.25rem;font-weight:800;margin-bottom:.9rem}
 /* contact */
 .c-sec{padding:2rem 0;border-top:1px solid var(--line)}
 .c-body{display:grid;grid-template-columns:1fr 320px;gap:1.5rem;align-items:start}
+.c-body>*{min-width:0}
 @media(max-width:960px){.c-body{grid-template-columns:1fr}}
 .c-form{background:var(--soft);border-radius:14px;padding:1.4rem}
 .c-tabs{display:flex;gap:0;margin-bottom:1.2rem;border-bottom:2px solid var(--line)}
@@ -188,7 +203,7 @@ footer.ft{background:#20242c;color:#9aa3b2;padding:1.6rem 0;font-size:.8rem;text
 
 <div class="subbar"><div class="wrap"><div class="subrow">
   <div class="crumb"><a href="#">‹ Retour</a> · Acheter · Yvelines · Rambouillet</div>
-  <div class="acts"><button>🖶 Imprimer</button><button>↗ Partager</button><button class="fav">♡ Ajouter aux favoris</button></div>
+  <div class="acts"><button>🖶 Imprimer</button><button>↗ Partager</button><button class="fav">♡ <span class="full">Ajouter aux favoris</span><span class="short">Favoris</span></button></div>
 </div></div></div>
 
 <div class="wrap">
