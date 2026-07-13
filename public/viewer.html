@@ -409,6 +409,8 @@
 
     /* Navigation entre POV en mode 1ère personne */
     .fp-other-poi { margin-top: 1rem; }
+    /* Desktop/tablette : 2 colonnes (rendu d'origine inchangé). */
+    .fp-poi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     .fp-poi-btn {
       background: #f0f5ff; color: var(--brand-navy);
       border: 1px solid var(--brand-accent);
@@ -732,8 +734,10 @@
       .poi-mini-pov   { background: var(--brand-accent); color: #fff; border: 1px solid var(--brand-accent); }
       .poi-mini-photo { background: rgba(255,255,255,0.10); color: #fff; border: 1px solid rgba(255,255,255,0.18); }
 
-      /* Grille « Toutes les pièces » plus aérée au doigt en mode POV. */
-      .fp-poi-btn { padding: 0.62rem 0.6rem; font-size: 0.82rem; }
+      /* Liste « Toutes les pièces » (mode POV) : une pièce par ligne. Côte à côte,
+         les noms longs se coupaient sur 2 lignes et mangeaient la hauteur utile. */
+      .fp-poi-grid { grid-template-columns: 1fr; gap: 0.45rem; }
+      .fp-poi-btn { padding: 0.62rem 0.8rem; font-size: 0.85rem; text-align: left; }
       .fp-back-btn { padding: 0.85rem 1rem; font-size: 0.92rem; }
       .room-row { padding: 0.55rem 0.2rem; }
       .switch { width: 46px; height: 26px; }
@@ -2548,7 +2552,7 @@ function showFirstPersonPhoto(poi) {
   const otherPoiHTML = allPois.length ? `
     <div class="fp-other-poi">
       <div class="fp-section-title">Toutes les pièces</div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+      <div class="fp-poi-grid">
         ${allPois.map(p => {
           const isActive = p.id === poi.id;
           return `
