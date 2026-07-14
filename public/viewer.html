@@ -3530,14 +3530,15 @@ function hudUpdate() {
   while (g.firstChild) g.removeChild(g.firstChild);
 
   const { min, max } = modelBounds;
-  const y = min.y; // plan du sol
+  const yFloor = min.y;    // plan du sol (pour libellés)
+  const yTop = max.y;      // sommet du mur (pour cotations, aligné avec le clic)
   const labels = hudRoomLabels();
   afficherMarqueurPov(EDIT_MODE && povEnAttenteX != null);
 
   // ===== MODE ISOLATION : une pièce active, le reste assombri =====
   if (hudIsolatedRoom && hudIsolatedRoom.rect) {
     const r = hudIsolatedRoom.rect;
-    const yR = (r[4] != null ? r[4] : y);
+    const yR = (r[4] != null ? r[4] : yTop);  // sommet du mur pour l'isolation aussi
     const Q = hudProjectRect(r, yR);
     hudDrawMask(g, Q);                                   // assombrit les autres pièces
     hudQuadDimensions(g, Q, hudFormat(r[2] - r[0]),      // cotations de la pièce (4 côtés)
@@ -3552,8 +3553,8 @@ function hudUpdate() {
   }
 
   // ===== MODE NORMAL : chaînes segmentées (par mur) + cote globale + noms =====
-  const A = new BABYLON.Vector3(min.x, y, min.z), B = new BABYLON.Vector3(max.x, y, min.z);
-  const C = new BABYLON.Vector3(max.x, y, max.z), D = new BABYLON.Vector3(min.x, y, max.z);
+  const A = new BABYLON.Vector3(min.x, yTop, min.z), B = new BABYLON.Vector3(max.x, yTop, min.z);
+  const C = new BABYLON.Vector3(max.x, yTop, max.z), D = new BABYLON.Vector3(min.x, yTop, max.z);
   const pA = hudProject(A), pB = hudProject(B), pC = hudProject(C), pD = hudProject(D);
   const edges = {
     minZ: { w: [A, B], p: [pA, pB] }, maxZ: { w: [D, C], p: [pD, pC] },

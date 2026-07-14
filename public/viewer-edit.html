@@ -408,7 +408,7 @@ const PONT = `
 
       manifest: function(){ return JSON.stringify(propertyData, null, 2); },
       /* ===== POV ===== */
-      setCiblePov: function(x,z){ povEnAttenteX=x; povEnAttenteZ=z; povEnAttenteY=modelBounds?modelBounds.min.y:0; afficherMarqueurPov(true); parent.__edEvent('pov','placee'); },
+      setCiblePov: function(x,z){ povEnAttenteX=x; povEnAttenteZ=z; povEnAttenteY=modelBounds?modelBounds.max.y:0; afficherMarqueurPov(true); parent.__edEvent('pov','placee'); },
       setHauteurPov: function(h){ povEnAttenteY=Math.max(0,Math.min(2,parseFloat(h)||0)); if(hudVisible)hudUpdate(); },
       voirPov: function(){ if(povEnAttenteX==null)return; camera.position=new BABYLON.Vector3(povEnAttenteX,povEnAttenteY,povEnAttenteZ); camera.target=camera.position.clone().addInPlace(new BABYLON.Vector3(0,0,1)); camera.mode=BABYLON.Camera.PERSPECTIVE_CAMERA; setHudVisible(false); camera.attachControl(canvas,true); },
       validerPov: function(id,label,room,photos){ if(povEnAttenteX==null)return null; const pos=camera.position,tgt=camera.target,r2=v=>Math.round(v*100)/100; const pov={id:id||('pov-'+(propertyData.poi.length+1)),label:label||id,camPos:[r2(pos.x),r2(pos.y),r2(pos.z)],camTarget:[r2(tgt.x),r2(tgt.y),r2(tgt.z)]}; if(room)pov.roomId=room; if(photos&&photos.length)pov.photos=photos; propertyData.poi=propertyData.poi||[]; const i=propertyData.poi.findIndex(p=>p.id===pov.id); if(i>=0)propertyData.poi[i]=pov;else propertyData.poi.push(pov); createPoiMarkers();rebuildPoiList(); povEnAttenteX=povEnAttenteY=povEnAttenteZ=null; afficherMarqueurPov(false); return pov.label; },
