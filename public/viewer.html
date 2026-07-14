@@ -369,7 +369,6 @@
     .progress-fill { height: 100%; background: var(--brand-accent); width: 0%; transition: width 0.2s; }
     .hidden { display: none !important; }
     
-    .debug-info { position: absolute; top: 100px; left: 1rem; background: rgba(0,0,0,0.7); color: #00ff00; padding: 1rem; border-radius: 4px; font-family: monospace; font-size: 0.8rem; pointer-events: auto; max-width: 300px; }
 
     /* ====== VUE 1ÈRE PERSONNE — PHOTO RÉELLE DANS LE PANNEAU DROITE ====== */
     .fp-photo-block { display: flex; flex-direction: column; gap: 0.8rem; }
@@ -526,6 +525,21 @@
       z-index: 250;
     }
     .placement-toggle.active { background: var(--brand-accent); }
+    /* --- Editeur interne --- */
+    .ed-tabs { display:flex; gap:.3rem; margin:0 0 .6rem; }
+    .ed-tab { flex:1; padding:.4rem; font-size:.72rem; font-weight:700; cursor:pointer;
+              border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06);
+              color:#dfe6f2; border-radius:6px; }
+    .ed-tab.active { background: var(--brand-accent); color:#fff; border-color:transparent; }
+    .ed-list { margin-top:.6rem; max-height:190px; overflow-y:auto; }
+    .ed-row { display:flex; align-items:center; gap:.4rem; padding:.34rem .1rem;
+              border-bottom:1px solid rgba(255,255,255,.08); font-size:.74rem; color:#eaf0fb; }
+    .ed-row .ed-nm { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ed-row button { border:none; background:rgba(255,255,255,.10); color:#eaf0fb;
+                     border-radius:5px; padding:.2rem .42rem; cursor:pointer; font-size:.72rem; }
+    .ed-row button:hover { background: var(--brand-accent); color:#fff; }
+    /* En edition de cotations, le SVG du HUD redevient cliquable. */
+    #hud-svg.ed-cot { pointer-events: auto; cursor: crosshair; }
     .placement-panel {
       position: absolute;
       bottom: 3.6rem;
@@ -886,48 +900,42 @@
     <p id="info-desc"></p>
   </div>
 
-  <!-- DEBUG INFO -->
-  <div class="debug-info" id="debug-info" style="display: none;">
-    <div>Position: <span id="debug-pos">0, 0, 0</span></div>
-    <div>Target: <span id="debug-target">0, 0, 0</span></div>
-    <div>Radius: <span id="debug-radius">0</span></div>
-    <div>Alpha: <span id="debug-alpha">0</span></div>
-    <div>Beta: <span id="debug-beta">0</span></div>
-  </div>
-
   <button class="reset-btn" onclick="resetView()" title="Recentrer la vue"><span class="reset-ico">⟳</span><span class="reset-lbl">Recentrer</span></button>
 
   <!-- INDICATION "REGARDER AUTOUR" (vue 1ère personne) -->
   <div class="fp-look-hint" id="fp-look-hint">Cliquez-glissez horizontalement pour balayer la pièce du regard</div>
 
-  <!-- MODE PLACEMENT POV (outil interne pour générer les coordonnées) -->
-  <button class="placement-toggle" id="placement-toggle" onclick="togglePlacementMode()">⊕ Placer un POV</button>
-  <div class="placement-panel hidden" id="placement-panel">
-    <h4>Mode placement POV</h4>
-    <p class="pp-hint">Navigue jusqu'à l'emplacement exact d'une photo, oriente la vue comme tu veux qu'elle apparaisse, puis capture. Le bloc JSON se construit tout seul.</p>
-    <div class="pp-row">
-      <input type="text" id="pp-id" placeholder="id (ex: salon-01)">
+  <!-- ÉDITEUR INTERNE — n'apparaît QUE si l'URL porte ?edit=1.
+       Le viewer intégré chez les agences n'en voit strictement rien. -->
+  <button class="placement-toggle" id="edit-toggle" onclick="toggleEditor()" hidden>⊕ Éditeur</button>
+  <div class="placement-panel hidden" id="edit-panel">
+    <h4>Éditeur</h4>
+    <div class="ed-tabs">
+      <button class="ed-tab active" id="ed-tab-pov" onclick="edTab('pov')">POV</button>
+      <button class="ed-tab" id="ed-tab-cot" onclick="edTab('cot')">Cotations</button>
     </div>
-    <div class="pp-row">
-      <input type="text" id="pp-label" placeholder="Nom (ex: Salon)">
+
+    <div id="ed-pov">
+      <p class="pp-hint">Place-toi où tu veux (la vue 1<sup>re</sup> personne marche aussi), oriente
+        le regard, puis capture. Le POV apparaît <b>immédiatement</b> dans la visite.</p>
+      <div class="pp-row"><input type="text" id="pp-id" placeholder="id (ex: salon-01)"></div>
+      <div class="pp-row"><input type="text" id="pp-label" placeholder="Nom (ex: Salon)"></div>
+      <div class="pp-row"><input type="text" id="pp-roomId" placeholder="roomId (optionnel)"></div>
+      <div class="pp-row"><input type="text" id="pp-photos" placeholder="photos (CSV : Salon_01.png, Salon_02.png)"></div>
+      <button class="pp-btn" onclick="capturePOV()">📸 Capturer ce POV</button>
+      <p class="pp-count" id="pp-count"></p>
+      <div class="ed-list" id="ed-pov-list"></div>
     </div>
-    <div class="pp-row">
-      <input type="text" id="pp-image" placeholder="photo (ex: salon.jpg)">
+
+    <div id="ed-cot" hidden>
+      <p class="pp-hint">Passe en <b>vue de dessus</b>.<br>
+        · <b>Clic sur un trait de cotation</b> → il se scinde à cet endroit, les cotes
+          se recalculent seules.<br>
+        · <b>Clic sur une graduation</b> → elle disparaît, les deux cotes fusionnent.</p>
+      <p class="pp-count" id="ed-cot-state"></p>
     </div>
-    <div class="pp-row">
-      <input type="text" id="pp-roomId" placeholder="roomId (ex: salon) — optionnel">
-    </div>
-    <div class="pp-row">
-      <textarea id="pp-description" placeholder="description (optionnel)" style="font-size:0.75rem;min-height:50px;"></textarea>
-    </div>
-    <div class="pp-row">
-      <input type="text" id="pp-photos" placeholder="photos (CSV: cuisine-1.jpg, cuisine-2.jpg) — optionnel">
-    </div>
-    <button class="pp-btn" onclick="capturePOV()">📸 Capturer ce POV</button>
-    <p class="pp-count" id="pp-count">0 POV capturé(s)</p>
-    <textarea class="pp-output" id="pp-output" readonly placeholder='Le JSON apparaîtra ici…'></textarea>
-    <button class="pp-btn secondary" onclick="copyPlacementJSON()" style="margin-top:0.6rem;">📋 Copier le JSON</button>
-    <button class="pp-btn secondary" onclick="resetPlacement()">🗑 Vider la liste</button>
+
+    <button class="pp-btn secondary" onclick="downloadManifest()" style="margin-top:.7rem;">💾 Télécharger manifest.json</button>
   </div>
 </div>
 
@@ -1568,7 +1576,6 @@ async function init() {
   engine.runRenderLoop(() => {
    try {
     scene.render();
-    updateDebugInfo();
     
     // ========== AFFICHER/MASQUER PLAFOND BASÉ SUR HAUTEUR CAMÉRA ==========
     if (ceilingNode && ceilingHeight > 0) {
@@ -3518,6 +3525,8 @@ function hudMakeIsolable(el, entry) {
 }
 
 /* Recalcule et redessine tout le HUD (appelé chaque frame en vue de dessus). */
+let hudEdges = {};   // { top|bottom|left|right : {w0,w1,p0,p1} } — rempli par hudUpdate
+
 function hudUpdate() {
   const g = document.getElementById('hud-content');
   if (!g || !modelBounds) return;
@@ -3567,6 +3576,7 @@ function hudUpdate() {
     let w0 = edge.w[0], w1 = edge.w[1], p0 = edge.p[0], p1 = edge.p[1];
     const swap = horizontal ? (p0.x > p1.x) : (p0.y > p1.y); // sens de lecture
     if (swap) { const tw = w0; w0 = w1; w1 = tw; const tp = p0; p0 = p1; p1 = tp; }
+    hudEdges[name] = { w0, w1, p0, p1 };   // memorise pour l'edition des cotations
     const segs = dims[name];
     if (segs && segs.length) hudChain(g, w0, w1, normal, segs, HUD.segOffset * hudOffsetFactor());
     if (HUD.globalSides.includes(name) || !(segs && segs.length)) {
@@ -3862,121 +3872,207 @@ function createAxesHelper() {
 }
 
 /* ============================================================================
-   DEBUG INFO
+   ÉDITEUR INTERNE  —  activé UNIQUEMENT par ?edit=1
+   ----------------------------------------------------------------------------
+   Le viewer intégré chez les agences (sans le paramètre) n'expose aucun outil :
+   ni panneau de coordonnées, ni raccourci clavier, ni bouton d'édition.
+   L'éditeur ne peut RIEN écrire sur le serveur : sa seule sortie est un
+   téléchargement de manifest.json sur le disque de l'éditeur.
    ============================================================================ */
-function updateDebugInfo() {
-  const pos = camera.position;
-  const target = camera.target;
-  document.getElementById('debug-pos').textContent = `${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}`;
-  document.getElementById('debug-target').textContent = `${target.x.toFixed(2)}, ${target.y.toFixed(2)}, ${target.z.toFixed(2)}`;
-  document.getElementById('debug-radius').textContent = camera.radius.toFixed(2);
-  document.getElementById('debug-alpha').textContent = ((camera.alpha * 180) / Math.PI).toFixed(1) + '°';
-  document.getElementById('debug-beta').textContent = ((camera.beta * 180) / Math.PI).toFixed(1) + '°';
+const EDIT = new URLSearchParams(location.search).get('edit') === '1';
+let editorOpen = false;
+let edMode = 'pov';
+
+const r2  = v => Math.round(v * 100) / 100;
+const val = id => (document.getElementById(id).value || '').trim();
+
+function flash(id, msg) {
+  const el = document.getElementById(id);
+  const old = el.textContent;
+  el.textContent = msg;
+  setTimeout(() => { if (el.textContent === msg) el.textContent = old; }, 1800);
 }
 
-function toggleDebug() {
-  document.getElementById('debug-info').style.display = 
-    document.getElementById('debug-info').style.display === 'none' ? 'block' : 'none';
+function initEditor() {
+  if (!EDIT) return;
+  document.getElementById('edit-toggle').hidden = false;
 }
 
-// Touche 'D' pour afficher debug
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'd' || e.key === 'D') toggleDebug();
-});
-
-/* ============================================================================
-   MODE PLACEMENT POV (outil interne pour générer les coordonnées du manifest)
-   ============================================================================ */
-let placementMode = false;
-let capturedPOVs = [];
-
-function togglePlacementMode() {
-  placementMode = !placementMode;
-  const btn = document.getElementById('placement-toggle');
-  const panel = document.getElementById('placement-panel');
-  btn.classList.toggle('active', placementMode);
-  panel.classList.toggle('hidden', !placementMode);
-  btn.textContent = placementMode ? '✕ Fermer placement' : '⊕ Placer un POV';
+function toggleEditor() {
+  editorOpen = !editorOpen;
+  const b = document.getElementById('edit-toggle');
+  document.getElementById('edit-panel').classList.toggle('hidden', !editorOpen);
+  b.classList.toggle('active', editorOpen);
+  b.textContent = editorOpen ? '✕ Fermer' : '⊕ Éditeur';
+  refreshPovList();
+  hudSetEditable(editorOpen && edMode === 'cot');
 }
 
+function edTab(m) {
+  edMode = m;
+  document.getElementById('ed-tab-pov').classList.toggle('active', m === 'pov');
+  document.getElementById('ed-tab-cot').classList.toggle('active', m === 'cot');
+  document.getElementById('ed-pov').hidden = (m !== 'pov');
+  document.getElementById('ed-cot').hidden = (m !== 'cot');
+  hudSetEditable(editorOpen && m === 'cot');
+}
+
+/* ---------- POV : capture live -------------------------------------------
+   camPos + camTarget suffisent à encoder position ET angle de vue. On les lit
+   sur la caméra courante, on injecte dans propertyData, puis on reconstruit
+   marqueurs 3D + liste : le POV est utilisable dans la seconde. */
 function capturePOV() {
-  const idInput = document.getElementById('pp-id');
-  const labelInput = document.getElementById('pp-label');
-  const imageInput = document.getElementById('pp-image');
-  const roomIdInput = document.getElementById('pp-roomId');
-  const descInput = document.getElementById('pp-description');
-  const photosInput = document.getElementById('pp-photos');
+  if (!propertyData) return;
+  const pos = camera.position, tgt = camera.target;
 
-  const id = (idInput.value || '').trim() || ('pov-' + (capturedPOVs.length + 1));
-  const label = (labelInput.value || '').trim() || id;
-  const image = (imageInput.value || '').trim() || (id + '.jpg');
-  const roomId = (roomIdInput.value || '').trim() || id; // par défaut = id du POV
-  const description = (descInput.value || '').trim() || '';
-  const photosStr = (photosInput.value || '').trim();
-  const photos = photosStr ? photosStr.split(',').map(s => s.trim()) : [];
-
-  // Position réelle de la caméra = position de l'appareil photo
-  const pos = camera.position;
-  // Point regardé = cible de la caméra ArcRotate
-  const tgt = camera.target;
-
-  const round = (v) => Math.round(v * 100) / 100;
+  propertyData.poi = propertyData.poi || [];
+  const id    = val('pp-id') || ('pov-' + (propertyData.poi.length + 1));
+  const label = val('pp-label') || id;
+  const room  = val('pp-roomId');
+  const pics  = val('pp-photos').split(',').map(x => x.trim()).filter(Boolean);
 
   const entry = {
-    id,
-    label,
-    roomId,
-    description,
-    ...(photos.length ? { photos } : {}),
-    image,
-    camPos: [round(pos.x), round(pos.y), round(pos.z)],
-    camTarget: [round(tgt.x), round(tgt.y), round(tgt.z)]
+    id, label,
+    camPos:    [r2(pos.x), r2(pos.y), r2(pos.z)],
+    camTarget: [r2(tgt.x), r2(tgt.y), r2(tgt.z)]
   };
+  if (room) entry.roomId = room;
+  if (pics.length) entry.photos = pics;
 
-  // Remplacer si l'id existe déjà, sinon ajouter
-  const existingIdx = capturedPOVs.findIndex(p => p.id === id);
-  if (existingIdx >= 0) capturedPOVs[existingIdx] = entry;
-  else capturedPOVs.push(entry);
+  const i = propertyData.poi.findIndex(p => p.id === id);
+  if (i >= 0) propertyData.poi[i] = entry; else propertyData.poi.push(entry);
 
-  updatePlacementOutput();
-
-  // Vider les champs pour le suivant
-  idInput.value = '';
-  labelInput.value = '';
-  imageInput.value = '';
-  roomIdInput.value = '';
-  descInput.value = '';
-  photosInput.value = '';
-  idInput.focus();
+  createPoiMarkers();   // marqueur visible tout de suite
+  rebuildPoiList();     // entrée cliquable dans le panneau de droite
+  refreshPovList();
+  ['pp-id','pp-label','pp-roomId','pp-photos'].forEach(k => document.getElementById(k).value = '');
+  flash('pp-count', '✅ « ' + label + ' » placé');
 }
 
-function updatePlacementOutput() {
-  const out = document.getElementById('pp-output');
-  const count = document.getElementById('pp-count');
-  count.textContent = capturedPOVs.length + ' POV capturé(s)';
-  // On génère le bloc "poi" prêt à coller dans manifest.json
-  const json = JSON.stringify({ poi: capturedPOVs }, null, 2);
-  out.value = json;
-}
-
-function copyPlacementJSON() {
-  const out = document.getElementById('pp-output');
-  out.select();
-  navigator.clipboard.writeText(out.value).then(() => {
-    const count = document.getElementById('pp-count');
-    const old = count.textContent;
-    count.textContent = '✅ Copié dans le presse-papier !';
-    setTimeout(() => { count.textContent = old; }, 1500);
-  }).catch(() => {
-    document.execCommand('copy'); // fallback
+function refreshPovList() {
+  const box = document.getElementById('ed-pov-list');
+  if (!box) return;
+  const pois = (propertyData && propertyData.poi) || [];
+  document.getElementById('pp-count').textContent = pois.length + ' POV';
+  box.innerHTML = '';
+  pois.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'ed-row';
+    row.innerHTML = '<span class="ed-nm">' + (p.label || p.id) + '</span>';
+    const bGo = document.createElement('button');
+    bGo.textContent = 'Voir';
+    bGo.onclick = () => goToPOI(p.id);
+    const bDel = document.createElement('button');
+    bDel.textContent = '✕';
+    bDel.onclick = () => {
+      propertyData.poi = propertyData.poi.filter(x => x.id !== p.id);
+      createPoiMarkers(); rebuildPoiList(); refreshPovList();
+    };
+    row.appendChild(bGo); row.appendChild(bDel);
+    box.appendChild(row);
   });
 }
 
-function resetPlacement() {
-  if (capturedPOVs.length && !confirm('Vider tous les POV capturés ?')) return;
-  capturedPOVs = [];
-  updatePlacementOutput();
+/* ---------- COTATIONS : scinder / fusionner au clic -----------------------
+   dimensions[cote] = longueurs successives en metres le long de l'arete.
+   hudChain les redessine et recalcule les cotes : il n'y a donc AUCUN calcul
+   a faire a la main, il suffit d'inserer ou de retirer une valeur. */
+function hudSetEditable(on) {
+  const svg = document.getElementById('hud-svg');
+  if (!svg) return;
+  svg.classList.toggle('ed-cot', !!on);
+  svg.removeEventListener('click', hudEditClick);
+  if (on) svg.addEventListener('click', hudEditClick);
+  const st = document.getElementById('ed-cot-state');
+  if (st) st.textContent = on ? 'Édition active — passe en vue de dessus.' : '';
 }
+
+/* Distance d'un point a un segment + position relative t (0..1). */
+function distToSeg(P, A, B) {
+  const vx = B.x - A.x, vy = B.y - A.y;
+  const L2 = vx * vx + vy * vy || 1;
+  let t = ((P.x - A.x) * vx + (P.y - A.y) * vy) / L2;
+  t = Math.max(0, Math.min(1, t));
+  const cx = A.x + t * vx, cy = A.y + t * vy;
+  return { dist: Math.hypot(P.x - cx, P.y - cy), t };
+}
+
+function hudEditClick(ev) {
+  if (!modelBounds || !propertyData) return;
+  const svg = document.getElementById('hud-svg');
+  const r = svg.getBoundingClientRect();
+  const P = { x: ev.clientX - r.left, y: ev.clientY - r.top };
+
+  // Quelle arete ? La plus proche du clic parmi les 4 memorisees par hudUpdate.
+  let best = null;
+  ['top','bottom','left','right'].forEach(name => {
+    const e = hudEdges[name];
+    if (!e) return;
+    const d = distToSeg(P, e.p0, e.p1);
+    if (!best || d.dist < best.dist) best = { name, e, dist: d.dist, t: d.t };
+  });
+  if (!best || best.dist > 70) return;   // clic trop loin d'une cotation
+
+  const dims = propertyData.dimensions = propertyData.dimensions || {};
+  const worldLen = BABYLON.Vector3.Distance(best.e.w0, best.e.w1);
+  const screenLen = Math.hypot(best.e.p1.x - best.e.p0.x, best.e.p1.y - best.e.p0.y) || 1;
+  const tolM = 12 * worldLen / screenLen;   // 12 px de tolerance, convertis en metres
+  const d = best.t * worldLen;              // distance du clic depuis le debut de l'arete
+  const MIN = 0.05;                         // on ne cree pas de cote plus courte que 5 cm
+
+  let segs = dims[best.name];
+
+  // Aucune chaine encore : le clic cree la premiere coupure.
+  if (!segs || !segs.length) {
+    if (d < MIN || worldLen - d < MIN) return;
+    dims[best.name] = [r2(d), r2(worldLen - d)];
+    hudUpdate();
+    flash('ed-cot-state', '✂️ ' + best.name + ' scindé en 2');
+    return;
+  }
+
+  // Clic sur une graduation existante -> on la retire (les 2 cotes fusionnent).
+  let cum = 0, bi = -1, bd = Infinity;
+  for (let i = 0; i < segs.length - 1; i++) {
+    cum += segs[i];
+    const dd = Math.abs(cum - d);
+    if (dd < bd) { bd = dd; bi = i; }
+  }
+  if (bi >= 0 && bd <= tolM) {
+    segs[bi] = r2(segs[bi] + segs[bi + 1]);
+    segs.splice(bi + 1, 1);
+    hudUpdate();
+    flash('ed-cot-state', '🔗 graduation retirée (' + segs.length + ' cotes)');
+    return;
+  }
+
+  // Sinon : on scinde la cote qui contient le clic.
+  cum = 0;
+  for (let i = 0; i < segs.length; i++) {
+    if (d < cum + segs[i]) {
+      const a = d - cum, b = segs[i] - a;
+      if (a < MIN || b < MIN) return;
+      segs.splice(i, 1, r2(a), r2(b));
+      hudUpdate();
+      flash('ed-cot-state', '✂️ scindé (' + segs.length + ' cotes)');
+      return;
+    }
+    cum += segs[i];
+  }
+}
+
+/* ---------- Export : le manifest complet, pret a deposer dans le repo ----- */
+function downloadManifest() {
+  if (!propertyData) return;
+  const blob = new Blob([JSON.stringify(propertyData, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'manifest.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+initEditor();
 
 /* ============================================================================
    ★ CONTRÔLEUR BOTTOM-SHEET MOBILE
