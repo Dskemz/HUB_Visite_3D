@@ -55,11 +55,30 @@
 
     /* clip-path rogne aussi box-shadow : l'ombre de la carte doit donc etre un
        drop-shadow porte par un parent, sinon la carte biseautee n'en a aucune. */
-    .lift{position:relative;filter:drop-shadow(0 6px 13px rgba(18,26,45,.22));
-          transition:filter .16s ease,transform .16s ease}
-    .row:not(.static):hover .lift{transform:translateY(-2px);
-          filter:drop-shadow(0 10px 20px rgba(18,26,45,.30))}
+    .lift{position:relative;transform-origin:center;
+          filter:drop-shadow(0 6px 13px rgba(18,26,45,.22));
+          transition:filter .18s ease,
+                     transform .18s cubic-bezier(.22,.9,.3,1)}
+
+    /* Survol : seule la carte blanche grossit (la plaque coloree ne bouge pas),
+       l'ombre s'ecarte -> le bouton se souleve. Le clip-path est en px mais il
+       suit le scale : pas besoin de retracer. */
+    .row:not(.static):hover .lift{transform:scale(1.018);
+          filter:drop-shadow(0 11px 22px rgba(18,26,45,.30))}
+
+    /* Enfonce : elle se retasse et l'ombre se rapproche. */
+    .row:not(.static):active .lift{transform:scale(.994);
+          filter:drop-shadow(0 3px 7px rgba(18,26,45,.22));
+          transition-duration:.09s}
+
     .row:focus-visible .lift{filter:drop-shadow(0 0 0 2px #4a6cff)}
+
+    /* Respecte le reglage systeme « reduire les animations » */
+    @media (prefers-reduced-motion: reduce){
+      .lift{transition:none}
+      .row:not(.static):hover .lift,
+      .row:not(.static):active .lift{transform:none}
+    }
 
     /* Carte blanche : angles ARRONDIS partout, seul le coin BAS-GAUCHE est
        coupe en biais -> c'est lui qui laisse voir la plaque. border-radius est
