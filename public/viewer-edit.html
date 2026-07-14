@@ -24,7 +24,11 @@
 
     /* Panneau d'edition, HORS du viewer */
     #side{width:330px;flex:0 0 330px;background:#111827;border-left:1px solid #212c44;
-          display:flex;flex-direction:column;overflow:hidden}
+          display:flex;flex-direction:column;overflow:hidden;transition:width .05s linear}
+    #resize-handle{width:8px;background:#0d1220;border-left:1px solid #1c2740;border-right:1px solid #2c3854;
+                   cursor:ew-resize;flex:0 0 8px;opacity:0;transition:opacity .15s}
+    #side:hover #resize-handle{opacity:1}
+    #resize-handle:hover{background:#1a2438}
     .hd{padding:1rem 1.1rem;border-bottom:1px solid #212c44}
     .hd .t{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#6f7c99;font-weight:700}
     .hd h1{font-size:1.05rem;font-weight:800;margin-top:.25rem}
@@ -72,6 +76,7 @@
     <div id="flash"></div>
   </div>
 
+  <div id="resize-handle"></div>
   <aside id="side">
     <div class="hd">
       <div class="t">Éditeur — usage interne</div>
@@ -79,9 +84,12 @@
       <div class="p" id="h-prop"></div>
     </div>
 
-    <div class="tabs">
-      <button class="tab on" id="t-pov" onclick="tab('pov')">POV</button>
-      <button class="tab"    id="t-cot" onclick="tab('cot')">Cotations</button>
+    <div class="tabs" style="justify-content:space-between;">
+      <div style="display:flex;gap:.35rem;flex:1;">
+        <button class="tab on" id="t-pov" onclick="tab('pov')" style="flex:1;">POV</button>
+        <button class="tab"    id="t-cot" onclick="tab('cot')" style="flex:1;">Cotations</button>
+      </div>
+      <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein ecran" style="flex:0 0 auto;">⛶</button>
     </div>
 
     <div class="body">
@@ -338,6 +346,54 @@ window.__edEvent = function(kind, what){
     refresh();
   }
 };
+/* Resize du panneau lateral */
+let isResizing = false;
+let startX = 0;
+let startWidth = 330;
+
+document.getElementById('resize-handle').addEventListener('mousedown', function(e){
+  isResizing = true;
+  startX = e.clientX;
+  startWidth = parseInt(window.getComputedStyle(document.getElementById('side')).width);
+  document.body.style.userSelect = 'none';
+});
+
+document.addEventListener('mousemove', function(e){
+  if (!isResizing) return;
+  const delta = e.clientX - startX;
+  const newW = Math.max(250, startWidth - delta);   // min 250px
+  document.getElementById('side').style.width = newW + 'px';
+  document.getElementById('side').style.flex = '0 0 ' + newW + 'px';
+});
+
+document.addEventListener('mouseup', function(){
+  isResizing = false;
+  document.body.style.userSelect = 'auto';
+});
+
+let isExpanded = false;
+function toggleExpand(){
+  isExpanded = !isExpanded;
+  const side = document.getElementById('side');
+  const stage = document.getElementById('stage');
+  const b = document.getElementById('b-expand');
+  if (isExpanded){
+    side.style.width = '70%';
+    side.style.flex = '0 0 70%';
+    stage.style.flex = '0 0 30%';
+    b.style.background = '#4a6cff';
+    b.style.color = '#fff';
+    b.textContent = '⛶';
+  } else {
+    side.style.width = '330px';
+    side.style.flex = '0 0 330px';
+    stage.style.flex = '1';
+    b.style.background = '';
+    b.style.color = '';
+    b.textContent = '⛶';
+  }
+}
+
 document.addEventListener('keydown', function(e){
   if ((e.ctrlKey || e.metaKey) && e.key==='z') { e.preventDefault(); undo(); }
 });
