@@ -25,7 +25,7 @@
     #gate .err{color:#d13c3c;font-size:.82rem;height:1rem}
 
     /* Colonne resserree : les bandes sont moins longues */
-    .wrap{max-width:840px;margin:0 auto;padding:2.6rem 1.25rem}
+    .wrap{max-width:700px;margin:0 auto;padding:2.6rem 1.25rem}
     .head .eyebrow{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:#8590a5;font-weight:700}
     .head h1{font-size:1.75rem;font-weight:800;margin-top:.35rem;color:#0f1524}
     .head p{color:#6b7488;margin-top:.45rem;font-size:.9rem}
@@ -45,20 +45,28 @@
     .rows{display:flex;flex-direction:column;gap:.8rem;margin-top:1.2rem}
 
     .row{position:relative;display:block;width:100%;text-align:left;border:none;
-         background:none;padding:0 0 9px 0;cursor:pointer;color:inherit}
+         background:none;padding:0 0 10px 0;cursor:pointer;color:inherit}
     .row.static{cursor:default}
 
-    .plate{position:absolute;left:0;right:11px;top:9px;bottom:0;border-radius:15px}
+    /* Plaque de couleur : decalee de 10px vers le BAS -> la carte la chevauche
+       par le haut. Elle reste largement visible a gauche. */
+    .plate{position:absolute;left:0;right:12px;top:10px;bottom:0;border-radius:16px;
+           box-shadow:0 3px 9px rgba(18,26,45,.16)}
 
-    .lift{position:relative;filter:drop-shadow(0 5px 11px rgba(18,26,45,.20));
+    /* clip-path rogne aussi box-shadow : l'ombre de la carte doit donc etre un
+       drop-shadow porte par un parent, sinon la carte biseautee n'en a aucune. */
+    .lift{position:relative;filter:drop-shadow(0 6px 13px rgba(18,26,45,.22));
           transition:filter .16s ease,transform .16s ease}
     .row:not(.static):hover .lift{transform:translateY(-2px);
-          filter:drop-shadow(0 9px 18px rgba(18,26,45,.28))}
+          filter:drop-shadow(0 10px 20px rgba(18,26,45,.30))}
     .row:focus-visible .lift{filter:drop-shadow(0 0 0 2px #4a6cff)}
 
-    .card{background:#fff;border-radius:15px;margin-left:56px;min-height:70px;
-          display:flex;align-items:center;gap:.75rem;padding:.8rem 1.05rem .8rem 1.9rem;
-          clip-path:polygon(44px 0, 100% 0, 100% 100%, 0 100%, 0 44px)}
+    /* Carte blanche : angles ARRONDIS partout, seul le coin BAS-GAUCHE est
+       coupe en biais -> c'est lui qui laisse voir la plaque. border-radius est
+       conserve : le polygon ne fait que retirer ce coin. */
+    .card{background:#fff;border-radius:16px;margin-left:150px;min-height:84px;
+          display:flex;align-items:center;gap:.75rem;padding:.8rem 1.05rem .8rem 3.6rem;
+          clip-path:polygon(0 0, 100% 0, 100% 100%, 48px 100%, 0 calc(100% - 48px))}
 
     .mark{flex:0 0 auto;width:28px;height:28px;display:flex;align-items:center;justify-content:center}
     .mark svg{width:26px;height:26px}
@@ -95,9 +103,9 @@
 
     @media(max-width:600px){
       .wrap{padding:1.8rem 1rem}
-      .card{margin-left:44px;padding:.7rem .9rem .7rem 1.5rem;min-height:62px;gap:.6rem;
-            clip-path:polygon(34px 0, 100% 0, 100% 100%, 0 100%, 0 34px)}
-      .plate{right:8px;top:8px}
+      .card{margin-left:84px;padding:.7rem .9rem .7rem 2.6rem;min-height:72px;gap:.55rem;
+            clip-path:polygon(0 0, 100% 0, 100% 100%, 34px 100%, 0 calc(100% - 34px))}
+      .plate{right:9px;top:9px}
       .mark{width:23px;height:23px}
       .mark svg{width:21px;height:21px}
       .nm{font-size:.82rem;letter-spacing:.02em}
@@ -206,7 +214,7 @@
       var el = document.createElement(o.onClick ? 'button' : 'div');
       el.className = 'row' + (o.onClick ? '' : ' static');
       el.innerHTML =
-        '<span class="plate" style="background:linear-gradient(120deg,'+A.navy+' 0%,'+A.accent+' 100%)"></span>' +
+        '<span class="plate" style="background:linear-gradient(140deg,'+A.accent+' 0%,'+(A.accentDark||A.navy)+' 100%)"></span>' +
         '<span class="lift"><span class="card">' +
           '<span class="mark" style="color:'+A.navy+'">'+o.icon+'</span>' +
           '<span class="nm">'+o.titre+'</span>' +
