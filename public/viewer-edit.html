@@ -151,6 +151,18 @@
           </label>
         </div>
 
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">📐 Espacement des cotations (px)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem;">
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Extérieures</label>
+              <input type="number" id="f-offset-dim" placeholder="px" step="1" style="width:100%;" oninput="setOffsetDim(this.value)"></div>
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Segments</label>
+              <input type="number" id="f-offset-seg" placeholder="px" step="1" style="width:100%;" oninput="setOffsetSeg(this.value)"></div>
+            <div style="grid-column:1/-1;"><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Pièces isolées</label>
+              <input type="number" id="f-offset-room" placeholder="px" step="1" style="width:100%;" oninput="setOffsetRoom(this.value)"></div>
+          </div>
+        </div>
+
         <div class="list" id="cot-list"></div>
       </div>
       <div id="p-piece" hidden>
@@ -479,6 +491,16 @@ const PONT = `
         propertyData.isRectangular = !!b;
       },
 
+      /* Offsets des cotations */
+      dimOffsets: function(){
+        return propertyData.dimOffsets || { dimOffset: 170, segOffset: 110, roomDimOffset: 36 };
+      },
+      setDimOffsets: function(key, val){
+        propertyData.dimOffsets = propertyData.dimOffsets || {};
+        propertyData.dimOffsets[key] = parseInt(val) || 0;
+        hudUpdate();
+      },
+
       enVueDeDessus:  function(){ return !!(typeof hudVisible !== 'undefined' && hudVisible); },
 
       manifest: function(){ return JSON.stringify(propertyData, null, 2); },
@@ -771,6 +793,24 @@ function setRectangular(is){
   flash(is ? '▭ Bien rectangulaire' : '◇ Bien non-rectangulaire');
 }
 
+function setOffsetDim(val){
+  if (!ed) return;
+  ed.setDimOffsets('dimOffset', val);
+  flash('Espacement extérieures : ' + val + ' px');
+}
+
+function setOffsetSeg(val){
+  if (!ed) return;
+  ed.setDimOffsets('segOffset', val);
+  flash('Espacement segments : ' + val + ' px');
+}
+
+function setOffsetRoom(val){
+  if (!ed) return;
+  ed.setDimOffsets('roomDimOffset', val);
+  flash('Espacement pièces : ' + val + ' px');
+}
+
 function refresh(){
   if (!ed) return;
 
@@ -781,6 +821,12 @@ function refresh(){
   document.getElementById('f-dim-left').value = dg.left || '';
   document.getElementById('f-dim-right').value = dg.right || '';
   document.getElementById('f-not-rect').checked = !ed.isRectangular();
+
+  // Charger les offsets des cotations
+  const off = ed.dimOffsets();
+  document.getElementById('f-offset-dim').value = off.dimOffset || 170;
+  document.getElementById('f-offset-seg').value = off.segOffset || 110;
+  document.getElementById('f-offset-room').value = off.roomDimOffset || 36;
 
   const pl = document.getElementById('pov-list');
   const pois = ed.pois();
