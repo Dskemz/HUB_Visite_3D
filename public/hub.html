@@ -55,7 +55,10 @@
 
     /* clip-path rogne aussi box-shadow : l'ombre de la carte doit donc etre un
        drop-shadow porte par un parent, sinon la carte biseautee n'en a aucune. */
-    .lift{position:relative;transform-origin:center;
+    /* display:block indispensable : .lift est un <span>, et transform n'a AUCUN
+       effet sur une boite inline (filter, lui, s'applique -> l'ombre bougeait
+       mais pas la carte). */
+    .lift{display:block;position:relative;transform-origin:center;
           filter:drop-shadow(0 6px 13px rgba(18,26,45,.22));
           transition:filter .18s ease,
                      transform .18s cubic-bezier(.22,.9,.3,1)}
