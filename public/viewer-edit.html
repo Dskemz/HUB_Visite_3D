@@ -29,6 +29,8 @@
                    cursor:ew-resize;flex:0 0 8px;opacity:0;transition:opacity .15s}
     #side:hover #resize-handle{opacity:1}
     #resize-handle:hover{background:#1a2438}
+    #drag-overlay{position:fixed;inset:0;display:none;z-index:999;cursor:ew-resize}
+    #drag-overlay.active{display:block}
     .hd{padding:1rem 1.1rem;border-bottom:1px solid #212c44}
     .hd .t{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#6f7c99;font-weight:700}
     .hd h1{font-size:1.05rem;font-weight:800;margin-top:.25rem}
@@ -77,6 +79,7 @@
   </div>
 
   <div id="resize-handle"></div>
+  <div id="drag-overlay"></div>
   <aside id="side">
     <div class="hd">
       <div class="t">Éditeur — usage interne</div>
@@ -146,7 +149,7 @@ let   mode    = 'pov';
 document.getElementById('h-prop').textContent = AGENCY + ' · ' + PROPERTY;
 const vw = document.getElementById('vw');
 vw.src = 'viewer.html?agency=' + encodeURIComponent(AGENCY) +
-         '&property=' + encodeURIComponent(PROPERTY);
+         '&property=' + encodeURIComponent(PROPERTY) + '&edit=1';
 
 function flash(msg){
   const f = document.getElementById('flash');

@@ -890,6 +890,18 @@
   <!-- INDICATION "REGARDER AUTOUR" (vue 1ère personne) -->
   <div class="fp-look-hint" id="fp-look-hint">Cliquez-glissez horizontalement pour balayer la pièce du regard</div>
 
+  <!-- ZOOM VUE DE DESSUS — éditeur uniquement -->
+  <div id="topview-zoom-ctrl" style="display:none;position:absolute;bottom:2rem;left:2rem;
+       background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:8px;
+       padding:.5rem;z-index:20;pointer-events:auto;">
+    <div style="font-size:.7rem;color:#ccc;margin-bottom:.3rem;font-weight:600;">Zoom</div>
+    <input type="range" id="topview-zoom-slider" min="0.5" max="3" step="0.1" value="1"
+           style="width:120px;cursor:pointer;" onchange="setTopViewZoom(this.value)">
+    <div style="font-size:.65rem;color:#999;margin-top:.25rem;text-align:center;">
+      <span id="topview-zoom-val">100</span>%
+    </div>
+  </div>
+
 </div>
 
 <!-- LIGHTBOX PHOTO PLEIN ÉCRAN -->
@@ -3146,6 +3158,7 @@ function playTopViewAnimation() {
       isTopView = true;
       updateToggleButton();
       setHudVisible(true); // affiche le HUD plan (cotations + pièces)
+  if (EDIT_MODE) showTopViewZoomCtrl(true);
       setTimeout(() => { flashTopViewHint(); }, 300);
       console.log('✅ Vue de dessus — clique le bouton pour revenir en navigation');
     }
@@ -3547,6 +3560,7 @@ function hudUpdate() {
 function setHudVisible(on) {
   if (!HUD.enabled) on = false;
   hudVisible = on;
+  if (EDIT_MODE) showTopViewZoomCtrl(on);  // show/hide zoom ctrl selon la vue
   if (!on) hudIsolatedRoom = null; // on sort toujours de l'isolation en quittant la vue
   const svg = document.getElementById('hud-svg');
   if (svg) svg.style.opacity = on ? '1' : '0';
@@ -3824,6 +3838,32 @@ function createAxesHelper() {
   console.log('✅ Axes affichés : Rouge=X, Vert=Y, Bleu=Z');
 }
 
+
+/* ============================================================================
+   ZOOM VUE DE DESSUS — éditeur uniquement (?edit=1)
+   ============================================================================ */
+const EDIT_MODE = new URLSearchParams(location.search).get('edit') === '1';
+let topViewZoom = 1;
+
+function setTopViewZoom(z) {
+  topViewZoom = parseFloat(z);
+  const svg = document.getElementById('hud-svg');
+  if (svg) {
+    svg.style.transform = 'scale(' + topViewZoom + ')';
+    svg.style.transformOrigin = 'center center';
+  }
+  document.getElementById('topview-zoom-val').textContent = Math.round(topViewZoom * 100);
+}
+
+function showTopViewZoomCtrl(show) {
+  const ctrl = document.getElementById('topview-zoom-ctrl');
+  if (ctrl) ctrl.style.display = show ? 'block' : 'none';
+}
+
+// Afficher les contrôles de zoom UNIQUEMENT en mode édition
+if (EDIT_MODE) {
+  showTopViewZoomCtrl(true);
+}
 
 /* ============================================================================
    ★ CONTRÔLEUR BOTTOM-SHEET MOBILE
