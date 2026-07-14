@@ -11,6 +11,9 @@
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Inter',system-ui,sans-serif;background:#0a0f1c;color:#e8ecf6;min-height:100vh}
     a{text-decoration:none;color:inherit}
+    button{font:inherit}
+
+    /* --- Porte --- */
     #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0f1c;z-index:50;flex-direction:column;gap:1rem;padding:1.5rem}
     #gate h1{font-size:1.3rem;font-weight:800}
     #gate p{color:#8b96ad;font-size:.9rem}
@@ -19,24 +22,63 @@
     #gate input:focus{border-color:#4a6cff}
     #gate button{background:#4a6cff;color:#fff;border:none;border-radius:10px;padding:.75rem 1.2rem;font-weight:700;cursor:pointer}
     #gate .err{color:#ff6b6b;font-size:.82rem;height:1rem}
+
     .wrap{max-width:1080px;margin:0 auto;padding:3rem 1.5rem}
     .head .eyebrow{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:#6f7c99;font-weight:700}
     .head h1{font-size:2rem;font-weight:800;margin-top:.4rem}
-    .head p{color:#8b96ad;margin-top:.5rem}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.2rem;margin-top:2rem}
-    .card{background:#111827;border:1px solid #212c44;border-radius:16px;overflow:hidden;transition:transform .15s ease,border-color .15s ease}
-    .card:hover{transform:translateY(-3px);border-color:#33405f}
-    .card .top{height:92px;display:flex;align-items:center;gap:.6rem;padding:0 1.2rem;font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:.02em}
-    .card .top svg{width:26px;height:26px}
-    .card .body{padding:1.1rem 1.2rem 1.3rem}
-    .card .sws{display:flex;gap:.4rem;margin-bottom:1rem}
-    .card .sw{width:22px;height:22px;border-radius:6px;border:1px solid rgba(255,255,255,.15)}
-    .card .links{display:flex;gap:.6rem}
-    .card .links a{flex:1;text-align:center;padding:.62rem;border-radius:9px;font-weight:600;font-size:.88rem}
-    .card .links .primary{background:#fff;color:#0a0f1c}
-    .card .links .ghost{background:transparent;border:1px solid #2c3854;color:#c7d0e4}
-    .card .links a:hover{opacity:.85}
+    .head p{color:#8b96ad;margin-top:.5rem;font-size:.92rem}
+
+    /* --- Barre d'outils : recherche + compteur --- */
+    .tools{display:flex;align-items:center;gap:.8rem;margin-top:1.8rem;flex-wrap:wrap}
+    .tools input{flex:1 1 220px;min-width:0;background:#111827;border:1px solid #212c44;color:#e8ecf6;border-radius:10px;padding:.68rem .95rem;font-size:.88rem;outline:none}
+    .tools input:focus{border-color:#33405f}
+    .tools input::placeholder{color:#5b6580}
+    .count{font-size:.78rem;color:#6f7c99;font-weight:600;white-space:nowrap}
+
+    /* --- Niveau 1 : dossiers agences --- */
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.1rem;margin-top:1.4rem}
+    .folder{background:#111827;border:1px solid #212c44;border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .15s ease,border-color .15s ease;text-align:left;width:100%;color:inherit;display:block}
+    .folder:hover{transform:translateY(-3px);border-color:#33405f}
+    /* L'onglet du dossier reprend la couleur de l'agence */
+    .folder .tab{height:10px;border-radius:14px 14px 0 0}
+    .folder .top{display:flex;align-items:center;gap:.6rem;padding:1rem 1.1rem .2rem;font-weight:800;font-size:1rem;color:#fff;letter-spacing:.01em;min-width:0}
+    .folder .top svg{width:24px;height:24px;flex:0 0 auto}
+    .folder .top span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .folder .meta{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.55rem 1.1rem 1.1rem}
+    .folder .n{font-size:.8rem;color:#8b96ad}
+    .folder .sws{display:flex;gap:.35rem}
+    .folder .sw{width:18px;height:18px;border-radius:5px;border:1px solid rgba(255,255,255,.15)}
+
+    /* --- Niveau 2 : projets d'une agence --- */
+    .crumb{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#8b96ad;margin-bottom:1.5rem;flex-wrap:wrap}
+    .crumb button{background:none;border:none;color:#8b96ad;cursor:pointer;font-weight:600;padding:0}
+    .crumb button:hover{color:#e8ecf6}
+    .crumb .sep{color:#3d4763}
+    .crumb .cur{color:#e8ecf6;font-weight:700}
+
+    .agbar{display:flex;align-items:center;gap:.8rem;padding:1.1rem 1.3rem;border-radius:14px;margin-bottom:1.4rem;color:#fff;font-weight:800;font-size:1.15rem;min-width:0}
+    .agbar svg{width:26px;height:26px;flex:0 0 auto}
+
+    .plist{display:flex;flex-direction:column;gap:.7rem}
+    .proj{display:flex;align-items:center;gap:1rem;background:#111827;border:1px solid #212c44;border-radius:12px;padding:1rem 1.1rem;flex-wrap:wrap}
+    .proj:hover{border-color:#33405f}
+    .proj .chip{width:42px;height:42px;border-radius:9px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#fff}
+    .proj .txt{flex:1 1 160px;min-width:0}
+    .proj .pn{font-weight:700;font-size:.95rem;overflow:hidden;text-overflow:ellipsis}
+    .proj .pid{font-size:.75rem;color:#6f7c99;font-family:ui-monospace,monospace}
+    .proj .acts{display:flex;gap:.55rem;flex:0 0 auto}
+    .proj .acts a{padding:.6rem 1rem;border-radius:9px;font-weight:600;font-size:.85rem;white-space:nowrap}
+    .proj .acts .primary{background:#fff;color:#0a0f1c}
+    .proj .acts .ghost{border:1px solid #2c3854;color:#c7d0e4}
+    .proj .acts a:hover{opacity:.85}
+
+    .empty{color:#6f7c99;font-size:.9rem;padding:2rem 0;text-align:center}
     .foot{margin-top:2.5rem;color:#586178;font-size:.8rem}
+    @media(max-width:560px){
+      .wrap{padding:2rem 1rem}
+      .proj .acts{flex:1 1 100%}
+      .proj .acts a{flex:1;text-align:center}
+    }
   </style>
 </head>
 <body>
@@ -49,43 +91,176 @@
     </div>
     <div class="err" id="err"></div>
   </div>
+
   <div class="wrap" id="app" style="display:none">
-    <div class="head">
-      <div class="eyebrow">Panneau interne</div>
-      <h1>Agences</h1>
-      <p>Chaque agence a son annonce brandée et son viewer 3D. Pour en ajouter une : bloc dans <b>branding.js</b> + copie d'un <b>index-*.html</b> — la carte apparaît ici automatiquement.</p>
+    <!-- Niveau 1 : les agences -->
+    <div id="viewAgences">
+      <div class="head">
+        <div class="eyebrow">Panneau interne</div>
+        <h1>Agences</h1>
+        <p>Un dossier par agence. Ouvre-en un pour voir ses projets (annonce + visite 3D).</p>
+      </div>
+      <div class="tools">
+        <input id="q" placeholder="Rechercher une agence…">
+        <span class="count" id="count"></span>
+      </div>
+      <div class="grid" id="grid"></div>
+      <div class="empty" id="noRes" style="display:none">Aucune agence ne correspond.</div>
+      <div class="foot">Nouvelle agence : un bloc dans <b>branding.js</b> + un <b>index-&lt;id&gt;.html</b> — le dossier apparaît ici tout seul.</div>
     </div>
-    <div class="grid" id="grid"></div>
-    <div class="foot">Un seul <b>git push</b> met tout à jour.</div>
+
+    <!-- Niveau 2 : les projets d'une agence -->
+    <div id="viewProjets" style="display:none">
+      <div class="crumb">
+        <button id="back">&larr; Toutes les agences</button>
+        <span class="sep">/</span>
+        <span class="cur" id="curName"></span>
+      </div>
+      <div class="agbar" id="agbar"></div>
+      <div class="plist" id="plist"></div>
+      <div class="foot">Nouveau projet : ajoute un dossier dans <b>/properties/</b>, puis une entrée
+        <b>properties</b> dans le bloc de l'agence (branding.js).</div>
+    </div>
   </div>
+
   <script>
     var HUB_PASSWORD = 'visite2026';   /* a changer */
-    function unlock(){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block';render();}
-    function tryPwd(){var v=document.getElementById('pwd').value;
+
+    /* --- Porte --- */
+    function unlock(){
+      document.getElementById('gate').style.display='none';
+      document.getElementById('app').style.display='block';
+      renderAgences();
+    }
+    function tryPwd(){
+      var v=document.getElementById('pwd').value;
       if(v===HUB_PASSWORD){try{sessionStorage.setItem('hub_ok','1');}catch(e){}unlock();}
-      else{document.getElementById('err').textContent='Mot de passe incorrect.';}}
+      else{document.getElementById('err').textContent='Mot de passe incorrect.';}
+    }
     document.getElementById('go').addEventListener('click',tryPwd);
     document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')tryPwd();});
     try{if(sessionStorage.getItem('hub_ok')==='1')unlock();}catch(e){}
-    function render(){
-      var grid=document.getElementById('grid');grid.innerHTML='';
-      var ag=window.AGENCIES||{};
-      Object.keys(ag).forEach(function(k){
-        var A=ag[k];
-        var logo=(window.brandLogoHTML&&window.brandLogoHTML(A))||A.name;
-        var c=document.createElement('div');c.className='card';
-        c.innerHTML=
-          '<div class="top" style="background:'+A.navy+'">'+logo+'</div>'+
-          '<div class="body">'+
-            '<div class="sws"><span class="sw" style="background:'+A.navy+'"></span><span class="sw" style="background:'+A.accent+'"></span></div>'+
-            '<div class="links">'+
-              '<a class="primary" href="index-'+A.id+'.html">Annonce</a>'+
-              '<a class="ghost" href="viewer.html?agency='+A.id+'&property='+(A.property||'demo-rambouillet')+'">Viewer</a>'+
-            '</div>'+
-          '</div>';
-        grid.appendChild(c);
-      });
+
+    /* --- Projets d'une agence -------------------------------------------------
+       Si le bloc agence declare un tableau `properties`, on l'utilise. Sinon on
+       retombe sur l'unique `property` historique. Ajouter un 2e appartement ne
+       demandera donc AUCUNE retouche de ce fichier : juste une ligne dans
+       branding.js.
+         properties: [
+           { id:'demo-rambouillet', name:'Appartement 2 pieces', page:'index-laforet.html' },
+           { id:'demo-strasbourg',  name:'Maison 5 pieces',      page:'index-laforet-02.html' }
+         ]
+    -------------------------------------------------------------------------- */
+    function projetsDe(A){
+      if (A.properties && A.properties.length) {
+        return A.properties.map(function(p){
+          return {
+            id:   p.id,
+            name: p.name || p.id,
+            page: p.page || ('index-' + A.id + '.html')
+          };
+        });
+      }
+      return [{
+        id:   A.property || 'demo-rambouillet',
+        name: 'Appartement 2 pièces — Rambouillet',
+        page: 'index-' + A.id + '.html'
+      }];
     }
+
+    function agences(){
+      var ag = window.AGENCIES || {};
+      return Object.keys(ag).map(function(k){ return ag[k]; });
+    }
+
+    /* --- Niveau 1 --- */
+    function renderAgences(filtre){
+      var grid = document.getElementById('grid');
+      var list = agences();
+      var f = (filtre||'').trim().toLowerCase();
+      if (f) list = list.filter(function(A){
+        return (A.name+' '+A.id).toLowerCase().indexOf(f) !== -1;
+      });
+
+      grid.innerHTML = '';
+      list.forEach(function(A){
+        var n = projetsDe(A).length;
+        var logo = (window.brandLogoHTML && window.brandLogoHTML(A)) || A.name;
+        /* brandLogoHTML renvoie <svg>…</svg>NOM : on isole le svg pour maitriser la typo */
+        var svg = (logo.match(/<svg[\s\S]*?<\/svg>/) || [''])[0];
+
+        var b = document.createElement('button');
+        b.className = 'folder';
+        b.innerHTML =
+          '<div class="tab" style="background:'+A.accent+'"></div>' +
+          '<div class="top" style="color:#fff">'+svg+'<span>'+A.name+'</span></div>' +
+          '<div class="meta">' +
+            '<span class="n">'+n+' projet'+(n>1?'s':'')+'</span>' +
+            '<span class="sws">' +
+              '<span class="sw" style="background:'+A.navy+'"></span>' +
+              '<span class="sw" style="background:'+A.accent+'"></span>' +
+            '</span>' +
+          '</div>';
+        b.addEventListener('click', function(){ ouvrir(A.id); });
+        grid.appendChild(b);
+      });
+
+      document.getElementById('count').textContent =
+        list.length + ' / ' + agences().length + ' agences';
+      document.getElementById('noRes').style.display = list.length ? 'none' : 'block';
+    }
+
+    /* --- Niveau 2 --- */
+    function ouvrir(id){
+      var A = (window.AGENCIES||{})[id];
+      if (!A) return;
+
+      var logo = (window.brandLogoHTML && window.brandLogoHTML(A)) || A.name;
+      var svg  = (logo.match(/<svg[\s\S]*?<\/svg>/) || [''])[0];
+
+      document.getElementById('curName').textContent = A.name;
+      var bar = document.getElementById('agbar');
+      bar.style.background = A.navy;
+      bar.innerHTML = svg + '<span>' + A.name + '</span>';
+
+      var pl = document.getElementById('plist');
+      pl.innerHTML = '';
+      projetsDe(A).forEach(function(p){
+        var row = document.createElement('div');
+        row.className = 'proj';
+        row.innerHTML =
+          '<span class="chip" style="background:'+A.accent+'">&#9673;</span>' +
+          '<span class="txt"><span class="pn">'+p.name+'</span>' +
+            '<span class="pid">'+p.id+'</span></span>' +
+          '<span class="acts">' +
+            '<a class="primary" href="'+p.page+'">Annonce</a>' +
+            '<a class="ghost" href="viewer.html?agency='+A.id+'&property='+p.id+'">Visite 3D</a>' +
+          '</span>';
+        pl.appendChild(row);
+      });
+
+      document.getElementById('viewAgences').style.display = 'none';
+      document.getElementById('viewProjets').style.display = 'block';
+      location.hash = id;
+      window.scrollTo(0,0);
+    }
+
+    function retour(){
+      document.getElementById('viewProjets').style.display = 'none';
+      document.getElementById('viewAgences').style.display = 'block';
+      location.hash = '';
+      window.scrollTo(0,0);
+    }
+
+    document.getElementById('back').addEventListener('click', retour);
+    document.getElementById('q').addEventListener('input', function(e){
+      renderAgences(e.target.value);
+    });
+    /* Le bouton « precedent » du navigateur ramene a la liste */
+    window.addEventListener('hashchange', function(){
+      var h = location.hash.replace('#','');
+      if (h && (window.AGENCIES||{})[h]) ouvrir(h); else retour();
+    });
   </script>
 </body>
 </html>
