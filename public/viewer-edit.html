@@ -120,7 +120,7 @@
    ÉDITEUR — fichier SÉPARÉ.
    ----------------------------------------------------------------------------
    Il n'y a AUCUNE copie du viewer ici : viewer.html est chargé tel quel dans
-   l'iframe. On lui greffe ensuite un « pont » (window.__ed) qui parle à ses
+   l'iframe. On lui greffe ensuite un  pont  (window.__ed) qui parle à ses
    variables internes (camera, propertyData, hudEdges…). Conséquence : toute
    correction future de viewer.html profite automatiquement à cet éditeur,
    et viewer.html reste 100 % stérile pour les agences.
@@ -172,6 +172,12 @@ const PONT = `
   }
 
   let onCot = false;
+  let undoStack = [];
+
+  function sauvegarder(){
+    undoStack.push(JSON.parse(JSON.stringify(propertyData.dimensions || {})));
+    if (undoStack.length > 20) undoStack.shift();   // garde les 20 derniers
+  }
 
   function clicCotation(ev){
     if (!onCot || typeof modelBounds==='undefined' || !modelBounds) return;
@@ -197,6 +203,7 @@ const PONT = `
 
     if (!segs || !segs.length){                  // premiere coupure de ce cote
       if (d < MIN || worldLen-d < MIN) return;
+      sauvegarder();
       dims[best.name] = [r2(d), r2(worldLen-d)];
       hudUpdate(); parent.__edEvent('cot','scinde'); return;
     }
@@ -207,6 +214,7 @@ const PONT = `
       if (dd < bd){ bd=dd; bi=i; }
     }
     if (bi>=0 && bd<=tolM){                      // clic sur une graduation -> fusion
+      sauvegarder();
       segs[bi] = r2(segs[bi]+segs[bi+1]);
       segs.splice(bi+1,1);
       hudUpdate(); parent.__edEvent('cot','fusion'); return;
@@ -216,6 +224,7 @@ const PONT = `
       if (d < cum+segs[i]){
         const a=d-cum, b=segs[i]-a;
         if (a<MIN || b<MIN) return;
+        sauvegarder();
         segs.splice(i,1,r2(a),r2(b));
         hudUpdate(); parent.__edEvent('cot','scinde'); return;
       }
@@ -276,7 +285,20 @@ const PONT = `
         if (s){ s.style.pointerEvents = on ? 'auto' : ''; s.style.cursor = on ? 'crosshair' : ''; }
       },
 
-      manifest: function(){ return JSON.stringify(propertyData, null, 2); }
+      manifest: function(){ return JSON.stringify(propertyData, null, 2); },
+      undo: function(){
+        if (!undoStack || undoStack.length===0) return false;
+        const prev = undoStack.pop();
+        propertyData.dimensions = prev;
+        hudUpdate();
+        parent.__edEvent('cot','undo');
+        return true;
+      },
+      resetCote: function(cote){
+        if (!propertyData.dimensions) propertyData.dimensions = {};
+        propertyData.dimensions[cote] = [];
+        hudUpdate();
+      }
     };
     parent.__edPret();
   }
@@ -311,10 +333,14 @@ window.__edPret = function(){
 };
 window.__edEvent = function(kind, what){
   if (kind === 'cot'){
-    flash(what === 'fusion' ? '🔗 Graduation retirée' : '✂️ Cotation scindée');
+    if (what === 'undo') flash('↶ Annulé');
+    else flash(what === 'fusion' ? '🔗 Graduation retirée' : '✂️ Cotation scindée');
     refresh();
   }
 };
+document.addEventListener('keydown', function(e){
+  if ((e.ctrlKey || e.metaKey) && e.key==='z') { e.preventDefault(); undo(); }
+});
 
 /* -------- UI ------------------------------------------------------------- */
 function tab(m){
@@ -328,12 +354,33 @@ function tab(m){
 
 function v(id){ return (document.getElementById(id).value || '').trim(); }
 
+function undo(){
+  if (!ed) return;
+  if (ed.undo()) flash('↶ Annulé');
+  else flash('Rien à annuler');
+}
+
+function resetCote(cote){
+  if (!ed) return;
+  const mani = JSON.parse(ed.manifest());
+  if (!mani.dimensions) mani.dimensions = {};
+  mani.dimensions[cote] = [];
+  propertyData.dimensions = mani.dimensions;
+  // On doit retracer via le viewer
+  const frame = document.getElementById('vw').contentWindow;
+  if (frame.__ed) frame.__ed.manifest = ()=>JSON.stringify(mani);
+  frame.propertyData.dimensions = mani.dimensions;
+  frame.hudUpdate();
+  refresh();
+  flash('Cotation ' + cote + ' reinitialisee');
+}
+
 function capture(){
   if (!ed) return;
   const photos = v('f-photos').split(',').map(function(x){return x.trim();}).filter(Boolean);
   const label = ed.capture(v('f-id'), v('f-label'), v('f-room'), photos);
   ['f-id','f-label','f-room','f-photos'].forEach(function(k){ document.getElementById(k).value=''; });
-  flash('✅ « ' + label +' » placé');
+  flash('✅  ' + label +'  placé');
   refresh();
 }
 
@@ -364,6 +411,10 @@ function refresh(){
       ? c.segs.map(function(s){ return s.toFixed(2) + ' m'; }).join('  +  ')
       : '— aucune coupure —';
     row.innerHTML = '<span class="nm"><b>' + c.cote + '</b> · ' + txt + '</span>';
+    const btn = document.createElement('button');
+    btn.textContent = '✕';
+    btn.onclick = function(){ resetCote(c.cote); };
+    row.appendChild(btn);
     cl.appendChild(row);
   });
 
