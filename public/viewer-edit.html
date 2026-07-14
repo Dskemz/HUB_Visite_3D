@@ -132,6 +132,25 @@
             les cotes se recalculent seules ;<br>
           · <b>clic sur une graduation</b> → elle disparaît, les deux cotes fusionnent.<br><br>
           Aucun calcul, aucune saisie.</p>
+
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">📏 Dimensions générales (périmètre)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem;">
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Haut</label>
+              <input type="number" id="f-dim-top" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('top',this.value)"></div>
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Bas</label>
+              <input type="number" id="f-dim-bottom" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('bottom',this.value)"></div>
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Gauche</label>
+              <input type="number" id="f-dim-left" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('left',this.value)"></div>
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Droite</label>
+              <input type="number" id="f-dim-right" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('right',this.value)"></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;">
+            <input type="checkbox" id="f-not-rect" onchange="setRectangular(!this.checked)">
+            N'est pas rectangulaire
+          </label>
+        </div>
+
         <div class="list" id="cot-list"></div>
       </div>
       <div id="p-piece" hidden>
@@ -139,7 +158,7 @@
           Renomme, change la couleur ou la taille — l'effet est immédiat sur le plan.<br><br>
           <b>Placer</b> : clique le bouton, puis clique sur le plan à l'endroit voulu.</p>
         <div style="display:flex;gap:.4rem;margin-bottom:.8rem;">
-          <input id="f-newpiece" placeholder="Nom de la pièce (ex: Bureau)" style="flex:1;margin:0;">
+          <input id="f-newpiece" placeholder="Nom de la pièce (ex: Bureau)" style="flex:1;margin:0;padding:0.5rem;font-size:0.9rem;height:2rem;">
           <button class="btn" id="b-addpiece" onclick="ajouterPiece()" style="flex:0 0 auto;">➕ Ajouter</button>
         </div>
         <div class="list" id="piece-list"></div>
@@ -425,6 +444,17 @@ const PONT = `
         return propertyData.roomLabels.length - 1;
       },
 
+      setPositionPiece: function(i, x, z){
+        assurerPieces();
+        if (i < 0 || i >= propertyData.roomLabels.length) return;
+        propertyData.roomLabels[i].position = [
+          Math.round(parseFloat(x)*100)/100,
+          propertyData.roomLabels[i].position[1],
+          Math.round(parseFloat(z)*100)/100
+        ];
+        hudUpdate();
+      },
+
       supprimerPiece: function(i){
         assurerPieces();
         if (i < 0 || i >= propertyData.roomLabels.length) return;
@@ -432,6 +462,21 @@ const PONT = `
         if (placeIdx === i) placeIdx = -1;
         majCurseur();
         hudUpdate();
+      },
+
+      /* Cotations generales */
+      dimensionsGeneral: function(){
+        return propertyData.dimensionsGeneral || { top:0, bottom:0, left:0, right:0 };
+      },
+      setDimensionGeneral: function(key, val){
+        propertyData.dimensionsGeneral = propertyData.dimensionsGeneral || {};
+        propertyData.dimensionsGeneral[key] = parseFloat(val) || 0;
+      },
+      isRectangular: function(){
+        return propertyData.isRectangular !== false;
+      },
+      setRectangular: function(b){
+        propertyData.isRectangular = !!b;
       },
 
       enVueDeDessus:  function(){ return !!(typeof hudVisible !== 'undefined' && hudVisible); },
@@ -443,6 +488,7 @@ const PONT = `
       voirPov: function(){ if(povEnAttenteX==null)return; camera.position=new BABYLON.Vector3(povEnAttenteX,povEnAttenteY,povEnAttenteZ); camera.target=camera.position.clone().addInPlace(new BABYLON.Vector3(0,0,1)); camera.mode=BABYLON.Camera.PERSPECTIVE_CAMERA; setHudVisible(false); camera.attachControl(canvas,true); },
       validerPov: function(id,label,room,photos){ if(povEnAttenteX==null)return null; const pos=camera.position,tgt=camera.target,r2=v=>Math.round(v*100)/100; const pov={id:id||('pov-'+(propertyData.poi.length+1)),label:label||id,camPos:[r2(pos.x),r2(pos.y),r2(pos.z)],camTarget:[r2(tgt.x),r2(tgt.y),r2(tgt.z)]}; if(room)pov.roomId=room; if(photos&&photos.length)pov.photos=photos; propertyData.poi=propertyData.poi||[]; const i=propertyData.poi.findIndex(p=>p.id===pov.id); if(i>=0)propertyData.poi[i]=pov;else propertyData.poi.push(pov); createPoiMarkers();rebuildPoiList(); povEnAttenteX=povEnAttenteY=povEnAttenteZ=null; afficherMarqueurPov(false); return pov.label; },
       annulerPov: function(){ povEnAttenteX=povEnAttenteY=povEnAttenteZ=null; afficherMarqueurPov(false); },
+      editerPov: function(id){ propertyData.poi=propertyData.poi||[]; const poi=propertyData.poi.find(p=>p.id===id); if(!poi)return null; povEnAttenteX=poi.camPos[0]; povEnAttenteY=poi.camPos[1]; povEnAttenteZ=poi.camPos[2]; afficherMarqueurPov(true); return poi; },
 
       undo: function(){
         if (!undoStack || undoStack.length===0) return false;
@@ -653,6 +699,26 @@ function voirPov(){
   flash('Tu peux maintenant orienter ta vue. Clique Valider quand c\'est bon.');
 }
 
+function editerPovExistant(id, label){
+  if (!ed) return;
+  const poi = ed.editerPov(id);
+  if (!poi) return;
+  document.getElementById('f-id').value = poi.id;
+  document.getElementById('f-label').value = poi.label || label;
+  document.getElementById('f-room').value = poi.roomId || '';
+  document.getElementById('f-photos').value = (poi.photos||[]).join(', ');
+  const h = poi.camPos[1];
+  document.getElementById('f-height').value = h;
+  document.getElementById('h-height-val').textContent = h.toFixed(2) + ' m';
+  povEnCours = true;
+  tab('pov');
+  document.getElementById('b-place-pov').style.display = 'block';
+  document.getElementById('b-cancel-pov').style.display = 'block';
+  document.getElementById('b-voir').style.display = 'block';
+  document.getElementById('b-valider').style.display = 'none';
+  flash('✏️ Édition de « ' + label + ' » — tu peux placer, ajuster la hauteur et voir');
+}
+
 function validerPov(){
   if (!ed) return;
   const id = (document.getElementById('f-id').value || '').trim();
@@ -693,8 +759,28 @@ function supprimerPiece(i, nom){
   flash('🗑️ « ' + nom + ' » supprimée');
 }
 
+function setDimGen(key, val){
+  if (!ed) return;
+  ed.setDimensionGeneral(key, val);
+  flash('Dimension ' + key + ' mise à jour');
+}
+
+function setRectangular(is){
+  if (!ed) return;
+  ed.setRectangular(is);
+  flash(is ? '▭ Bien rectangulaire' : '◇ Bien non-rectangulaire');
+}
+
 function refresh(){
   if (!ed) return;
+
+  // Charger les cotations générales
+  const dg = ed.dimensionsGeneral();
+  document.getElementById('f-dim-top').value = dg.top || '';
+  document.getElementById('f-dim-bottom').value = dg.bottom || '';
+  document.getElementById('f-dim-left').value = dg.left || '';
+  document.getElementById('f-dim-right').value = dg.right || '';
+  document.getElementById('f-not-rect').checked = !ed.isRectangular();
 
   const pl = document.getElementById('pov-list');
   const pois = ed.pois();
@@ -705,9 +791,11 @@ function refresh(){
     row.innerHTML = '<span class="nm">' + p.label + '</span>';
     const a = document.createElement('button');
     a.textContent = 'Voir'; a.onclick = function(){ ed.voir(p.id); };
+    const ed_btn = document.createElement('button');
+    ed_btn.textContent = '✏️'; ed_btn.title = 'Éditer ce POV'; ed_btn.onclick = function(){ editerPovExistant(p.id, p.label); };
     const b = document.createElement('button');
     b.textContent = '✕';    b.onclick = function(){ ed.supprimer(p.id); refresh(); };
-    row.appendChild(a); row.appendChild(b);
+    row.appendChild(a); row.appendChild(ed_btn); row.appendChild(b);
     pl.appendChild(row);
   });
 
@@ -783,6 +871,21 @@ function refresh(){
       nom.style.cssText = 'flex:1 1 100%;margin-bottom:.35rem;';
       nom.onchange = function(){ ed.renommer(p.i, nom.value); flash('✏️ Renommé'); };
       row.appendChild(nom);
+
+      const coords = document.createElement('div');
+      coords.style.cssText = 'flex:1 1 100%;display:flex;gap:.3rem;margin-bottom:.35rem;';
+      const inpX = document.createElement('input');
+      inpX.type = 'number'; inpX.placeholder = 'X (m)'; inpX.step = '0.01';
+      inpX.value = (p.pos && p.pos[0]) || 0;
+      inpX.style.cssText = 'flex:1;';
+      inpX.onchange = function(){ ed.setPositionPiece(p.i, inpX.value, inpZ.value); flash('Position mise à jour'); };
+      const inpZ = document.createElement('input');
+      inpZ.type = 'number'; inpZ.placeholder = 'Z (m)'; inpZ.step = '0.01';
+      inpZ.value = (p.pos && p.pos[1]) || 0;
+      inpZ.style.cssText = 'flex:1;';
+      inpZ.onchange = function(){ ed.setPositionPiece(p.i, inpX.value, inpZ.value); flash('Position mise à jour'); };
+      coords.appendChild(inpX); coords.appendChild(inpZ);
+      row.appendChild(coords);
 
       const col = document.createElement('input');
       col.type = 'color';
