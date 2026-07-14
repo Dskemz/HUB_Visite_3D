@@ -407,19 +407,46 @@ function refresh(){
   ed.cotations().forEach(function(c){
     const row = document.createElement('div');
     row.className = 'row';
-    const txt = c.segs.length
-      ? c.segs.map(function(s){ return s.toFixed(2) + ' m'; }).join('  +  ')
-      : '— aucune coupure —';
-    row.innerHTML = '<span class="nm"><b>' + c.cote + '</b> · ' + txt + '</span>';
-    const btn = document.createElement('button');
-    btn.textContent = '✕';
-    btn.onclick = function(){ resetCote(c.cote); };
-    row.appendChild(btn);
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.innerHTML = '<b>' + c.cote + '</b>';
+    row.appendChild(nm);
+    
+    if (c.segs.length){
+      c.segs.forEach(function(seg, i){
+        const inp = document.createElement('input');
+        inp.type = 'number';
+        inp.step = '0.01';
+        inp.value = seg.toFixed(2);
+        inp.style.cssText = 'flex:0 0 60px;margin-left:.3rem;font-size:.76rem;padding:.2rem;background:#0d1220;border:1px solid #263149;color:#e8ecf6;border-radius:4px;';
+        inp.onchange = function(){
+          const v = parseFloat(inp.value);
+          if (!isNaN(v) && v > 0.01){
+            c.segs[i] = v;
+            updateCotFromEditor(c.cote, c.segs);
+          } else {
+            inp.value = seg.toFixed(2);
+          }
+        };
+        row.appendChild(inp);
+        if (i < c.segs.length-1) {
+          const plus = document.createElement('span');
+          plus.textContent = '+';
+          plus.style.cssText = 'margin:0 .2rem;color:#6f7c99;';
+          row.appendChild(plus);
+        }
+      });
+    } else {
+      const sp = document.createElement('span');
+      sp.style.color = '#6f7c99';
+      sp.textContent = '— aucune coupure —';
+      row.appendChild(sp);
+    }
     cl.appendChild(row);
   });
 
   document.getElementById('st').textContent =
-    pois.length + ' POV · manifest à jour en mémoire';
+    pois.length + ' POV · manifest a jour en memoire';
 }
 
 function download(){
