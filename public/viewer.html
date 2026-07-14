@@ -890,6 +890,12 @@
   <!-- INDICATION "REGARDER AUTOUR" (vue 1ère personne) -->
   <div class="fp-look-hint" id="fp-look-hint">Cliquez-glissez horizontalement pour balayer la pièce du regard</div>
 
+  <!-- MARQUEUR POV EN ATTENTE (cercle noir + point noir) — éditeur uniquement, redessine dans hudUpdate -->
+  <circle id="pov-marker-circle" cx="0" cy="0" r="12" fill="none" stroke="black" stroke-width="2"
+          style="display:none;z-index:30;" />
+  <circle id="pov-marker-dot" cx="0" cy="0" r="2" fill="black"
+          style="display:none;z-index:31;" />
+
   <!-- ZOOM VUE DE DESSUS — éditeur uniquement -->
   <div id="topview-zoom-ctrl" style="display:none;position:absolute;bottom:2rem;left:2rem;
        background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:8px;
@@ -3526,6 +3532,7 @@ function hudUpdate() {
   const { min, max } = modelBounds;
   const y = min.y; // plan du sol
   const labels = hudRoomLabels();
+  afficherMarqueurPov(EDIT_MODE && povEnAttenteX != null);
 
   // ===== MODE ISOLATION : une pièce active, le reste assombri =====
   if (hudIsolatedRoom && hudIsolatedRoom.rect) {
@@ -3799,7 +3806,31 @@ function computeTopViewRadiusForViewport(viewportWidth) {
   return Math.max(distForDepth, distForWidth) * CONFIG.topViewPadding;
 }
 
-let topViewZoom = 1;   // 1 = cadrage nominal. Pilote par l'editeur uniquement.
+let topViewZoom = 1;
+
+/* POV : position en attente de validation (avant capture) */
+let povEnAttenteX = null, povEnAttenteY = null, povEnAttenteZ = null;
+
+function afficherMarqueurPov(show){
+  const circ = document.getElementById('pov-marker-circle');
+  const dot  = document.getElementById('pov-marker-dot');
+  if (!show || povEnAttenteX == null || !modelBounds){
+    if (circ) circ.style.display = 'none';
+    if (dot)  dot.style.display = 'none';
+    return;
+  }
+  const p = hudProject(new BABYLON.Vector3(povEnAttenteX, modelBounds.min.y, povEnAttenteZ));
+  if (circ){
+    circ.setAttribute('cx', p.x);
+    circ.setAttribute('cy', p.y);
+    circ.style.display = 'block';
+  }
+  if (dot){
+    dot.setAttribute('cx', p.x);
+    dot.setAttribute('cy', p.y);
+    dot.style.display = 'block';
+  }
+}
 
 /* Passer en mode orthographique avec cadrage sur le modèle */
 function switchToOrthographic() {

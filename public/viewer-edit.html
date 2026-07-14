@@ -99,15 +99,31 @@
 
     <div class="body">
       <div id="p-pov">
-        <p class="hint">Navigue dans le viewer jusqu'à l'endroit voulu, oriente le regard
-          (la vue 1<sup>re</sup> personne marche aussi), puis capture.
-          Le POV <b>apparaît aussitôt</b> dans la visite, cliquable.</p>
-        <input id="f-id"     placeholder="id (ex: salon-01)">
-        <input id="f-label"  placeholder="Nom affiché (ex: Salon)">
-        <input id="f-room"   placeholder="roomId (optionnel)">
-        <input id="f-photos" placeholder="photos (Salon_01.png, Salon_02.png)">
-        <button class="btn" id="b-cap" onclick="capture()">📸 Capturer ce POV</button>
-        <div class="list" id="pov-list"></div>
+        <p class="hint"><b>Placement interactif.</b> Clique « Placer POV » puis clique sur le plan.
+          Ajuste la hauteur, puis clique « Voir » pour orienter ta vue, et « Valider ».</p>
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.7rem;">
+          <div style="display:flex;gap:.4rem;margin-bottom:.5rem;">
+            <button class="btn" id="b-place-pov" onclick="placerPov()" style="flex:1;">📍 Placer POV</button>
+            <button class="btn sec" id="b-cancel-pov" onclick="annulerPov()" style="flex:1;display:none;">❌ Annuler</button>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;">
+            <label style="font-size:.76rem;color:#6f7c99;flex:0 0 50px;">Hauteur</label>
+            <input type="range" id="f-height" min="0" max="2" step="0.05" value="0" style="flex:1;"
+                   oninput="setHauteurPov(this.value)">
+            <span id="h-height-val" style="font-size:.76rem;color:#c7d0e4;flex:0 0 40px;">0 m</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:.4rem;">
+          <input id="f-id"     placeholder="id" style="flex:1;">
+          <input id="f-label"  placeholder="Nom affiché" style="flex:1;">
+        </div>
+        <input id="f-room"   placeholder="roomId (optionnel)" style="margin-bottom:.5rem;">
+        <input id="f-photos" placeholder="photos (Salon_01.png, Salon_02.png)" style="margin-bottom:.7rem;">
+        <div style="display:flex;gap:.4rem;">
+          <button class="btn" id="b-voir" onclick="voirPov()" style="flex:1;display:none;">👁️ Voir</button>
+          <button class="btn" id="b-valider" onclick="validerPov()" style="flex:1;display:none;">💾 Valider</button>
+        </div>
+        <div class="list" id="pov-list" style="margin-top:.9rem;"></div>
       </div>
 
       <div id="p-cot" hidden>
@@ -193,6 +209,7 @@ const PONT = `
   let onCot = false;
   let onRooms = false;    // onglet Pieces actif
   let placeIdx = -1;      // piece en attente d'un clic de placement
+  let onPov = false;      // onglet POV en mode placement
   let undoStack = [];
 
   function majCurseur(){
@@ -223,6 +240,15 @@ const PONT = `
 
   /* Deuxieme ecouteur, independant de clicCotation : il ne fait rien tant
      qu'aucune piece n'attend d'etre placee. */
+  function placerPov(ev){
+    if (!onPov) return;
+    const svg = document.getElementById('hud-svg');
+    const r = svg.getBoundingClientRect();
+    const w = hudUnproject(ev.clientX - r.left, ev.clientY - r.top);
+    if (!w) return;
+    parent.__ed.setCiblePov(w.x, w.z);
+  }
+
   function clicPiece(ev){
     if (!onRooms || placeIdx < 0) return;
     const svg = document.getElementById('hud-svg');
@@ -381,6 +407,13 @@ const PONT = `
       enVueDeDessus:  function(){ return !!(typeof hudVisible !== 'undefined' && hudVisible); },
 
       manifest: function(){ return JSON.stringify(propertyData, null, 2); },
+      /* ===== POV ===== */
+      setCiblePov: function(x,z){ povEnAttenteX=x; povEnAttenteZ=z; povEnAttenteY=modelBounds?modelBounds.min.y:0; afficherMarqueurPov(true); parent.__edEvent('pov','placee'); },
+      setHauteurPov: function(h){ povEnAttenteY=Math.max(0,Math.min(2,parseFloat(h)||0)); if(hudVisible)hudUpdate(); },
+      voirPov: function(){ if(povEnAttenteX==null)return; camera.position=new BABYLON.Vector3(povEnAttenteX,povEnAttenteY,povEnAttenteZ); camera.target=camera.position.clone().addInPlace(new BABYLON.Vector3(0,0,1)); camera.mode=BABYLON.Camera.PERSPECTIVE_CAMERA; setHudVisible(false); camera.attachControl(canvas,true); },
+      validerPov: function(id,label,room,photos){ if(povEnAttenteX==null)return null; const pos=camera.position,tgt=camera.target,r2=v=>Math.round(v*100)/100; const pov={id:id||('pov-'+(propertyData.poi.length+1)),label:label||id,camPos:[r2(pos.x),r2(pos.y),r2(pos.z)],camTarget:[r2(tgt.x),r2(tgt.y),r2(tgt.z)]}; if(room)pov.roomId=room; if(photos&&photos.length)pov.photos=photos; propertyData.poi=propertyData.poi||[]; const i=propertyData.poi.findIndex(p=>p.id===pov.id); if(i>=0)propertyData.poi[i]=pov;else propertyData.poi.push(pov); createPoiMarkers();rebuildPoiList(); povEnAttenteX=povEnAttenteY=povEnAttenteZ=null; afficherMarqueurPov(false); return pov.label; },
+      annulerPov: function(){ povEnAttenteX=povEnAttenteY=povEnAttenteZ=null; afficherMarqueurPov(false); },
+
       undo: function(){
         if (!undoStack || undoStack.length===0) return false;
         const prev = undoStack.pop();
@@ -427,6 +460,7 @@ window.__edPret = function(){
   ed.editerCotations(mode === 'cot');
 };
 window.__edEvent = function(kind, what){
+  if (kind === 'pov'){ flash('📍 POV placé sur le plan'); refresh(); return; }
   if (kind === 'piece'){ flash('📍 Libellé déplacé'); refresh(); return; }
   if (kind === 'cot'){
     if (what === 'undo') flash('↶ Annulé');
@@ -547,6 +581,68 @@ function capture(){
   ['f-id','f-label','f-room','f-photos'].forEach(function(k){ document.getElementById(k).value=''; });
   flash('✅  ' + label +'  placé');
   refresh();
+}
+
+let povEnCours = false;  // true si un POV est en cours de placement/édition
+
+function placerPov(){
+  if (!ed) return;
+  povEnCours = true;
+  tab('pov');
+  ed.setMode('pov');
+  document.getElementById('b-place-pov').style.display = 'none';
+  document.getElementById('b-cancel-pov').style.display = 'block';
+  document.getElementById('b-voir').style.display = 'none';
+  document.getElementById('b-valider').style.display = 'none';
+  flash('Clique sur le plan pour placer le POV');
+}
+
+function annulerPov(){
+  if (!ed) return;
+  ed.annulerPov();
+  povEnCours = false;
+  ed.setMode(null);
+  document.getElementById('b-place-pov').style.display = 'block';
+  document.getElementById('b-cancel-pov').style.display = 'none';
+  document.getElementById('b-voir').style.display = 'none';
+  document.getElementById('b-valider').style.display = 'none';
+  flash('❌ Annulé');
+}
+
+function setHauteurPov(h){
+  if (!ed) return;
+  ed.setHauteurPov(h);
+  document.getElementById('h-height-val').textContent = h + ' m';
+}
+
+function voirPov(){
+  if (!ed) return;
+  ed.voirPov();
+  document.getElementById('b-voir').style.display = 'none';
+  document.getElementById('b-valider').style.display = 'block';
+  flash('Tu peux maintenant orienter ta vue. Clique Valider quand c\'est bon.');
+}
+
+function validerPov(){
+  if (!ed) return;
+  const id = (document.getElementById('f-id').value || '').trim();
+  const label = (document.getElementById('f-label').value || '').trim();
+  const room = (document.getElementById('f-room').value || '').trim();
+  const photos = (document.getElementById('f-photos').value || '')
+    .split(',').map(x=>x.trim()).filter(Boolean);
+  const nom = ed.validerPov(id, label, room, photos);
+  if (nom){
+    ['f-id','f-label','f-room','f-photos'].forEach(k=>document.getElementById(k).value='');
+    document.getElementById('f-height').value = 0;
+    povEnCours = false;
+    ed.setMode(null);
+    document.getElementById('b-place-pov').style.display = 'block';
+    document.getElementById('b-cancel-pov').style.display = 'none';
+    document.getElementById('b-voir').style.display = 'none';
+    document.getElementById('b-valider').style.display = 'none';
+    flash('✅ « ' + nom + ' » validé');
+    refresh();
+  }
 }
 
 function refresh(){
