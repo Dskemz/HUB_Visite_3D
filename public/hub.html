@@ -35,19 +35,49 @@
     .tools input::placeholder{color:#5b6580}
     .count{font-size:.78rem;color:#6f7c99;font-weight:600;white-space:nowrap}
 
-    /* --- Niveau 1 : dossiers agences --- */
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.1rem;margin-top:1.4rem}
-    .folder{background:#111827;border:1px solid #212c44;border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .15s ease,border-color .15s ease;text-align:left;width:100%;color:inherit;display:block}
-    .folder:hover{transform:translateY(-3px);border-color:#33405f}
-    /* L'onglet du dossier reprend la couleur de l'agence */
-    .folder .tab{height:10px;border-radius:14px 14px 0 0}
-    .folder .top{display:flex;align-items:center;gap:.6rem;padding:1rem 1.1rem .2rem;font-weight:800;font-size:1rem;color:#fff;letter-spacing:.01em;min-width:0}
-    .folder .top svg{width:24px;height:24px;flex:0 0 auto}
-    .folder .top span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .folder .meta{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.55rem 1.1rem 1.1rem}
-    .folder .n{font-size:.8rem;color:#8b96ad}
+    /* --- Niveau 1 : une agence par ligne ------------------------------------
+       Bande coloree aux teintes de l'agence + carte blanche en surimpression,
+       raccordees par une encoche diagonale. Le fond garde navy -> accent, donc
+       chaque ligne reste identifiable au premier coup d'oeil. */
+    .grid{display:flex;flex-direction:column;gap:1.1rem;margin-top:1.4rem}
+    .folder{position:relative;display:block;width:100%;text-align:left;cursor:pointer;
+            border:none;padding:0 0 7px 0;border-radius:22px;color:inherit;
+            box-shadow:0 10px 26px rgba(0,0,0,.34);
+            transition:transform .16s ease,box-shadow .16s ease}
+    .folder:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(0,0,0,.46)}
+    .folder:focus-visible{outline:2px solid #4a6cff;outline-offset:3px}
+
+    /* La carte blanche : coin haut-gauche taille en biais -> la couleur apparait */
+    .folder .card{background:#fff;color:#0f1524;border-radius:22px;margin-left:78px;
+                  min-height:128px;display:flex;align-items:center;gap:1.2rem;
+                  padding:1.4rem 1.5rem 1.4rem 3.2rem;
+                  clip-path:polygon(66px 0, 100% 0, 100% 100%, 0 100%, 0 66px)}
+
+    .folder .mark{flex:0 0 auto;width:44px;height:44px;display:flex;align-items:center;
+                  justify-content:center}
+    .folder .mark svg{width:38px;height:38px}
+
+    .folder .txt{flex:1 1 auto;min-width:0}
+    .folder .nm{display:block;font-size:1.08rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+                color:#0f1524;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .folder .sub{display:block;font-size:.84rem;color:#5b6580;margin-top:.25rem;overflow:hidden;
+                 text-overflow:ellipsis;white-space:nowrap}
+
+    .folder .side{flex:0 0 auto;display:flex;align-items:center;gap:.9rem}
     .folder .sws{display:flex;gap:.35rem}
-    .folder .sw{width:18px;height:18px;border-radius:5px;border:1px solid rgba(255,255,255,.15)}
+    .folder .sw{width:18px;height:18px;border-radius:5px;border:1px solid rgba(0,0,0,.12)}
+    .folder .go{font-size:1.5rem;color:#c2cadb;line-height:1}
+    .folder:hover .go{color:#5b6580}
+
+    @media(max-width:620px){
+      .folder .card{margin-left:56px;padding:1.15rem 1.1rem 1.15rem 2.2rem;min-height:110px;
+                    gap:.85rem;clip-path:polygon(46px 0, 100% 0, 100% 100%, 0 100%, 0 46px)}
+      .folder .mark{width:34px;height:34px}
+      .folder .mark svg{width:30px;height:30px}
+      .folder .nm{font-size:.95rem;letter-spacing:.03em}
+      .folder .sub{font-size:.78rem}
+      .folder .sws{display:none}
+    }
 
     /* --- Niveau 2 : projets d'une agence --- */
     .crumb{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#8b96ad;margin-bottom:1.5rem;flex-wrap:wrap}
@@ -184,21 +214,32 @@
 
       grid.innerHTML = '';
       list.forEach(function(A){
-        var n = projetsDe(A).length;
         var logo = (window.brandLogoHTML && window.brandLogoHTML(A)) || A.name;
         /* brandLogoHTML renvoie <svg>…</svg>NOM : on isole le svg pour maitriser la typo */
         var svg = (logo.match(/<svg[\s\S]*?<\/svg>/) || [''])[0];
 
+        var projets = projetsDe(A);
+        var n = projets.length;
+
         var b = document.createElement('button');
         b.className = 'folder';
+        /* Le degrade navy -> accent est le fond de la bande ; la carte blanche
+           le recouvre sauf a gauche et dans l'encoche. */
+        b.style.background = 'linear-gradient(120deg,' + A.navy + ' 0%,' + A.accent + ' 100%)';
+        b.setAttribute('aria-label', 'Ouvrir ' + A.name);
         b.innerHTML =
-          '<div class="tab" style="background:'+A.accent+'"></div>' +
-          '<div class="top" style="color:#fff">'+svg+'<span>'+A.name+'</span></div>' +
-          '<div class="meta">' +
-            '<span class="n">'+n+' projet'+(n>1?'s':'')+'</span>' +
-            '<span class="sws">' +
-              '<span class="sw" style="background:'+A.navy+'"></span>' +
-              '<span class="sw" style="background:'+A.accent+'"></span>' +
+          '<div class="card">' +
+            '<span class="mark" style="color:'+A.navy+'">'+svg+'</span>' +
+            '<span class="txt">' +
+              '<span class="nm">'+A.name+'</span>' +
+              '<span class="sub">'+n+' projet'+(n>1?'s':'')+' \u00b7 '+projets[0].name+'</span>' +
+            '</span>' +
+            '<span class="side">' +
+              '<span class="sws">' +
+                '<span class="sw" style="background:'+A.navy+'"></span>' +
+                '<span class="sw" style="background:'+A.accent+'"></span>' +
+              '</span>' +
+              '<span class="go">&rsaquo;</span>' +
             '</span>' +
           '</div>';
         b.addEventListener('click', function(){ ouvrir(A.id); });
