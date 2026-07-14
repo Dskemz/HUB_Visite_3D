@@ -117,7 +117,7 @@
           <input id="f-id"     placeholder="id" style="flex:1;">
           <input id="f-label"  placeholder="Nom affiché" style="flex:1;">
         </div>
-        <input id="f-room"   placeholder="roomId (optionnel)" style="margin-bottom:.5rem;">
+        <select id="f-room" style="margin-bottom:.5rem;"><option value="">— pièce (optionnel) —</option></select>
         <input id="f-photos" placeholder="photos (Salon_01.png, Salon_02.png)" style="margin-bottom:.7rem;">
         <div style="display:flex;gap:.4rem;">
           <button class="btn" id="b-voir" onclick="voirPov()" style="flex:1;display:none;">👁️ Voir</button>
@@ -138,6 +138,10 @@
         <p class="hint">Passe le viewer en <b>vue de dessus</b>.
           Renomme, change la couleur ou la taille — l'effet est immédiat sur le plan.<br><br>
           <b>Placer</b> : clique le bouton, puis clique sur le plan à l'endroit voulu.</p>
+        <div style="display:flex;gap:.4rem;margin-bottom:.8rem;">
+          <input id="f-newpiece" placeholder="Nom de la pièce (ex: Bureau)" style="flex:1;margin:0;">
+          <button class="btn" id="b-addpiece" onclick="ajouterPiece()" style="flex:0 0 auto;">➕ Ajouter</button>
+        </div>
         <div class="list" id="piece-list"></div>
       </div>
     </div>
@@ -404,6 +408,32 @@ const PONT = `
                                  else       delete propertyData.roomLabels[i].fontSize;
                                  hudUpdate(); },
       armerPlacement: function(i){ placeIdx = i; majCurseur(); },
+
+      /* Cree une piece (libelle) et la place au centre du modele.
+         L'utilisateur peut ensuite la deplacer avec le bouton Placer. */
+      ajouterPiece: function(nom){
+        assurerPieces();
+        const yF = modelBounds ? modelBounds.min.y : 0;
+        const cx = modelBounds ? (modelBounds.min.x + modelBounds.max.x) / 2 : 0;
+        const cz = modelBounds ? (modelBounds.min.z + modelBounds.max.z) / 2 : 0;
+        propertyData.roomLabels.push({
+          id: 'piece-' + (propertyData.roomLabels.length + 1),
+          name: nom || 'NOUVELLE PIECE',
+          position: [ Math.round(cx*100)/100, yF, Math.round(cz*100)/100 ]
+        });
+        hudUpdate();
+        return propertyData.roomLabels.length - 1;
+      },
+
+      supprimerPiece: function(i){
+        assurerPieces();
+        if (i < 0 || i >= propertyData.roomLabels.length) return;
+        propertyData.roomLabels.splice(i, 1);
+        if (placeIdx === i) placeIdx = -1;
+        majCurseur();
+        hudUpdate();
+      },
+
       enVueDeDessus:  function(){ return !!(typeof hudVisible !== 'undefined' && hudVisible); },
 
       manifest: function(){ return JSON.stringify(propertyData, null, 2); },
@@ -645,6 +675,24 @@ function validerPov(){
   }
 }
 
+function ajouterPiece(){
+  if (!ed) return;
+  const champ = document.getElementById('f-newpiece');
+  const nom = (champ.value || '').trim();
+  if (!nom){ flash('Donne un nom à la pièce'); champ.focus(); return; }
+  const i = ed.ajouterPiece(nom);
+  champ.value = '';
+  refresh();
+  flash('➕ « ' + nom +' » ajoutée — clique 📍 Placer pour la poser');
+}
+
+function supprimerPiece(i, nom){
+  if (!ed) return;
+  ed.supprimerPiece(i);
+  refresh();
+  flash('🗑️ « ' + nom + ' » supprimée');
+}
+
 function refresh(){
   if (!ed) return;
 
@@ -706,10 +754,26 @@ function refresh(){
     cl.appendChild(row);
   });
 
+  const listePieces = ed.pieces();
+
+  // Menu deroulant roomId de l'onglet POV, alimente par les pieces
+  const selRoom = document.getElementById('f-room');
+  if (selRoom){
+    const garde = selRoom.value;
+    selRoom.innerHTML = '<option value="">— pièce (optionnel) —</option>';
+    listePieces.forEach(function(p){
+      const o = document.createElement('option');
+      o.value = p.name;
+      o.textContent = p.name;
+      selRoom.appendChild(o);
+    });
+    selRoom.value = garde;   // conserve la selection si la piece existe toujours
+  }
+
   const ql = document.getElementById('piece-list');
   if (ql){
     ql.innerHTML = '';
-    ed.pieces().forEach(function(p){
+    listePieces.forEach(function(p){
       const row = document.createElement('div');
       row.className = 'row';
       row.style.flexWrap = 'wrap';
@@ -749,6 +813,13 @@ function refresh(){
         flash('Clique sur le plan pour poser « ' + p.name + ' »');
       };
       row.appendChild(plc);
+
+      const sup = document.createElement('button');
+      sup.textContent = '✕';
+      sup.title = 'Supprimer cette pièce';
+      sup.style.cssText = 'margin-left:auto;';
+      sup.onclick = function(){ supprimerPiece(p.i, p.name); };
+      row.appendChild(sup);
 
       ql.appendChild(row);
     });
