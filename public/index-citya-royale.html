@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appartement 2 pieces 42,73 m2 &mdash; Citya Royale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#1B1D56;--accent:#1C5DEB;--accent-dark:#1447B8;
+      --navy-rgb:27,29,86;--accent-rgb:28,93,235}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1a1d26;background:#fff;
+     line-height:1.55;overflow-x:hidden}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+button{font:inherit;cursor:pointer;border:none;background:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 1.25rem;width:100%}
+/* Un enfant flex/grid ne retrecit pas sous son contenu sans ceci -> debordement. */
+.row>*,.cols>*,.grid>*{min-width:0}
+
+
+.v3d{display:inline-flex;align-items:center;gap:.5rem;font-weight:700;font-size:.82rem;
+     padding:.6rem 1rem;border-radius:999px;background:var(--accent);color:#fff;
+     letter-spacing:.02em;white-space:nowrap;transition:filter .15s}
+.v3d:hover{filter:brightness(1.08)}
+.v3d-dot{width:8px;height:8px;border-radius:50%;background:#fff;
+         box-shadow:0 0 0 3px rgba(255,255,255,.35);flex:0 0 auto}
+.v3d-cta{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+         flex-wrap:wrap;padding:1.15rem 1.35rem;border-radius:14px;
+         background:var(--navy);color:#fff;margin:1.5rem 0}
+.v3d-cta b{display:block;font-size:1rem}
+.v3d-cta span{font-size:.85rem;opacity:.72}
+.v3d-cta a{background:var(--accent);color:#fff;padding:.72rem 1.25rem;border-radius:10px;
+           font-weight:700;font-size:.88rem;white-space:nowrap}
+
+
+.dpe{display:flex;gap:2.5rem;flex-wrap:wrap}
+.dpe-b{flex:1 1 220px;min-width:0}
+.dpe-t{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#8a90a0;
+       font-weight:700;margin-bottom:.6rem}
+.dpe-s{display:flex;gap:3px;flex-wrap:wrap}
+.dpe-s i{width:26px;height:26px;border-radius:4px;display:flex;align-items:center;
+         justify-content:center;font-style:normal;font-size:.7rem;font-weight:800;color:#fff}
+.dpe-s i.on{outline:2px solid #1a1d26;outline-offset:2px;transform:scale(1.12)}
+
+
+.ph{background:linear-gradient(135deg,#dfe3ea 0%,#c8cdd8 55%,#b6bcc9 100%);
+    position:relative;overflow:hidden}
+.ph::after{content:attr(data-l);position:absolute;left:50%;top:50%;
+           transform:translate(-50%,-50%);font-size:.72rem;font-weight:700;
+           letter-spacing:.12em;text-transform:uppercase;color:rgba(0,0,0,.28)}
+
+
+body{background:#fafbfd}
+.util{display:flex;justify-content:flex-end;gap:1.3rem;padding:.55rem 0;font-size:.72rem;
+      color:#5a6480;flex-wrap:wrap}
+header{background:#fff;border-bottom:1px solid #e6eaf2;position:sticky;top:0;z-index:20}
+.hrow{display:flex;align-items:center;gap:1.5rem;min-height:54px}
+.logo{display:flex;align-items:center;gap:.45rem;color:var(--navy);font-weight:800;
+      font-size:.82rem;letter-spacing:.05em;white-space:nowrap;flex:0 0 auto}
+.logo svg{width:26px;height:26px}
+header nav{display:flex;gap:1.2rem;flex-wrap:nowrap;overflow-x:auto;min-width:0;
+           scrollbar-width:none}
+header nav::-webkit-scrollbar{display:none}
+header nav a{font-size:.8rem;color:#3c4763;font-weight:500;white-space:nowrap}
+header nav a:hover{color:var(--accent)}
+.crumb{font-size:.7rem;color:#8a94ab;padding:.9rem 0}
+.back{display:inline-flex;align-items:center;gap:.4rem;border:1px solid #d5dce9;
+      border-radius:999px;padding:.5rem 1rem;font-size:.78rem;color:#3c4763;margin-bottom:1.3rem}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:start}
+.shot{aspect-ratio:4/3;border-radius:8px}
+h1{font-size:1.45rem;font-weight:700;color:#1b2340;margin-bottom:.5rem}
+.loc{font-size:.85rem;color:#5a6480;margin-bottom:.9rem}
+.price{font-size:1.5rem;font-weight:800;color:#1b2340}
+.price small{font-size:.8rem;font-weight:400;color:#5a6480}
+.plist{font-size:.8rem;color:#5a6480;line-height:1.9;margin:.8rem 0 1.3rem}
+.agbox{display:flex;gap:1rem;align-items:center;margin-bottom:1.2rem}
+.agmark{background:var(--navy);color:#fff;border-radius:6px;padding:.9rem;text-align:center;
+        font-size:.6rem;font-weight:800;letter-spacing:.06em;line-height:1.5;flex:0 0 auto}
+.agmark svg{width:22px;height:22px;display:block;margin:0 auto .25rem}
+.agadr{font-size:.82rem;color:#3c4763;font-style:italic;line-height:1.6}
+.acts{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem}
+.b1{border:1px solid #d5dce9;color:#3c4763;padding:.7rem 1.1rem;border-radius:8px;
+    font-size:.8rem;font-weight:600}
+.b2{background:var(--accent);color:#fff;padding:.7rem 1.1rem;border-radius:8px;
+    font-size:.8rem;font-weight:600}
+h2{text-align:center;font-size:1.05rem;font-weight:700;color:#1b2340;margin:2.8rem 0 1.4rem}
+.chars{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.9rem 1.5rem}
+.chars div{font-size:.82rem;color:#3c4763}
+/* Encart description creme — signature visuelle de la fiche Citya */
+.descbox{background:#f7e3c4;border-radius:10px;padding:1.5rem;font-size:.86rem;
+         color:#4a4030;line-height:1.75}
+.descbox b{display:block;margin-bottom:.6rem;color:#2f2a1e}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:start;margin-top:1rem}
+/* Bandeau bleu en biais, exactement comme sur le vrai site */
+.simil{position:relative;margin:3.5rem 0 0;padding:3.5rem 0}
+.simil::before{content:"";position:absolute;left:0;right:0;top:2.5rem;bottom:0;
+               background:var(--accent);
+               clip-path:polygon(0 6%,100% 0,100% 94%,0 100%);z-index:0}
+.simil .wrap{position:relative;z-index:1}
+.simil h2{color:#1b2340;margin-top:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem}
+.c{background:#fff;border-radius:10px;overflow:hidden}
+.c .ph{aspect-ratio:4/3}
+.c .cb{padding:.8rem}
+.c .cp{font-size:.85rem;font-weight:800;color:#1b2340}
+.c .cd{font-size:.72rem;color:#8a94ab}
+footer{background:var(--navy);color:rgba(255,255,255,.65);padding:2.5rem 0;margin-top:3rem;
+       text-align:center;font-size:.76rem;line-height:2.2}
+@media(max-width:900px){.cols,.two{grid-template-columns:1fr;gap:1.6rem}}
+
+</style>
+</head>
+<body>
+
+<div class="wrap"><div class="util"><span>Agences</span><span>Recrutement</span>
+  <span>Favoris</span><span>Contacter</span><span>MyCitya</span></div></div>
+<header><div class="wrap"><div class="hrow">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l8 3v7c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V5l8-3z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11h8M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>CITYA ROYALE</div>
+  <nav><a href="#">Achat</a><a href="#">Location</a><a href="#">Investissement</a><a href="#">Vente</a><a href="#">Estimation</a><a href="#">Gestion</a><a href="#">Syndic</a></nav>
+</div></div></header>
+
+<div class="wrap">
+  <div class="crumb">Agence immobiliere Citya &rsaquo; Rambouillet (78120) &rsaquo; Appartement</div>
+  <a class="back" href="#">&lsaquo; Retour aux resultats</a>
+
+  <div class="cols">
+    <div><div class="ph" data-l="Sejour" style="aspect-ratio:4/3;border-radius:8px"></div>
+      <div style="margin-top:.8rem"><a class="v3d" href="viewer.html?agency=citya-royale&property=demo-rambouillet"><span class="v3d-dot"></span>Visite virtuelle 3D</a></div></div>
+    <div>
+      <h1>Appartement 2 pieces 42,73 m2</h1>
+      <div class="loc">&#9679; Rambouillet (78120)</div>
+      <div class="price">129 500 &euro;</div>
+      <div class="plist">Depot de garantie : 720 &euro;<br>
+        Honoraires charge acquereur : 8 000 &euro;<br>Copropriete &mdash; faibles charges</div>
+      <div class="agbox">
+        <div class="agmark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l8 3v7c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V5l8-3z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11h8M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>CITYA<br>ROYALE</div>
+        <div class="agadr">23 rue du General de Gaulle,<br>78120 Rambouillet</div>
+      </div>
+      <div class="acts">
+        <a class="b1" href="#">Afficher le numero</a>
+        <a class="b2" href="#">Nous contacter</a>
+      </div>
+      <div class="v3d-cta">
+  <div><b>Visite virtuelle 3D</b><span>Faites le tour du bien sans vous deplacer</span></div>
+  <a href="viewer.html?agency=citya-royale&property=demo-rambouillet">Lancer la visite &rarr;</a>
+</div>
+    </div>
+  </div>
+
+  <h2>Caracteristiques</h2>
+  <div class="two">
+    <div class="chars">
+      <div>REF. 108955</div><div>Appartement</div><div>Habitable</div>
+      <div>Imm. de 2 etages</div><div>Sans ascenseur</div><div>2e etage</div>
+      <div>1 salle de bain</div><div>Chauffage individuel</div><div>Centre-ville</div>
+    </div>
+    <div class="descbox"><b>Description</b>Hyper centre, rue du General-de-Gaulle. Chaleureux 2 pieces au 2e etage, appartement sur cour, au calme, comprenant une grande cuisine, un sejour, une chambre et une salle de douche avec WC. Lot en copropriete, faibles charges. Aucune procedure en cours au sein de la copropriete.</div>
+  </div>
+
+  <h2>Bilan energetique</h2>
+  <div class="dpe">
+  <div class="dpe-b"><div class="dpe-t">Diagnostic de performance energetique</div>
+    <div class="dpe-s"><i class="" style="background:#3aa757">A</i><i class="" style="background:#5cb85c">B</i><i class="on" style="background:#a9d148">C</i><i class="" style="background:#f5d33f">D</i><i class="" style="background:#f0a92e">E</i><i class="" style="background:#e8722c">F</i><i class="" style="background:#e0402e">G</i></div></div>
+  <div class="dpe-b"><div class="dpe-t">Emission de gaz a effet de serre</div>
+    <div class="dpe-s"><i class="on" style="background:#d9e8f5">A</i><i class="" style="background:#b3d1ea">B</i><i class="" style="background:#8cb8de">C</i><i class="" style="background:#6699d1">D</i><i class="" style="background:#4b7fc0">E</i><i class="" style="background:#33639e">F</i><i class="" style="background:#1e4272">G</i></div></div>
+</div>
+</div>
+
+<div class="simil"><div class="wrap">
+  <h2>Nos biens similaires</h2>
+  <div class="cards">
+    <div class="c"><div class="ph" data-l="Bien" style=""></div><div class="cb"><div class="cp">560 &euro;</div><div class="cd">Rambouillet (78120)</div></div></div><div class="c"><div class="ph" data-l="Bien" style=""></div><div class="cb"><div class="cp">845 &euro;</div><div class="cd">Rambouillet (78120)</div></div></div><div class="c"><div class="ph" data-l="Bien" style=""></div><div class="cb"><div class="cp">655 &euro;</div><div class="cd">Rambouillet (78120)</div></div></div><div class="c"><div class="ph" data-l="Bien" style=""></div><div class="cb"><div class="cp">783 &euro;</div><div class="cd">Rambouillet (78120)</div></div></div>
+  </div>
+</div></div>
+
+<footer><div class="wrap">
+  <div>Citya Royale Immobilier - Rambouillet &nbsp;&middot;&nbsp; 01 34 85 44 00</div>
+  <div>Plan du site &nbsp;&middot;&nbsp; Mentions legales &nbsp;&middot;&nbsp; CGU
+    &nbsp;&middot;&nbsp; Donnees personnelles</div>
+</div></footer>
+
+</body>
+</html>

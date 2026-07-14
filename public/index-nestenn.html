@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appartement 2 pieces 42,73 m2 &mdash; Nestenn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#204858;--accent:#00A8B8;--accent-dark:#00808C;
+      --navy-rgb:32,72,88;--accent-rgb:0,168,184}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1a1d26;background:#fff;
+     line-height:1.55;overflow-x:hidden}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+button{font:inherit;cursor:pointer;border:none;background:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 1.25rem;width:100%}
+/* Un enfant flex/grid ne retrecit pas sous son contenu sans ceci -> debordement. */
+.row>*,.cols>*,.grid>*{min-width:0}
+
+
+.v3d{display:inline-flex;align-items:center;gap:.5rem;font-weight:700;font-size:.82rem;
+     padding:.6rem 1rem;border-radius:999px;background:var(--accent);color:#fff;
+     letter-spacing:.02em;white-space:nowrap;transition:filter .15s}
+.v3d:hover{filter:brightness(1.08)}
+.v3d-dot{width:8px;height:8px;border-radius:50%;background:#fff;
+         box-shadow:0 0 0 3px rgba(255,255,255,.35);flex:0 0 auto}
+.v3d-cta{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+         flex-wrap:wrap;padding:1.15rem 1.35rem;border-radius:14px;
+         background:var(--navy);color:#fff;margin:1.5rem 0}
+.v3d-cta b{display:block;font-size:1rem}
+.v3d-cta span{font-size:.85rem;opacity:.72}
+.v3d-cta a{background:var(--accent);color:#fff;padding:.72rem 1.25rem;border-radius:10px;
+           font-weight:700;font-size:.88rem;white-space:nowrap}
+
+
+.dpe{display:flex;gap:2.5rem;flex-wrap:wrap}
+.dpe-b{flex:1 1 220px;min-width:0}
+.dpe-t{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#8a90a0;
+       font-weight:700;margin-bottom:.6rem}
+.dpe-s{display:flex;gap:3px;flex-wrap:wrap}
+.dpe-s i{width:26px;height:26px;border-radius:4px;display:flex;align-items:center;
+         justify-content:center;font-style:normal;font-size:.7rem;font-weight:800;color:#fff}
+.dpe-s i.on{outline:2px solid #1a1d26;outline-offset:2px;transform:scale(1.12)}
+
+
+.ph{background:linear-gradient(135deg,#dfe3ea 0%,#c8cdd8 55%,#b6bcc9 100%);
+    position:relative;overflow:hidden}
+.ph::after{content:attr(data-l);position:absolute;left:50%;top:50%;
+           transform:translate(-50%,-50%);font-size:.72rem;font-weight:700;
+           letter-spacing:.12em;text-transform:uppercase;color:rgba(0,0,0,.28)}
+
+
+body{background:#faf6f3}
+.strip{background:var(--navy);color:#fff;font-size:.68rem;font-weight:700;padding:.4rem 0}
+header{background:#fff}
+.hrow{display:flex;align-items:center;gap:1rem;min-height:60px;flex-wrap:nowrap}
+.logo{display:flex;align-items:center;gap:.45rem;color:var(--navy);font-weight:800;
+      font-size:1rem;letter-spacing:.05em;white-space:nowrap;flex:0 0 auto}
+.logo svg{width:24px;height:24px}
+.logo small{display:block;font-size:.44rem;letter-spacing:.09em;font-weight:600;
+            color:#8a9aa4;margin-top:1px}
+header nav{display:flex;gap:1.2rem;margin-left:1.5rem;flex-wrap:nowrap;overflow-x:auto;
+           scrollbar-width:none;min-width:0}
+header nav::-webkit-scrollbar{display:none}
+header nav a{font-size:.8rem;color:#3e5866;font-weight:600;white-space:nowrap}
+.hacts{margin-left:auto;display:flex;gap:.5rem;flex:0 0 auto}
+.hacts a{border-radius:999px;padding:.55rem 1rem;font-size:.78rem;font-weight:700;
+         white-space:nowrap}
+.hacts .g{border:1.5px solid var(--accent);color:var(--accent)}
+.hacts .f{background:var(--accent);color:#fff}
+.burger{display:none;font-size:1.35rem;color:var(--navy);line-height:1;flex:0 0 auto}
+.crumb{display:flex;justify-content:space-between;gap:1rem;padding:.7rem 0;
+       font-size:.72rem;color:#7a8f9a;flex-wrap:wrap}
+.cols{display:grid;grid-template-columns:1fr 480px;gap:1.5rem;align-items:start}
+.card{background:#fff;border-radius:14px;padding:1.6rem;margin-bottom:1.2rem}
+.card h3{font-size:1rem;font-weight:800;color:var(--navy);margin-bottom:1.1rem}
+.hero .ph{aspect-ratio:16/10;border-radius:14px}
+.loc{font-size:.85rem;color:#7a8f9a}
+.kind{font-size:1.05rem;font-weight:800;color:var(--accent);margin:.2rem 0 .4rem}
+.price{font-size:2rem;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+.price small{font-size:.78rem;font-weight:600;color:#7a8f9a}
+.rooms{display:flex;gap:2rem;margin:1rem 0 1.2rem}
+.rooms b{display:block;font-size:1.3rem;color:var(--accent);font-weight:800;line-height:1}
+.rooms span{font-size:.74rem;color:#7a8f9a}
+h1{font-size:.95rem;font-weight:800;color:var(--navy);text-transform:uppercase;
+   letter-spacing:.02em;margin-bottom:.6rem}
+.desc{font-size:.85rem;color:#5b7280;line-height:1.8}
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:.65rem 1.5rem;font-size:.84rem;color:#3e5866}
+input,textarea{width:100%;background:#f4f1ee;border:none;border-radius:999px;
+               padding:.72rem 1rem;font-size:.82rem;margin-bottom:.6rem;font-family:inherit}
+textarea{border-radius:14px;resize:vertical}
+.send{background:var(--accent);color:#fff;border-radius:999px;padding:.7rem 1.6rem;
+      font-weight:700;font-size:.84rem}
+/* Encart simulation turquoise plein */
+.simres{background:var(--accent);color:#fff;border-radius:14px;padding:1.6rem;text-align:center}
+.simres .m{font-size:1.9rem;font-weight:800;line-height:1.1}
+.simres .l{font-size:.78rem;opacity:.9}
+.simres .d{font-size:.72rem;opacity:.85;margin-top:.6rem;line-height:1.7}
+.sim2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;align-items:center}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.2rem}
+.c{background:#fff;border-radius:14px;overflow:hidden}
+.c .ph{aspect-ratio:4/3}
+.c .cb{padding:.9rem}
+.c .cl{font-size:.7rem;color:#7a8f9a}
+.c .ck{font-size:.85rem;font-weight:800;color:var(--accent)}
+.c .cp{text-align:right;font-weight:800;color:var(--navy)}
+footer{background:var(--navy);color:rgba(255,255,255,.7);padding:2.5rem 0;margin-top:2rem;
+       font-size:.8rem;line-height:2.1;text-align:center}
+/* Sous 980px le vrai site bascule sur un burger : sans ca, la nav pousse le
+   CTA « Contacter l'agence » hors de l'ecran. */
+@media(max-width:980px){
+  .cols{grid-template-columns:1fr}
+  header nav{display:none}
+  .burger{display:block}
+}
+@media(max-width:640px){
+  .sim2{grid-template-columns:1fr}
+  .feats{grid-template-columns:1fr}
+  /* Le vrai site mobile n'affiche pas le gros CTA : logo + burger, point.
+     Le laisser force le burger hors de l'ecran (margin-left:auto avale tout). */
+  .hacts{display:none}
+  .burger{margin-left:auto}
+}
+
+</style>
+</head>
+<body>
+
+<div class="strip"><div class="wrap">Agence Nestenn Rambouillet &nbsp;02 37 83 83 83</div></div>
+<header><div class="wrap"><div class="hrow">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V5l16 14V4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>NESTENN<small>GROUPE D'AGENCES IMMOBILIERES</small></span></div>
+  <nav><a href="#">Acheter</a><a href="#">Louer</a><a href="#">Vendre</a><a href="#">Estimer</a><a href="#">Nos agences</a></nav>
+  <div class="hacts"><a class="g" href="#">02 37 83 83 83</a>
+    <a class="f" href="#">Contacter l'agence</a></div>
+  <div class="burger">&#9776;</div>
+</div></div></header>
+
+<div class="wrap">
+  <div class="crumb"><span>&lsaquo; Retour &nbsp;&middot;&nbsp; Partager</span>
+    <span>N&deg; Mandat : 12113 / REF. 108955</span></div>
+
+  <div class="cols">
+    <div>
+      <div class="hero"><div class="ph" data-l="Sejour" style="aspect-ratio:16/10;border-radius:14px"></div></div>
+      <div style="margin:1rem 0"><a class="v3d" href="viewer.html?agency=nestenn&property=demo-rambouillet"><span class="v3d-dot"></span>Visite virtuelle 3D</a></div>
+
+      <div class="card">
+        <div class="loc">78120 RAMBOUILLET</div>
+        <div class="kind">Appartement a vendre</div>
+        <div class="price">129 500 &euro; <small>a partir de 571 &euro;/mois</small></div>
+        <div class="rooms">
+          <div><b>2</b><span>pieces</span></div>
+          <div><b>1</b><span>chambre</span></div>
+          <div><b>42,73</b><span>m2</span></div>
+        </div>
+        <h1>RAMBOUILLET HYPER CENTRE &mdash; APPARTEMENT 2 PIECES AU CALME</h1>
+        <p class="desc">Hyper centre, rue du General-de-Gaulle. Chaleureux 2 pieces au 2e etage, appartement sur cour, au calme, comprenant une grande cuisine, un sejour, une chambre et une salle de douche avec WC. Lot en copropriete, faibles charges. Aucune procedure en cours au sein de la copropriete.</p>
+      </div>
+
+      <div class="card"><h3>Caracteristiques et informations</h3>
+        <div class="feats">
+          <div>2 pieces</div><div>1 chambre</div>
+          <div>42,73 m2 habitables</div><div>1 salle d'eau</div>
+          <div>2e etage</div><div>Chauffage individuel</div>
+        </div>
+      </div>
+
+      <div class="card"><h3>Energie et diagnostics</h3><div class="dpe">
+  <div class="dpe-b"><div class="dpe-t">Diagnostic de performance energetique</div>
+    <div class="dpe-s"><i class="" style="background:#3aa757">A</i><i class="" style="background:#5cb85c">B</i><i class="on" style="background:#a9d148">C</i><i class="" style="background:#f5d33f">D</i><i class="" style="background:#f0a92e">E</i><i class="" style="background:#e8722c">F</i><i class="" style="background:#e0402e">G</i></div></div>
+  <div class="dpe-b"><div class="dpe-t">Emission de gaz a effet de serre</div>
+    <div class="dpe-s"><i class="on" style="background:#d9e8f5">A</i><i class="" style="background:#b3d1ea">B</i><i class="" style="background:#8cb8de">C</i><i class="" style="background:#6699d1">D</i><i class="" style="background:#4b7fc0">E</i><i class="" style="background:#33639e">F</i><i class="" style="background:#1e4272">G</i></div></div>
+</div></div>
+
+      <div class="card"><h3>Localisation</h3>
+        <div class="ph" data-l="Plan" style="aspect-ratio:16/9;border-radius:10px"></div></div>
+
+      <div class="card"><h3>Je simule mon pret</h3>
+        <div class="sim2">
+          <div>
+            <input value="129 500 &euro;"><input value="Apport : 25 900 &euro;">
+            <input value="Duree : 25 ans">
+          </div>
+          <div class="simres"><div class="m">571 &euro;</div><div class="l">par mois</div>
+            <div class="d">Dont assurance : 32 &euro;/mois<br>Taux moyen constate 3,54 %</div></div>
+        </div>
+      </div>
+      <div class="v3d-cta">
+  <div><b>Visite virtuelle 3D</b><span>Faites le tour du bien sans vous deplacer</span></div>
+  <a href="viewer.html?agency=nestenn&property=demo-rambouillet">Lancer la visite &rarr;</a>
+</div>
+    </div>
+
+    <aside>
+      <div class="card">
+        <h3>Agence Nestenn Rambouillet</h3>
+        <div class="loc" style="margin-bottom:.8rem">&#9679; 23 rue du General de Gaulle, 78120 Rambouillet</div>
+        <div style="font-size:.82rem;font-weight:700;color:var(--navy);margin-bottom:1rem">
+          Vous souhaitez faire une visite ou poser une question ? Contactez-nous !</div>
+        <input placeholder="Nom*"><input placeholder="Prenom*">
+        <input placeholder="Telephone"><input placeholder="Email*">
+        <textarea rows="4" placeholder="Message"></textarea>
+        <button class="send">Envoyer</button>
+      </div>
+    </aside>
+  </div>
+
+  <h3 style="font-size:1rem;font-weight:800;color:var(--navy);margin:1.5rem 0 1rem">
+    Autres biens sur RAMBOUILLET et alentours</h3>
+  <div class="cards">
+    <div class="c"><div class="ph" data-l="Bien" style=""></div><div class="cb"><div class="cl">78120 RAMBOUILLET</div><div class="ck">Maison a vendre</div><div class="cp">189 600 &euro;</div></div></div><div class="c"><div class="ph" data-l="Bien" style=""></div><div class="cb"><div class="cl">78120 RAMBOUILLET</div><div class="ck">Maison a vendre</div><div class="cp">244 200 &euro;</div></div></div><div class="c"><div class="ph" data-l="Bien" style=""></div><div class="cb"><div class="cl">78120 RAMBOUILLET</div><div class="ck">Maison a vendre</div><div class="cp">270 200 &euro;</div></div></div>
+  </div>
+</div>
+
+<footer><div class="wrap">
+  <div>Agence Nestenn Rambouillet &nbsp;&middot;&nbsp; 02 37 83 83 83</div>
+  <div>Nos engagements &nbsp;&middot;&nbsp; Bareme d'honoraires &nbsp;&middot;&nbsp;
+       Mentions legales &nbsp;&middot;&nbsp; Confidentialite</div>
+</div></footer>
+
+</body>
+</html>

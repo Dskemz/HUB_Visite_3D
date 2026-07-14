@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appartement 2 pieces 42,73 m2 &mdash; The Door Man</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#00305F;--accent:#B0913F;--accent-dark:#8C722F;
+      --navy-rgb:0,48,95;--accent-rgb:176,145,63}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1a1d26;background:#fff;
+     line-height:1.55;overflow-x:hidden}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+button{font:inherit;cursor:pointer;border:none;background:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 1.25rem;width:100%}
+/* Un enfant flex/grid ne retrecit pas sous son contenu sans ceci -> debordement. */
+.row>*,.cols>*,.grid>*{min-width:0}
+
+
+.v3d{display:inline-flex;align-items:center;gap:.5rem;font-weight:700;font-size:.82rem;
+     padding:.6rem 1rem;border-radius:999px;background:var(--accent);color:#fff;
+     letter-spacing:.02em;white-space:nowrap;transition:filter .15s}
+.v3d:hover{filter:brightness(1.08)}
+.v3d-dot{width:8px;height:8px;border-radius:50%;background:#fff;
+         box-shadow:0 0 0 3px rgba(255,255,255,.35);flex:0 0 auto}
+.v3d-cta{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+         flex-wrap:wrap;padding:1.15rem 1.35rem;border-radius:14px;
+         background:var(--navy);color:#fff;margin:1.5rem 0}
+.v3d-cta b{display:block;font-size:1rem}
+.v3d-cta span{font-size:.85rem;opacity:.72}
+.v3d-cta a{background:var(--accent);color:#fff;padding:.72rem 1.25rem;border-radius:10px;
+           font-weight:700;font-size:.88rem;white-space:nowrap}
+
+
+.dpe{display:flex;gap:2.5rem;flex-wrap:wrap}
+.dpe-b{flex:1 1 220px;min-width:0}
+.dpe-t{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#8a90a0;
+       font-weight:700;margin-bottom:.6rem}
+.dpe-s{display:flex;gap:3px;flex-wrap:wrap}
+.dpe-s i{width:26px;height:26px;border-radius:4px;display:flex;align-items:center;
+         justify-content:center;font-style:normal;font-size:.7rem;font-weight:800;color:#fff}
+.dpe-s i.on{outline:2px solid #1a1d26;outline-offset:2px;transform:scale(1.12)}
+
+
+.ph{background:linear-gradient(135deg,#dfe3ea 0%,#c8cdd8 55%,#b6bcc9 100%);
+    position:relative;overflow:hidden}
+.ph::after{content:attr(data-l);position:absolute;left:50%;top:50%;
+           transform:translate(-50%,-50%);font-size:.72rem;font-weight:700;
+           letter-spacing:.12em;text-transform:uppercase;color:rgba(0,0,0,.28)}
+
+
+body{background:#fff;color:#2b3440}
+.top{background:var(--navy);color:#fff;padding:1.5rem 0 1.2rem}
+.trow{display:flex;justify-content:space-between;align-items:flex-end;gap:1.5rem;flex-wrap:wrap}
+.top .k{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+.top h1{font-size:1.35rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+        line-height:1.35;margin-top:.2rem}
+.top .p{font-size:1.5rem;font-weight:700;white-space:nowrap}
+.chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+.chip{background:rgba(255,255,255,.13);border-radius:3px;padding:.35rem .7rem;font-size:.7rem;
+      white-space:nowrap}
+.mos{display:grid;grid-template-columns:2fr 1fr;gap:6px;margin-top:1.2rem}
+.mos .col{display:grid;grid-template-rows:1fr 1fr;gap:6px}
+.mos .ph{aspect-ratio:auto;min-height:120px}
+.mos>.ph{min-height:250px}
+.allph{display:block;margin:.7rem 0 0 auto;background:var(--accent);color:#fff;
+       padding:.5rem 1rem;font-size:.7rem;font-weight:700;border-radius:3px;width:max-content}
+h2{font-size:.9rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;
+   color:#3d4a5c;margin:3rem 0 1.3rem}
+.two{display:grid;grid-template-columns:1.6fr 1fr;gap:2.5rem;align-items:start}
+.desc{font-size:.84rem;line-height:1.95;color:#5a6674}
+.infobox{background:var(--navy);color:#fff;border-radius:5px;padding:1.3rem;font-size:.78rem;
+         line-height:2}
+.infobox b{color:#fff}
+.card{border:1px solid #e3e8ee;border-radius:6px;padding:1.4rem;text-align:center}
+.card .ph{width:120px;height:120px;border-radius:50%;margin:0 auto 1rem}
+.card .n{font-weight:700;font-size:.92rem}
+.card .r{font-size:.72rem;color:#8a94a2;margin-bottom:1rem}
+.card .ph2{font-size:.82rem;color:var(--navy);font-weight:700;margin-bottom:1rem}
+/* Boutons dores — la couleur d'action de The Door Man */
+.gold{display:block;background:var(--accent);color:#fff;padding:.68rem;font-size:.74rem;
+      font-weight:700;border-radius:3px;margin-bottom:.5rem}
+.gold:hover{background:var(--accent-dark)}
+.gold-o{display:block;border:1px solid var(--accent);color:var(--accent);padding:.68rem;
+        font-size:.74rem;font-weight:700;border-radius:3px;margin-bottom:.5rem}
+.acc{border:1px solid #e3e8ee;border-radius:5px;margin-bottom:.5rem;padding:.9rem 1.1rem;
+     display:flex;justify-content:space-between;font-size:.76rem;letter-spacing:.06em;
+     text-transform:uppercase;color:#5a6674;font-weight:600}
+.acc:first-child{color:var(--navy)}
+.avis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
+.av{border:1px solid #e3e8ee;border-radius:6px;padding:1rem;font-size:.78rem;color:#5a6674;
+    line-height:1.7}
+.av .st{color:#f5b301;font-size:.8rem;margin-top:.5rem}
+/* Bandeau bleu du simulateur */
+.simband{background:#0B5CA8;color:#fff;padding:3rem 0;margin-top:3.5rem;text-align:center}
+.simband h2{color:#fff;font-size:1.15rem;letter-spacing:.06em;margin:0 0 .3rem}
+.simband p{font-size:.78rem;opacity:.85;margin-bottom:1.8rem}
+.simgrid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;text-align:left;
+         max-width:840px;margin:0 auto}
+.simgrid input{width:100%;border:none;border-radius:3px;padding:.6rem;font-size:.8rem;
+               margin-bottom:.6rem}
+.res{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem}
+.res div{background:#1f9d55;border-radius:3px;padding:.8rem;text-align:center;font-size:.75rem}
+.res b{display:block;font-size:1rem}
+footer{background:var(--navy);color:rgba(255,255,255,.65);padding:2.5rem 0;
+       text-align:center;font-size:.78rem;line-height:2.1}
+@media(max-width:900px){.two,.simgrid,.mos{grid-template-columns:1fr}
+  .mos .col{grid-template-rows:auto;grid-template-columns:1fr 1fr}}
+
+</style>
+</head>
+<body>
+
+<div class="top"><div class="wrap">
+  <div class="trow">
+    <div>
+      <div class="k">A vendre</div>
+      <h1>Appartement de 42,73 m2<br>a Rambouillet 78120</h1>
+    </div>
+    <div class="p">129 500 &euro;</div>
+  </div>
+  <div class="chips"><span class="chip">REF. 108955</span>
+    <span class="chip">42,73 m2</span><span class="chip">2 pieces</span>
+    <span class="chip">1 chambre</span><span class="chip">2e etage</span></div>
+</div></div>
+
+<div class="wrap">
+  <div class="mos">
+    <div class="ph" data-l="Sejour" style="min-height:250px"></div>
+    <div class="col"><div class="ph" data-l="Cuisine" style="min-height:120px"></div><div class="ph" data-l="Chambre" style="min-height:120px"></div></div>
+  </div>
+  <a class="allph" href="viewer.html?agency=the-door-man&property=demo-rambouillet">&#9673; Visite virtuelle 3D</a>
+
+  <h2>Presentation</h2>
+  <div class="two">
+    <div>
+      <p class="desc">Hyper centre, rue du General-de-Gaulle. Chaleureux 2 pieces au 2e etage, appartement sur cour, au calme, comprenant une grande cuisine, un sejour, une chambre et une salle de douche avec WC. Lot en copropriete, faibles charges. Aucune procedure en cours au sein de la copropriete.</p>
+      <div style="margin-top:1.5rem"><div class="dpe">
+  <div class="dpe-b"><div class="dpe-t">Diagnostic de performance energetique</div>
+    <div class="dpe-s"><i class="" style="background:#3aa757">A</i><i class="" style="background:#5cb85c">B</i><i class="on" style="background:#a9d148">C</i><i class="" style="background:#f5d33f">D</i><i class="" style="background:#f0a92e">E</i><i class="" style="background:#e8722c">F</i><i class="" style="background:#e0402e">G</i></div></div>
+  <div class="dpe-b"><div class="dpe-t">Emission de gaz a effet de serre</div>
+    <div class="dpe-s"><i class="on" style="background:#d9e8f5">A</i><i class="" style="background:#b3d1ea">B</i><i class="" style="background:#8cb8de">C</i><i class="" style="background:#6699d1">D</i><i class="" style="background:#4b7fc0">E</i><i class="" style="background:#33639e">F</i><i class="" style="background:#1e4272">G</i></div></div>
+</div></div>
+    </div>
+    <div class="infobox">
+      <b>Annee de construction :</b> 1962<br>
+      <b>Construction :</b> immeuble de ville<br>
+      <b>Charges annuelles :</b> 804 &euro;<br>
+      <b>Taxe fonciere :</b> 1 086 &euro;
+    </div>
+  </div>
+
+  <div class="two" style="margin-top:3rem">
+    <div>
+      <h2 style="margin-top:0">Caracteristiques</h2>
+      <div class="acc"><span>L'essentiel</span><span>&and;</span></div>
+      <div class="acc"><span>Cuisine</span><span>&or;</span></div>
+      <div class="acc"><span>Chauffage</span><span>&or;</span></div>
+      <div class="acc"><span>Construction</span><span>&or;</span></div>
+      <div class="acc"><span>Piece(s)</span><span>&or;</span></div>
+      <div class="acc"><span>Equipements</span><span>&or;</span></div>
+    </div>
+    <div class="card">
+      <div class="ph" data-l="" style="width:120px;height:120px;border-radius:50%;margin:0 auto 1rem"></div>
+      <div class="n">Marine Acquedil</div>
+      <div class="r">Conseillere en immobilier</div>
+      <div class="ph2">06 67 15 48 98</div>
+      <a class="gold" href="viewer.html?agency=the-door-man&property=demo-rambouillet">Lancer la visite 3D</a>
+      <a class="gold-o" href="#">Reserver une visite</a>
+      <a class="gold-o" href="#">Contact</a>
+    </div>
+  </div>
+
+  <h2>Ils ont realise leur projet immo avec nous</h2>
+  <div class="avis">
+    <div class="av">Tres bon accompagnement du debut a la fin. Tres professionnel.
+      <div class="st">&#9733;&#9733;&#9733;&#9733;&#9733;</div></div>
+    <div class="av">Une personne tres reactive et rassurante, qui connait bien son metier.
+      <div class="st">&#9733;&#9733;&#9733;&#9733;&#9733;</div></div>
+    <div class="av">Nous a conseilles tout au long de la vente. Tres professionnel.
+      <div class="st">&#9733;&#9733;&#9733;&#9733;&#9733;</div></div>
+  </div>
+</div>
+
+<div class="simband"><div class="wrap">
+  <h2>Calculez vos mensualites en quelques clics</h2>
+  <p>Simple, gratuit et sans engagement.</p>
+  <div class="simgrid">
+    <div>
+      <input value="Prix du bien : 129 500 &euro;">
+      <input value="Apport personnel : 0 &euro;">
+      <input value="Taux d'interet : 3,54 %">
+      <input value="Duree d'emprunt : 25 ans">
+    </div>
+    <div>
+      <div class="ph" data-l="Projet immo" style="aspect-ratio:16/9;border-radius:4px"></div>
+      <div class="res">
+        <div><b>571 &euro;</b>Vos mensualites</div>
+        <div><b>41 800 &euro;</b>Cout total</div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<footer><div class="wrap">
+  <div>The Door Man - Concession Rambouillet &nbsp;&middot;&nbsp; 06 67 15 48 98</div>
+  <div>Nos honoraires &nbsp;&middot;&nbsp; Mentions legales &nbsp;&middot;&nbsp; Confidentialite</div>
+</div></footer>
+
+</body>
+</html>

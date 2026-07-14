@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appartement 2 pieces 42,73 m2 &mdash; JMC Immobilier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#2E3126;--accent:#787F52;--accent-dark:#5D6340;
+      --navy-rgb:46,49,38;--accent-rgb:120,127,82}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1a1d26;background:#fff;
+     line-height:1.55;overflow-x:hidden}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+button{font:inherit;cursor:pointer;border:none;background:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 1.25rem;width:100%}
+/* Un enfant flex/grid ne retrecit pas sous son contenu sans ceci -> debordement. */
+.row>*,.cols>*,.grid>*{min-width:0}
+
+
+.v3d{display:inline-flex;align-items:center;gap:.5rem;font-weight:700;font-size:.82rem;
+     padding:.6rem 1rem;border-radius:999px;background:var(--accent);color:#fff;
+     letter-spacing:.02em;white-space:nowrap;transition:filter .15s}
+.v3d:hover{filter:brightness(1.08)}
+.v3d-dot{width:8px;height:8px;border-radius:50%;background:#fff;
+         box-shadow:0 0 0 3px rgba(255,255,255,.35);flex:0 0 auto}
+.v3d-cta{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+         flex-wrap:wrap;padding:1.15rem 1.35rem;border-radius:14px;
+         background:var(--navy);color:#fff;margin:1.5rem 0}
+.v3d-cta b{display:block;font-size:1rem}
+.v3d-cta span{font-size:.85rem;opacity:.72}
+.v3d-cta a{background:var(--accent);color:#fff;padding:.72rem 1.25rem;border-radius:10px;
+           font-weight:700;font-size:.88rem;white-space:nowrap}
+
+
+.dpe{display:flex;gap:2.5rem;flex-wrap:wrap}
+.dpe-b{flex:1 1 220px;min-width:0}
+.dpe-t{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#8a90a0;
+       font-weight:700;margin-bottom:.6rem}
+.dpe-s{display:flex;gap:3px;flex-wrap:wrap}
+.dpe-s i{width:26px;height:26px;border-radius:4px;display:flex;align-items:center;
+         justify-content:center;font-style:normal;font-size:.7rem;font-weight:800;color:#fff}
+.dpe-s i.on{outline:2px solid #1a1d26;outline-offset:2px;transform:scale(1.12)}
+
+
+.ph{background:linear-gradient(135deg,#dfe3ea 0%,#c8cdd8 55%,#b6bcc9 100%);
+    position:relative;overflow:hidden}
+.ph::after{content:attr(data-l);position:absolute;left:50%;top:50%;
+           transform:translate(-50%,-50%);font-size:.72rem;font-weight:700;
+           letter-spacing:.12em;text-transform:uppercase;color:rgba(0,0,0,.28)}
+
+
+body{background:#fff}
+header{padding:1.6rem 0 .3rem;text-align:center}
+.logo{display:inline-flex;align-items:center;gap:.5rem;color:var(--navy);
+      font-weight:800;letter-spacing:.06em;font-size:.9rem}
+.logo svg{width:30px;height:30px}
+nav{display:flex;justify-content:center;flex-wrap:wrap;gap:1.6rem;padding:1.1rem 0 2.4rem}
+nav a{font-size:.76rem;letter-spacing:.09em;text-transform:uppercase;color:#5a5f52;font-weight:500}
+nav a:hover{color:var(--accent)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start}
+.shot{aspect-ratio:4/3;position:relative}
+.photos-btn{position:absolute;top:.9rem;left:.9rem;background:var(--accent);color:#fff;
+            font-size:.7rem;letter-spacing:.06em;padding:.5rem .9rem;font-weight:600}
+h1{font-size:1.5rem;font-weight:400;letter-spacing:.12em;color:#8e9384;
+   text-transform:uppercase;margin-bottom:.5rem}
+.meta{font-size:.74rem;color:#9a9e92;letter-spacing:.02em;margin-bottom:1.6rem;line-height:1.7}
+.price{font-family:Georgia,serif;font-style:italic;font-size:1.5rem;color:#4a4f42;margin-bottom:1.8rem}
+.specs{width:100%;border-collapse:collapse;margin-bottom:1.8rem}
+.specs td{padding:.62rem 0;border-bottom:1px solid #eceee7;font-size:.83rem;color:#6a6f60}
+.specs td:last-child{text-align:right;font-family:Georgia,serif;font-style:italic;color:#9a9e92}
+.contact-btn{display:inline-block;border:1px solid #c8ccc0;padding:.8rem 2rem;
+             font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:#5a5f52}
+.contact-btn:hover{border-color:var(--accent);color:var(--accent)}
+.sec-t{font-size:.8rem;color:#8e9384;margin:3rem 0 1rem;letter-spacing:.03em}
+.desc{max-width:820px;margin:3.5rem 0;font-size:.9rem;color:#5f6456;line-height:1.85}
+.desc h3{font-size:.82rem;letter-spacing:.08em;color:#8e9384;font-weight:500;
+         text-transform:uppercase;margin-bottom:.8rem}
+/* mosaique volontairement dissymetrique, comme le vrai site */
+.scatter{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;margin:3rem 0}
+.scatter .ph:first-child{aspect-ratio:4/3;margin-top:6rem}
+.scatter .ph:last-child{aspect-ratio:4/3}
+.share{font-size:.72rem;letter-spacing:.12em;color:#9a9e92;text-transform:uppercase}
+.agent{text-align:center;margin:4rem auto;max-width:280px}
+.agent .ph{aspect-ratio:3/4;margin-bottom:1rem}
+.agent .r{font-family:Georgia,serif;font-style:italic;letter-spacing:.1em;
+          text-transform:uppercase;font-size:.8rem;color:#8e9384;margin-bottom:.5rem}
+.agent .n{font-size:.88rem;color:#5a5f52}
+.agent .e{font-family:Georgia,serif;font-style:italic;font-size:.82rem;color:#8e9384}
+footer{background:var(--navy);color:#c9ccbe;padding:3.5rem 0 1.5rem;margin-top:4rem}
+footer .row{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:2rem}
+footer h4{font-family:Georgia,serif;font-style:italic;color:#fff;font-size:1.05rem;
+          font-weight:400;margin-bottom:1rem}
+footer li{list-style:none;font-family:Georgia,serif;font-style:italic;font-size:.85rem;
+          padding:.28rem 0;color:#a8ab9c}
+footer .cinfo{font-size:.82rem;line-height:2;color:#a8ab9c}
+footer .bot{border-top:1px solid rgba(255,255,255,.1);margin-top:2.5rem;padding-top:1.2rem;
+            display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;
+            font-size:.72rem;color:#8b8e80}
+@media(max-width:860px){
+  .cols{grid-template-columns:1fr;gap:2rem}
+  .scatter{grid-template-columns:1fr;gap:1.5rem}
+  .scatter .ph:first-child{margin-top:0}
+  footer .row{grid-template-columns:1fr 1fr}
+}
+@media(max-width:520px){footer .row{grid-template-columns:1fr}nav{gap:.9rem}}
+
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4v11a4 4 0 0 0 4 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 20V7l4 6 4-6v13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>JMC IMMOBILIER</div>
+</div></header>
+<nav><a href="#">Equipe</a><a href="#">Maisons</a><a href="#">Appartements</a><a href="#">Terrains</a><a href="#">Locations</a><a href="#">Estimation</a></nav>
+
+<div class="wrap">
+  <div class="cols">
+    <div>
+      <div class="ph" data-l="Sejour" style="aspect-ratio:4/3"></div>
+      <div class="sec-t">Diagnostic</div>
+      <div class="dpe">
+  <div class="dpe-b"><div class="dpe-t">Diagnostic de performance energetique</div>
+    <div class="dpe-s"><i class="" style="background:#3aa757">A</i><i class="" style="background:#5cb85c">B</i><i class="on" style="background:#a9d148">C</i><i class="" style="background:#f5d33f">D</i><i class="" style="background:#f0a92e">E</i><i class="" style="background:#e8722c">F</i><i class="" style="background:#e0402e">G</i></div></div>
+  <div class="dpe-b"><div class="dpe-t">Emission de gaz a effet de serre</div>
+    <div class="dpe-s"><i class="on" style="background:#d9e8f5">A</i><i class="" style="background:#b3d1ea">B</i><i class="" style="background:#8cb8de">C</i><i class="" style="background:#6699d1">D</i><i class="" style="background:#4b7fc0">E</i><i class="" style="background:#33639e">F</i><i class="" style="background:#1e4272">G</i></div></div>
+</div>
+    </div>
+    <div>
+      <h1>Rambouillet</h1>
+      <div class="meta">APPARTEMENT | Surf. habitable 42,73 m2 | 2 pieces |
+        1 chambre<br>RAMBOUILLET (78120) | REF. 108955</div>
+      <div class="price">129 500 &euro;</div>
+      <table class="specs">
+        <tr><td>Surf. habitable (m2 env.)</td><td>42,73</td></tr>
+        <tr><td>Nombre de pieces</td><td>2</td></tr>
+        <tr><td>Nb. de chambres</td><td>1</td></tr>
+        <tr><td>Etage</td><td>2e etage</td></tr>
+        <tr><td>Type de chauffage</td><td>ind. edf</td></tr>
+      </table>
+      <a class="contact-btn" href="#">Nous contacter</a>
+      <div class="v3d-cta">
+  <div><b>Visite virtuelle 3D</b><span>Faites le tour du bien sans vous deplacer</span></div>
+  <a href="viewer.html?agency=jmc&property=demo-rambouillet">Lancer la visite &rarr;</a>
+</div>
+    </div>
+  </div>
+
+  <div class="desc">
+    <h3>Rambouillet</h3>
+    <p>Hyper centre, rue du General-de-Gaulle. Chaleureux 2 pieces au 2e etage, appartement sur cour, au calme, comprenant une grande cuisine, un sejour, une chambre et une salle de douche avec WC. Lot en copropriete, faibles charges. Aucune procedure en cours au sein de la copropriete.</p>
+  </div>
+
+  <div class="scatter">
+    <div class="ph" data-l="Chambre 1" style=""></div>
+    <div class="ph" data-l="Cuisine" style=""></div>
+  </div>
+  <div class="share">Partager</div>
+
+  <div class="agent">
+    <div class="ph" data-l="Conseiller" style=""></div>
+    <div class="r">Votre contact</div>
+    <div class="n">Jean-Francois Jardel</div>
+    <div class="e">rambouillet@jmc-immobilier.com</div>
+  </div>
+</div>
+
+<footer><div class="wrap">
+  <div class="row">
+    <div>
+      <h4>Agence Immobiliere Rambouillet</h4>
+      <div class="cinfo">9, rue Chasles, 78120 Rambouillet<br>01 30 88 70 75<br>
+        rambouillet@jmc-immobilier.com</div>
+    </div>
+    <div><h4>Informations</h4><ul><li>Equipe</li><li>Estimation</li><li>Contact</li><li>Blog</li></ul></div>
+    <div><h4>Nos biens</h4><ul><li>Maisons</li><li>Appartements</li><li>Terrains</li><li>Parking / Box</li></ul></div>
+    <div><h4>Horaires</h4><div class="cinfo">Mardi a Samedi<br>9h a 12h et 14h a 19h</div></div>
+  </div>
+  <div class="bot"><span>JMC Immobilier | Agence Immobiliere Rambouillet</span>
+    <span>Mentions legales &nbsp;&middot;&nbsp; Nos honoraires</span></div>
+</div></footer>
+
+</body>
+</html>

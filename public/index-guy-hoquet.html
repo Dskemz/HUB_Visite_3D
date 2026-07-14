@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appartement 2 pieces 42,73 m2 &mdash; Guy Hoquet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#000033;--accent:#E94E24;--accent-dark:#C23A15;
+      --navy-rgb:0,0,51;--accent-rgb:233,78,36}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1a1d26;background:#fff;
+     line-height:1.55;overflow-x:hidden}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+button{font:inherit;cursor:pointer;border:none;background:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 1.25rem;width:100%}
+/* Un enfant flex/grid ne retrecit pas sous son contenu sans ceci -> debordement. */
+.row>*,.cols>*,.grid>*{min-width:0}
+
+
+.v3d{display:inline-flex;align-items:center;gap:.5rem;font-weight:700;font-size:.82rem;
+     padding:.6rem 1rem;border-radius:999px;background:var(--accent);color:#fff;
+     letter-spacing:.02em;white-space:nowrap;transition:filter .15s}
+.v3d:hover{filter:brightness(1.08)}
+.v3d-dot{width:8px;height:8px;border-radius:50%;background:#fff;
+         box-shadow:0 0 0 3px rgba(255,255,255,.35);flex:0 0 auto}
+.v3d-cta{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+         flex-wrap:wrap;padding:1.15rem 1.35rem;border-radius:14px;
+         background:var(--navy);color:#fff;margin:1.5rem 0}
+.v3d-cta b{display:block;font-size:1rem}
+.v3d-cta span{font-size:.85rem;opacity:.72}
+.v3d-cta a{background:var(--accent);color:#fff;padding:.72rem 1.25rem;border-radius:10px;
+           font-weight:700;font-size:.88rem;white-space:nowrap}
+
+
+.dpe{display:flex;gap:2.5rem;flex-wrap:wrap}
+.dpe-b{flex:1 1 220px;min-width:0}
+.dpe-t{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#8a90a0;
+       font-weight:700;margin-bottom:.6rem}
+.dpe-s{display:flex;gap:3px;flex-wrap:wrap}
+.dpe-s i{width:26px;height:26px;border-radius:4px;display:flex;align-items:center;
+         justify-content:center;font-style:normal;font-size:.7rem;font-weight:800;color:#fff}
+.dpe-s i.on{outline:2px solid #1a1d26;outline-offset:2px;transform:scale(1.12)}
+
+
+.ph{background:linear-gradient(135deg,#dfe3ea 0%,#c8cdd8 55%,#b6bcc9 100%);
+    position:relative;overflow:hidden}
+.ph::after{content:attr(data-l);position:absolute;left:50%;top:50%;
+           transform:translate(-50%,-50%);font-size:.72rem;font-weight:700;
+           letter-spacing:.12em;text-transform:uppercase;color:rgba(0,0,0,.28)}
+
+
+body{background:#eef2f8}
+header{background:var(--navy);color:#fff;position:sticky;top:0;z-index:20}
+header .row{display:flex;align-items:center;gap:2rem;height:56px}
+.logo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:.86rem;
+      letter-spacing:.09em;white-space:nowrap;flex:0 0 auto}
+.logo svg{width:24px;height:24px}
+header nav{display:flex;gap:1.4rem;flex-wrap:nowrap;overflow-x:auto;min-width:0;
+           scrollbar-width:none}
+header nav::-webkit-scrollbar{display:none}
+header nav a{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+             color:rgba(255,255,255,.82);font-weight:600;white-space:nowrap}
+header nav a:hover{color:#fff}
+.crumb{font-size:.68rem;color:#7a8398;padding:.7rem 0}
+.board{background:#fff;border-radius:4px;padding:1.6rem;display:grid;
+       grid-template-columns:1fr 380px;gap:2rem;align-items:start}
+.shot{aspect-ratio:16/10}
+.panel{background:var(--navy);color:#fff;padding:1.5rem;border-radius:4px}
+.panel h1{font-size:.95rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+          line-height:1.5;margin-bottom:.9rem}
+.panel .p{font-size:1.6rem;font-weight:800;margin-bottom:.3rem}
+.panel .pn{font-size:.7rem;opacity:.6;margin-bottom:1.3rem}
+.btn{display:block;text-align:center;padding:.85rem;font-size:.72rem;font-weight:700;
+     letter-spacing:.08em;text-transform:uppercase;border-radius:3px;margin-bottom:.6rem}
+.btn-w{background:#fff;color:var(--navy)}
+.btn-o{background:var(--accent);color:#fff}
+.btn-g{border:1px solid rgba(255,255,255,.35);color:#fff}
+.agc{border-top:1px solid rgba(255,255,255,.18);margin-top:1.2rem;padding-top:1.2rem;
+     font-size:.78rem;line-height:1.7}
+.agc b{display:block;letter-spacing:.05em;text-transform:uppercase;font-size:.72rem;margin-bottom:.3rem}
+h2{font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+   color:var(--navy);margin:2.5rem 0 1rem}
+.card{background:#fff;border-radius:4px;padding:1.6rem}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;
+      background:#e2e8f2;border:1px solid #e2e8f2;margin-bottom:1.5rem}
+.feat div{background:#fff;padding:1rem;font-size:.82rem;font-weight:600;color:var(--navy)}
+.tech{width:100%;border-collapse:collapse;font-size:.8rem}
+.tech tr:nth-child(odd){background:#eef2f8}
+.tech td{padding:.62rem .9rem;color:#4a5468}
+.tech td:last-child{text-align:right;font-weight:600;color:var(--navy)}
+/* Simulateur : le rouge/orange de la mensualite est la signature de la marque */
+.sim{background:#fff;border-radius:4px;padding:2rem;text-align:center;margin-top:1.5rem}
+.sim .m{font-size:2.4rem;font-weight:800;color:var(--accent);line-height:1.1}
+.sim .ml{font-size:.78rem;color:#7a8398;margin-bottom:1.2rem}
+.sim .go{display:inline-block;background:var(--accent);color:#fff;padding:.8rem 1.8rem;
+         border-radius:3px;font-size:.76rem;font-weight:700}
+footer{background:var(--navy);color:rgba(255,255,255,.6);margin-top:3rem;padding:2.5rem 0}
+footer .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:2rem;
+            font-size:.78rem;line-height:2.1}
+footer b{color:#fff;display:block;margin-bottom:.5rem;font-size:.72rem;letter-spacing:.08em;
+         text-transform:uppercase}
+@media(max-width:900px){.board{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+
+<header><div class="wrap"><div class="row">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M3 11L12 3l9 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11l6 5-6 5-6-5 6-5z" fill="currentColor"/></svg>GUY HOQUET</div>
+  <nav><a href="#">Acheter</a><a href="#">Louer</a><a href="#">Vendre</a><a href="#">Investir</a><a href="#">Estimer</a></nav>
+</div></div></header>
+
+<div class="wrap">
+  <div class="crumb">Accueil &rsaquo; Rambouillet &rsaquo; Appartement &rsaquo; Appartement 2 pieces 42,73 m2</div>
+
+  <div class="board">
+    <div>
+      <div class="ph" data-l="Sejour" style="aspect-ratio:16/10"></div>
+      <div style="margin-top:.8rem"><a class="v3d" href="viewer.html?agency=guy-hoquet&property=demo-rambouillet"><span class="v3d-dot"></span>Visite virtuelle 3D</a></div>
+    </div>
+    <div class="panel">
+      <h1>Appartement Rambouillet 2 pieces 42,73 m2</h1>
+      <div class="p">129 500 &euro;</div>
+      <div class="pn">Honoraires a la charge du vendeur</div>
+      <a class="btn btn-o" href="viewer.html?agency=guy-hoquet&property=demo-rambouillet">Visite virtuelle 3D</a>
+      <a class="btn btn-w" href="#">Demande de contact</a>
+      <a class="btn btn-g" href="#">Afficher le numero</a>
+      <div class="agc"><b>Guy Hoquet Rambouillet</b>01 34 83 12 12</div>
+    </div>
+  </div>
+
+  <h2>Fiche technique du bien</h2>
+  <div class="card">
+    <div class="feat">
+      <div>42,73 m2</div><div>2 pieces</div>
+      <div>1 chambre</div><div>2e etage</div><div>Copropriete</div>
+    </div>
+    <table class="tech">
+      <tr><td>Surface habitable</td><td>42,73 m2</td></tr>
+      <tr><td>Etage</td><td>2 / 2</td></tr>
+      <tr><td>Ascenseur</td><td>Non</td></tr>
+      <tr><td>Chauffage</td><td>Individuel electrique</td></tr>
+      <tr><td>Charges annuelles</td><td>804 &euro;</td></tr>
+      <tr><td>Procedure en cours</td><td>Non</td></tr>
+    </table>
+  </div>
+
+  <h2>Bilan energetique</h2>
+  <div class="card"><div class="dpe">
+  <div class="dpe-b"><div class="dpe-t">Diagnostic de performance energetique</div>
+    <div class="dpe-s"><i class="" style="background:#3aa757">A</i><i class="" style="background:#5cb85c">B</i><i class="on" style="background:#a9d148">C</i><i class="" style="background:#f5d33f">D</i><i class="" style="background:#f0a92e">E</i><i class="" style="background:#e8722c">F</i><i class="" style="background:#e0402e">G</i></div></div>
+  <div class="dpe-b"><div class="dpe-t">Emission de gaz a effet de serre</div>
+    <div class="dpe-s"><i class="on" style="background:#d9e8f5">A</i><i class="" style="background:#b3d1ea">B</i><i class="" style="background:#8cb8de">C</i><i class="" style="background:#6699d1">D</i><i class="" style="background:#4b7fc0">E</i><i class="" style="background:#33639e">F</i><i class="" style="background:#1e4272">G</i></div></div>
+</div></div>
+
+  <h2>Simulez votre pret immobilier</h2>
+  <div class="sim">
+    <div class="ml">Votre mensualite serait de</div>
+    <div class="m">571 &euro;</div>
+    <div class="ml">sur 25 ans, apport 20 % &mdash; taux indicatif 3,54 %</div>
+    <a class="go" href="#">Obtenir un taux personnalise</a>
+  </div>
+
+  <h2>Le quartier</h2>
+  <div class="card"><div class="ph" data-l="Plan du quartier" style="aspect-ratio:21/6"></div></div>
+</div>
+
+<footer><div class="wrap"><div class="row">
+  <div><b>Contactez-nous</b>Guy Hoquet Rambouillet<br>01 34 83 12 12</div>
+  <div><b>Le reseau</b>Devenir franchise<br>Nous rejoindre<br>Recrutement</div>
+  <div><b>Infos</b>Mentions legales<br>Honoraires<br>Confidentialite</div>
+  <div><b>Newsletter</b>Restons en contact</div>
+</div></div></footer>
+
+</body>
+</html>
