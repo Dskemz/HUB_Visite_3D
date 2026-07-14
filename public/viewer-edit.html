@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Éditeur — Visite 3D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{font-family:'Inter',system-ui,sans-serif;background:#0d1220;color:#e8ecf6;
+         display:flex;overflow:hidden}
+
+    /* Le VRAI viewer, tel quel. Aucune ligne recopiee. */
+    #stage{flex:1;position:relative;min-width:0}
+    #stage iframe{width:100%;height:100%;border:0;display:block}
+
+    /* Bandeau d'etat par-dessus le viewer */
+    #flash{position:absolute;top:14px;left:50%;transform:translateX(-50%);
+           background:rgba(13,18,32,.92);border:1px solid #2c3854;color:#e8ecf6;
+           padding:.5rem .9rem;border-radius:9px;font-size:.82rem;font-weight:600;
+           opacity:0;transition:opacity .2s;pointer-events:none;z-index:5}
+    #flash.on{opacity:1}
+
+    /* Panneau d'edition, HORS du viewer */
+    #side{width:330px;flex:0 0 330px;background:#111827;border-left:1px solid #212c44;
+          display:flex;flex-direction:column;overflow:hidden}
+    .hd{padding:1rem 1.1rem;border-bottom:1px solid #212c44}
+    .hd .t{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#6f7c99;font-weight:700}
+    .hd h1{font-size:1.05rem;font-weight:800;margin-top:.25rem}
+    .hd .p{font-size:.76rem;color:#6f7c99;margin-top:.3rem;font-family:ui-monospace,monospace}
+
+    .tabs{display:flex;gap:.35rem;padding:.8rem 1.1rem 0}
+    .tab{flex:1;padding:.5rem;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer;
+         background:#0d1220;border:1px solid #263149;color:#c7d0e4;border-radius:8px}
+    .tab.on{background:#4a6cff;border-color:#4a6cff;color:#fff}
+
+    .body{flex:1;overflow-y:auto;padding:1rem 1.1rem}
+    .hint{font-size:.76rem;color:#8b96ad;line-height:1.55;margin-bottom:.85rem}
+    .hint b{color:#e8ecf6}
+
+    input{width:100%;background:#0d1220;border:1px solid #263149;color:#e8ecf6;
+          border-radius:8px;padding:.55rem .7rem;font:inherit;font-size:.82rem;
+          margin-bottom:.5rem;outline:none}
+    input:focus{border-color:#4a6cff}
+    input::placeholder{color:#5b6580}
+
+    .btn{width:100%;padding:.65rem;border:none;border-radius:8px;font:inherit;
+         font-weight:700;font-size:.84rem;cursor:pointer;background:#4a6cff;color:#fff}
+    .btn:hover{opacity:.9}
+    .btn.sec{background:#0d1220;border:1px solid #2c3854;color:#c7d0e4}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+
+    .list{margin-top:.9rem}
+    .row{display:flex;align-items:center;gap:.4rem;padding:.45rem .1rem;
+         border-bottom:1px solid #1c2740;font-size:.8rem}
+    .row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .row button{background:#1a2438;border:none;color:#c7d0e4;border-radius:6px;
+                padding:.25rem .5rem;font-size:.74rem;cursor:pointer}
+    .row button:hover{background:#4a6cff;color:#fff}
+
+    .ft{padding:.9rem 1.1rem;border-top:1px solid #212c44}
+    .st{font-size:.74rem;color:#6f7c99;margin-top:.55rem;text-align:center}
+    .warn{margin:0 1.1rem 1rem;padding:.7rem .8rem;border-radius:8px;font-size:.76rem;
+          line-height:1.5;background:#2a1f12;border:1px solid #5a4526;color:#e8cfa4}
+  </style>
+</head>
+<body>
+
+  <div id="stage">
+    <iframe id="vw" title="Viewer"></iframe>
+    <div id="flash"></div>
+  </div>
+
+  <aside id="side">
+    <div class="hd">
+      <div class="t">Éditeur — usage interne</div>
+      <h1 id="h-name">Visite 3D</h1>
+      <div class="p" id="h-prop"></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" id="t-pov" onclick="tab('pov')">POV</button>
+      <button class="tab"    id="t-cot" onclick="tab('cot')">Cotations</button>
+    </div>
+
+    <div class="body">
+      <div id="p-pov">
+        <p class="hint">Navigue dans le viewer jusqu'à l'endroit voulu, oriente le regard
+          (la vue 1<sup>re</sup> personne marche aussi), puis capture.
+          Le POV <b>apparaît aussitôt</b> dans la visite, cliquable.</p>
+        <input id="f-id"     placeholder="id (ex: salon-01)">
+        <input id="f-label"  placeholder="Nom affiché (ex: Salon)">
+        <input id="f-room"   placeholder="roomId (optionnel)">
+        <input id="f-photos" placeholder="photos (Salon_01.png, Salon_02.png)">
+        <button class="btn" id="b-cap" onclick="capture()">📸 Capturer ce POV</button>
+        <div class="list" id="pov-list"></div>
+      </div>
+
+      <div id="p-cot" hidden>
+        <p class="hint">Passe le viewer en <b>vue de dessus</b>, puis :<br><br>
+          · <b>clic sur un trait de cotation</b> → il se scinde à l'endroit cliqué,
+            les cotes se recalculent seules ;<br>
+          · <b>clic sur une graduation</b> → elle disparaît, les deux cotes fusionnent.<br><br>
+          Aucun calcul, aucune saisie.</p>
+        <div class="list" id="cot-list"></div>
+      </div>
+    </div>
+
+    <div class="warn" id="warn" hidden></div>
+
+    <div class="ft">
+      <button class="btn sec" id="b-dl" onclick="download()">💾 Télécharger manifest.json</button>
+      <div class="st" id="st">Chargement du viewer…</div>
+    </div>
+  </aside>
+
+<script>
+/* ============================================================================
+   ÉDITEUR — fichier SÉPARÉ.
+   ----------------------------------------------------------------------------
+   Il n'y a AUCUNE copie du viewer ici : viewer.html est chargé tel quel dans
+   l'iframe. On lui greffe ensuite un « pont » (window.__ed) qui parle à ses
+   variables internes (camera, propertyData, hudEdges…). Conséquence : toute
+   correction future de viewer.html profite automatiquement à cet éditeur,
+   et viewer.html reste 100 % stérile pour les agences.
+
+   Sortie unique : un téléchargement de manifest.json sur ce poste. Cet outil
+   n'écrit jamais sur le serveur.
+   ========================================================================== */
+
+const Q       = new URLSearchParams(location.search);
+const AGENCY  = Q.get('agency')   || 'laforet';
+const PROPERTY= Q.get('property') || 'demo-rambouillet';
+let   ed      = null;              // le pont, une fois greffé
+let   mode    = 'pov';
+
+document.getElementById('h-prop').textContent = AGENCY + ' · ' + PROPERTY;
+const vw = document.getElementById('vw');
+vw.src = 'viewer.html?agency=' + encodeURIComponent(AGENCY) +
+         '&property=' + encodeURIComponent(PROPERTY);
+
+function flash(msg){
+  const f = document.getElementById('flash');
+  f.textContent = msg; f.classList.add('on');
+  setTimeout(()=>f.classList.remove('on'), 1900);
+}
+function warn(msg){
+  const w = document.getElementById('warn');
+  w.hidden = !msg; w.innerHTML = msg || '';
+}
+
+/* -------- Le pont, injecté DANS le viewer -------------------------------- */
+/* Un <script> ajouté au document de l'iframe s'exécute dans SA portée : il voit
+   donc camera, propertyData, hudEdges, hudUpdate()… que l'extérieur ne peut pas
+   atteindre (ce sont des `let`, absents de window). */
+const PONT = `
+(function(){
+  const r2 = v => Math.round(v*100)/100;
+  const MIN = 0.05;
+
+  function pret(){
+    try { return typeof camera!=='undefined' && camera
+              && typeof propertyData!=='undefined' && propertyData; }
+    catch(e){ return false; }
+  }
+
+  function distToSeg(P,A,B){
+    const vx=B.x-A.x, vy=B.y-A.y, L2=vx*vx+vy*vy||1;
+    let t=((P.x-A.x)*vx+(P.y-A.y)*vy)/L2; t=Math.max(0,Math.min(1,t));
+    return { dist: Math.hypot(P.x-(A.x+t*vx), P.y-(A.y+t*vy)), t };
+  }
+
+  let onCot = false;
+
+  function clicCotation(ev){
+    if (!onCot || typeof modelBounds==='undefined' || !modelBounds) return;
+    const svg = document.getElementById('hud-svg');
+    const r = svg.getBoundingClientRect();
+    const P = { x: ev.clientX-r.left, y: ev.clientY-r.top };
+
+    let best=null;
+    ['top','bottom','left','right'].forEach(function(name){
+      const e = hudEdges[name];
+      if (!e || !e.p0 || !e.p1 || !e.w0 || !e.w1) return;   // arete non encore projetee
+      const d = distToSeg(P, e.p0, e.p1);
+      if (!best || d.dist < best.dist) best = { name:name, e:e, dist:d.dist, t:d.t };
+    });
+    if (!best || best.dist > 70) return;
+
+    const dims = propertyData.dimensions = propertyData.dimensions || {};
+    const worldLen = BABYLON.Vector3.Distance(best.e.w0, best.e.w1);
+    const screenLen = Math.hypot(best.e.p1.x-best.e.p0.x, best.e.p1.y-best.e.p0.y) || 1;
+    const tolM = 12 * worldLen / screenLen;      // 12 px traduits en metres
+    const d = best.t * worldLen;
+    let segs = dims[best.name];
+
+    if (!segs || !segs.length){                  // premiere coupure de ce cote
+      if (d < MIN || worldLen-d < MIN) return;
+      dims[best.name] = [r2(d), r2(worldLen-d)];
+      hudUpdate(); parent.__edEvent('cot','scinde'); return;
+    }
+    let cum=0, bi=-1, bd=Infinity;
+    for (let i=0;i<segs.length-1;i++){
+      cum += segs[i];
+      const dd = Math.abs(cum-d);
+      if (dd < bd){ bd=dd; bi=i; }
+    }
+    if (bi>=0 && bd<=tolM){                      // clic sur une graduation -> fusion
+      segs[bi] = r2(segs[bi]+segs[bi+1]);
+      segs.splice(bi+1,1);
+      hudUpdate(); parent.__edEvent('cot','fusion'); return;
+    }
+    cum=0;                                       // sinon -> scission
+    for (let i=0;i<segs.length;i++){
+      if (d < cum+segs[i]){
+        const a=d-cum, b=segs[i]-a;
+        if (a<MIN || b<MIN) return;
+        segs.splice(i,1,r2(a),r2(b));
+        hudUpdate(); parent.__edEvent('cot','scinde'); return;
+      }
+      cum += segs[i];
+    }
+  }
+
+  function armer(){
+    if (!pret()) { setTimeout(armer, 250); return; }
+
+    const svg = document.getElementById('hud-svg');
+    if (svg) svg.addEventListener('click', clicCotation);
+
+    window.__ed = {
+      nom: function(){ return propertyData.name || 'Visite 3D'; },
+
+      pois: function(){
+        return (propertyData.poi||[]).map(function(p){
+          return { id:p.id, label:p.label||p.id };
+        });
+      },
+
+      /* camPos + camTarget encodent A LA FOIS la position et l'angle de vue. */
+      capture: function(id, label, room, photos){
+        const pos = camera.position, tgt = camera.target;
+        propertyData.poi = propertyData.poi || [];
+        id    = id    || ('pov-' + (propertyData.poi.length+1));
+        label = label || id;
+        const e = { id:id, label:label,
+                    camPos:[r2(pos.x), r2(pos.y), r2(pos.z)],
+                    camTarget:[r2(tgt.x), r2(tgt.y), r2(tgt.z)] };
+        if (room) e.roomId = room;
+        if (photos && photos.length) e.photos = photos;
+        const i = propertyData.poi.findIndex(function(p){ return p.id===id; });
+        if (i>=0) propertyData.poi[i] = e; else propertyData.poi.push(e);
+        createPoiMarkers();   // marqueur 3D visible immediatement
+        rebuildPoiList();     // entree cliquable dans le panneau du viewer
+        return label;
+      },
+
+      supprimer: function(id){
+        propertyData.poi = (propertyData.poi||[]).filter(function(p){ return p.id!==id; });
+        createPoiMarkers(); rebuildPoiList();
+      },
+
+      voir: function(id){ goToPOI(id); },
+
+      cotations: function(){
+        const d = propertyData.dimensions || {};
+        return ['top','bottom','left','right'].map(function(k){
+          return { cote:k, segs:(d[k]||[]).slice() };
+        });
+      },
+
+      editerCotations: function(on){
+        onCot = !!on;
+        const s = document.getElementById('hud-svg');
+        if (s){ s.style.pointerEvents = on ? 'auto' : ''; s.style.cursor = on ? 'crosshair' : ''; }
+      },
+
+      manifest: function(){ return JSON.stringify(propertyData, null, 2); }
+    };
+    parent.__edPret();
+  }
+  armer();
+})();
+`;
+
+/* -------- Greffe du pont dès que le viewer a fini de charger ------------- */
+vw.addEventListener('load', function(){
+  let doc;
+  try { doc = vw.contentDocument; } catch(e) { doc = null; }
+  if (!doc) {
+    document.getElementById('st').textContent = 'Viewer inaccessible.';
+    warn("Le navigateur bloque l'accès au viewer. Ouvre cette page depuis " +
+         "<b>hub-visite-3d.vercel.app</b> ou un serveur local — pas en double-cliquant " +
+         "le fichier (<b>file://</b>), où Chrome isole chaque fichier.");
+    return;
+  }
+  const sc = doc.createElement('script');
+  sc.textContent = PONT;
+  doc.body.appendChild(sc);
+});
+
+/* Le pont nous rappelle quand il est prêt. */
+window.__edPret = function(){
+  ed = vw.contentWindow.__ed;
+  document.getElementById('h-name').textContent = ed.nom();
+  document.getElementById('st').textContent = 'Prêt.';
+  warn('');
+  refresh();
+  ed.editerCotations(mode === 'cot');
+};
+window.__edEvent = function(kind, what){
+  if (kind === 'cot'){
+    flash(what === 'fusion' ? '🔗 Graduation retirée' : '✂️ Cotation scindée');
+    refresh();
+  }
+};
+
+/* -------- UI ------------------------------------------------------------- */
+function tab(m){
+  mode = m;
+  document.getElementById('t-pov').classList.toggle('on', m==='pov');
+  document.getElementById('t-cot').classList.toggle('on', m==='cot');
+  document.getElementById('p-pov').hidden = (m!=='pov');
+  document.getElementById('p-cot').hidden = (m!=='cot');
+  if (ed) ed.editerCotations(m==='cot');
+}
+
+function v(id){ return (document.getElementById(id).value || '').trim(); }
+
+function capture(){
+  if (!ed) return;
+  const photos = v('f-photos').split(',').map(function(x){return x.trim();}).filter(Boolean);
+  const label = ed.capture(v('f-id'), v('f-label'), v('f-room'), photos);
+  ['f-id','f-label','f-room','f-photos'].forEach(function(k){ document.getElementById(k).value=''; });
+  flash('✅ « ' + label +' » placé');
+  refresh();
+}
+
+function refresh(){
+  if (!ed) return;
+
+  const pl = document.getElementById('pov-list');
+  const pois = ed.pois();
+  pl.innerHTML = '';
+  pois.forEach(function(p){
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<span class="nm">' + p.label + '</span>';
+    const a = document.createElement('button');
+    a.textContent = 'Voir'; a.onclick = function(){ ed.voir(p.id); };
+    const b = document.createElement('button');
+    b.textContent = '✕';    b.onclick = function(){ ed.supprimer(p.id); refresh(); };
+    row.appendChild(a); row.appendChild(b);
+    pl.appendChild(row);
+  });
+
+  const cl = document.getElementById('cot-list');
+  cl.innerHTML = '';
+  ed.cotations().forEach(function(c){
+    const row = document.createElement('div');
+    row.className = 'row';
+    const txt = c.segs.length
+      ? c.segs.map(function(s){ return s.toFixed(2) + ' m'; }).join('  +  ')
+      : '— aucune coupure —';
+    row.innerHTML = '<span class="nm"><b>' + c.cote + '</b> · ' + txt + '</span>';
+    cl.appendChild(row);
+  });
+
+  document.getElementById('st').textContent =
+    pois.length + ' POV · manifest à jour en mémoire';
+}
+
+function download(){
+  if (!ed) return;
+  const blob = new Blob([ed.manifest()], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'manifest.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  flash('💾 manifest.json téléchargé');
+}
+</script>
+</body>
+</html>
