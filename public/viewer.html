@@ -525,21 +525,6 @@
       z-index: 250;
     }
     .placement-toggle.active { background: var(--brand-accent); }
-    /* --- Editeur interne --- */
-    .ed-tabs { display:flex; gap:.3rem; margin:0 0 .6rem; }
-    .ed-tab { flex:1; padding:.4rem; font-size:.72rem; font-weight:700; cursor:pointer;
-              border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06);
-              color:#dfe6f2; border-radius:6px; }
-    .ed-tab.active { background: var(--brand-accent); color:#fff; border-color:transparent; }
-    .ed-list { margin-top:.6rem; max-height:190px; overflow-y:auto; }
-    .ed-row { display:flex; align-items:center; gap:.4rem; padding:.34rem .1rem;
-              border-bottom:1px solid rgba(255,255,255,.08); font-size:.74rem; color:#eaf0fb; }
-    .ed-row .ed-nm { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .ed-row button { border:none; background:rgba(255,255,255,.10); color:#eaf0fb;
-                     border-radius:5px; padding:.2rem .42rem; cursor:pointer; font-size:.72rem; }
-    .ed-row button:hover { background: var(--brand-accent); color:#fff; }
-    /* En edition de cotations, le SVG du HUD redevient cliquable. */
-    #hud-svg.ed-cot { pointer-events: auto; cursor: crosshair; }
     .placement-panel {
       position: absolute;
       bottom: 3.6rem;
@@ -905,38 +890,6 @@
   <!-- INDICATION "REGARDER AUTOUR" (vue 1ère personne) -->
   <div class="fp-look-hint" id="fp-look-hint">Cliquez-glissez horizontalement pour balayer la pièce du regard</div>
 
-  <!-- ÉDITEUR INTERNE — n'apparaît QUE si l'URL porte ?edit=1.
-       Le viewer intégré chez les agences n'en voit strictement rien. -->
-  <button class="placement-toggle" id="edit-toggle" onclick="toggleEditor()" hidden>⊕ Éditeur</button>
-  <div class="placement-panel hidden" id="edit-panel">
-    <h4>Éditeur</h4>
-    <div class="ed-tabs">
-      <button class="ed-tab active" id="ed-tab-pov" onclick="edTab('pov')">POV</button>
-      <button class="ed-tab" id="ed-tab-cot" onclick="edTab('cot')">Cotations</button>
-    </div>
-
-    <div id="ed-pov">
-      <p class="pp-hint">Place-toi où tu veux (la vue 1<sup>re</sup> personne marche aussi), oriente
-        le regard, puis capture. Le POV apparaît <b>immédiatement</b> dans la visite.</p>
-      <div class="pp-row"><input type="text" id="pp-id" placeholder="id (ex: salon-01)"></div>
-      <div class="pp-row"><input type="text" id="pp-label" placeholder="Nom (ex: Salon)"></div>
-      <div class="pp-row"><input type="text" id="pp-roomId" placeholder="roomId (optionnel)"></div>
-      <div class="pp-row"><input type="text" id="pp-photos" placeholder="photos (CSV : Salon_01.png, Salon_02.png)"></div>
-      <button class="pp-btn" onclick="capturePOV()">📸 Capturer ce POV</button>
-      <p class="pp-count" id="pp-count"></p>
-      <div class="ed-list" id="ed-pov-list"></div>
-    </div>
-
-    <div id="ed-cot" hidden>
-      <p class="pp-hint">Passe en <b>vue de dessus</b>.<br>
-        · <b>Clic sur un trait de cotation</b> → il se scinde à cet endroit, les cotes
-          se recalculent seules.<br>
-        · <b>Clic sur une graduation</b> → elle disparaît, les deux cotes fusionnent.</p>
-      <p class="pp-count" id="ed-cot-state"></p>
-    </div>
-
-    <button class="pp-btn secondary" onclick="downloadManifest()" style="margin-top:.7rem;">💾 Télécharger manifest.json</button>
-  </div>
 </div>
 
 <!-- LIGHTBOX PHOTO PLEIN ÉCRAN -->
@@ -1125,7 +1078,7 @@ async function init() {
     (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 
   engine = new BABYLON.Engine(canvas, true, {
-    // preserveDrawingBuffer RETIRÉ : aucun code ne relit le back-buffer (capturePOV ne
+    // preserveDrawingBuffer RETIRÉ : aucun code ne relit le back-buffer (la capture POV ne
     // fait que lire la position/cible de la caméra). Ce flag doublait la mémoire GPU du
     // back-buffer ; sur iPad/Safari EN PAYSAGE (grand panneau en verre dépoli + recadrage
     // animé), le budget GPU était dépassé → perte de contexte WebGL (le « refresh » vu au
@@ -3871,208 +3824,6 @@ function createAxesHelper() {
   console.log('✅ Axes affichés : Rouge=X, Vert=Y, Bleu=Z');
 }
 
-/* ============================================================================
-   ÉDITEUR INTERNE  —  activé UNIQUEMENT par ?edit=1
-   ----------------------------------------------------------------------------
-   Le viewer intégré chez les agences (sans le paramètre) n'expose aucun outil :
-   ni panneau de coordonnées, ni raccourci clavier, ni bouton d'édition.
-   L'éditeur ne peut RIEN écrire sur le serveur : sa seule sortie est un
-   téléchargement de manifest.json sur le disque de l'éditeur.
-   ============================================================================ */
-const EDIT = new URLSearchParams(location.search).get('edit') === '1';
-let editorOpen = false;
-let edMode = 'pov';
-
-const r2  = v => Math.round(v * 100) / 100;
-const val = id => (document.getElementById(id).value || '').trim();
-
-function flash(id, msg) {
-  const el = document.getElementById(id);
-  const old = el.textContent;
-  el.textContent = msg;
-  setTimeout(() => { if (el.textContent === msg) el.textContent = old; }, 1800);
-}
-
-function initEditor() {
-  if (!EDIT) return;
-  document.getElementById('edit-toggle').hidden = false;
-}
-
-function toggleEditor() {
-  editorOpen = !editorOpen;
-  const b = document.getElementById('edit-toggle');
-  document.getElementById('edit-panel').classList.toggle('hidden', !editorOpen);
-  b.classList.toggle('active', editorOpen);
-  b.textContent = editorOpen ? '✕ Fermer' : '⊕ Éditeur';
-  refreshPovList();
-  hudSetEditable(editorOpen && edMode === 'cot');
-}
-
-function edTab(m) {
-  edMode = m;
-  document.getElementById('ed-tab-pov').classList.toggle('active', m === 'pov');
-  document.getElementById('ed-tab-cot').classList.toggle('active', m === 'cot');
-  document.getElementById('ed-pov').hidden = (m !== 'pov');
-  document.getElementById('ed-cot').hidden = (m !== 'cot');
-  hudSetEditable(editorOpen && m === 'cot');
-}
-
-/* ---------- POV : capture live -------------------------------------------
-   camPos + camTarget suffisent à encoder position ET angle de vue. On les lit
-   sur la caméra courante, on injecte dans propertyData, puis on reconstruit
-   marqueurs 3D + liste : le POV est utilisable dans la seconde. */
-function capturePOV() {
-  if (!propertyData) return;
-  const pos = camera.position, tgt = camera.target;
-
-  propertyData.poi = propertyData.poi || [];
-  const id    = val('pp-id') || ('pov-' + (propertyData.poi.length + 1));
-  const label = val('pp-label') || id;
-  const room  = val('pp-roomId');
-  const pics  = val('pp-photos').split(',').map(x => x.trim()).filter(Boolean);
-
-  const entry = {
-    id, label,
-    camPos:    [r2(pos.x), r2(pos.y), r2(pos.z)],
-    camTarget: [r2(tgt.x), r2(tgt.y), r2(tgt.z)]
-  };
-  if (room) entry.roomId = room;
-  if (pics.length) entry.photos = pics;
-
-  const i = propertyData.poi.findIndex(p => p.id === id);
-  if (i >= 0) propertyData.poi[i] = entry; else propertyData.poi.push(entry);
-
-  createPoiMarkers();   // marqueur visible tout de suite
-  rebuildPoiList();     // entrée cliquable dans le panneau de droite
-  refreshPovList();
-  ['pp-id','pp-label','pp-roomId','pp-photos'].forEach(k => document.getElementById(k).value = '');
-  flash('pp-count', '✅ « ' + label + ' » placé');
-}
-
-function refreshPovList() {
-  const box = document.getElementById('ed-pov-list');
-  if (!box) return;
-  const pois = (propertyData && propertyData.poi) || [];
-  document.getElementById('pp-count').textContent = pois.length + ' POV';
-  box.innerHTML = '';
-  pois.forEach(p => {
-    const row = document.createElement('div');
-    row.className = 'ed-row';
-    row.innerHTML = '<span class="ed-nm">' + (p.label || p.id) + '</span>';
-    const bGo = document.createElement('button');
-    bGo.textContent = 'Voir';
-    bGo.onclick = () => goToPOI(p.id);
-    const bDel = document.createElement('button');
-    bDel.textContent = '✕';
-    bDel.onclick = () => {
-      propertyData.poi = propertyData.poi.filter(x => x.id !== p.id);
-      createPoiMarkers(); rebuildPoiList(); refreshPovList();
-    };
-    row.appendChild(bGo); row.appendChild(bDel);
-    box.appendChild(row);
-  });
-}
-
-/* ---------- COTATIONS : scinder / fusionner au clic -----------------------
-   dimensions[cote] = longueurs successives en metres le long de l'arete.
-   hudChain les redessine et recalcule les cotes : il n'y a donc AUCUN calcul
-   a faire a la main, il suffit d'inserer ou de retirer une valeur. */
-function hudSetEditable(on) {
-  const svg = document.getElementById('hud-svg');
-  if (!svg) return;
-  svg.classList.toggle('ed-cot', !!on);
-  svg.removeEventListener('click', hudEditClick);
-  if (on) svg.addEventListener('click', hudEditClick);
-  const st = document.getElementById('ed-cot-state');
-  if (st) st.textContent = on ? 'Édition active — passe en vue de dessus.' : '';
-}
-
-/* Distance d'un point a un segment + position relative t (0..1). */
-function distToSeg(P, A, B) {
-  const vx = B.x - A.x, vy = B.y - A.y;
-  const L2 = vx * vx + vy * vy || 1;
-  let t = ((P.x - A.x) * vx + (P.y - A.y) * vy) / L2;
-  t = Math.max(0, Math.min(1, t));
-  const cx = A.x + t * vx, cy = A.y + t * vy;
-  return { dist: Math.hypot(P.x - cx, P.y - cy), t };
-}
-
-function hudEditClick(ev) {
-  if (!modelBounds || !propertyData) return;
-  const svg = document.getElementById('hud-svg');
-  const r = svg.getBoundingClientRect();
-  const P = { x: ev.clientX - r.left, y: ev.clientY - r.top };
-
-  // Quelle arete ? La plus proche du clic parmi les 4 memorisees par hudUpdate.
-  let best = null;
-  ['top','bottom','left','right'].forEach(name => {
-    const e = hudEdges[name];
-    if (!e) return;
-    const d = distToSeg(P, e.p0, e.p1);
-    if (!best || d.dist < best.dist) best = { name, e, dist: d.dist, t: d.t };
-  });
-  if (!best || best.dist > 70) return;   // clic trop loin d'une cotation
-
-  const dims = propertyData.dimensions = propertyData.dimensions || {};
-  const worldLen = BABYLON.Vector3.Distance(best.e.w0, best.e.w1);
-  const screenLen = Math.hypot(best.e.p1.x - best.e.p0.x, best.e.p1.y - best.e.p0.y) || 1;
-  const tolM = 12 * worldLen / screenLen;   // 12 px de tolerance, convertis en metres
-  const d = best.t * worldLen;              // distance du clic depuis le debut de l'arete
-  const MIN = 0.05;                         // on ne cree pas de cote plus courte que 5 cm
-
-  let segs = dims[best.name];
-
-  // Aucune chaine encore : le clic cree la premiere coupure.
-  if (!segs || !segs.length) {
-    if (d < MIN || worldLen - d < MIN) return;
-    dims[best.name] = [r2(d), r2(worldLen - d)];
-    hudUpdate();
-    flash('ed-cot-state', '✂️ ' + best.name + ' scindé en 2');
-    return;
-  }
-
-  // Clic sur une graduation existante -> on la retire (les 2 cotes fusionnent).
-  let cum = 0, bi = -1, bd = Infinity;
-  for (let i = 0; i < segs.length - 1; i++) {
-    cum += segs[i];
-    const dd = Math.abs(cum - d);
-    if (dd < bd) { bd = dd; bi = i; }
-  }
-  if (bi >= 0 && bd <= tolM) {
-    segs[bi] = r2(segs[bi] + segs[bi + 1]);
-    segs.splice(bi + 1, 1);
-    hudUpdate();
-    flash('ed-cot-state', '🔗 graduation retirée (' + segs.length + ' cotes)');
-    return;
-  }
-
-  // Sinon : on scinde la cote qui contient le clic.
-  cum = 0;
-  for (let i = 0; i < segs.length; i++) {
-    if (d < cum + segs[i]) {
-      const a = d - cum, b = segs[i] - a;
-      if (a < MIN || b < MIN) return;
-      segs.splice(i, 1, r2(a), r2(b));
-      hudUpdate();
-      flash('ed-cot-state', '✂️ scindé (' + segs.length + ' cotes)');
-      return;
-    }
-    cum += segs[i];
-  }
-}
-
-/* ---------- Export : le manifest complet, pret a deposer dans le repo ----- */
-function downloadManifest() {
-  if (!propertyData) return;
-  const blob = new Blob([JSON.stringify(propertyData, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'manifest.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-initEditor();
 
 /* ============================================================================
    ★ CONTRÔLEUR BOTTOM-SHEET MOBILE
