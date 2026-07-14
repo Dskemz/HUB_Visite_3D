@@ -64,9 +64,10 @@
     /* Carte blanche : angles ARRONDIS partout, seul le coin BAS-GAUCHE est
        coupe en biais -> c'est lui qui laisse voir la plaque. border-radius est
        conserve : le polygon ne fait que retirer ce coin. */
-    .card{background:#fff;border-radius:16px;margin-left:150px;min-height:84px;
-          display:flex;align-items:center;gap:.75rem;padding:.8rem 1.05rem .8rem 3.6rem;
-          clip-path:polygon(0 0, 100% 0, 100% 100%, 48px 100%, 0 calc(100% - 48px))}
+    /* Le biseau est trace en JS via clip-path:path() -> polygon() ne sait pas
+       arrondir les angles. border-radius reste le repli si le JS echoue. */
+    .card{background:#fff;border-radius:16px;margin-left:92px;min-height:84px;
+          display:flex;align-items:center;gap:.75rem;padding:.8rem 1.05rem .8rem 3.6rem}
 
     .mark{flex:0 0 auto;width:28px;height:28px;display:flex;align-items:center;justify-content:center}
     .mark svg{width:26px;height:26px}
@@ -103,8 +104,7 @@
 
     @media(max-width:600px){
       .wrap{padding:1.8rem 1rem}
-      .card{margin-left:84px;padding:.7rem .9rem .7rem 2.6rem;min-height:72px;gap:.55rem;
-            clip-path:polygon(0 0, 100% 0, 100% 100%, 34px 100%, 0 calc(100% - 34px))}
+      .card{margin-left:60px;padding:.7rem .9rem .7rem 2.6rem;min-height:72px;gap:.55rem}
       .plate{right:9px;top:9px}
       .mark{width:23px;height:23px}
       .mark svg{width:21px;height:21px}
@@ -295,6 +295,47 @@
       return true;
     }
 
+    /* ---------- Biseau bas-gauche, avec ses DEUX angles arrondis --------------
+       clip-path:polygon() ne produit que des angles vifs. On trace donc le
+       contour en path() : coins classiques au rayon r, et les deux sommets du
+       biseau adoucis par une courbe quadratique dont le point de controle est
+       le sommet vif lui-meme.
+       path() n'accepte pas de %, il faut les dimensions reelles -> on (re)trace
+       apres chaque rendu et a chaque redimensionnement.
+    -------------------------------------------------------------------------- */
+    function galber(){
+      var petit = window.innerWidth <= 600;
+      var c  = petit ? 34 : 48;   /* longueur du biseau */
+      var r  = petit ? 14 : 16;   /* rayon des angles normaux */
+      var rr = petit ? 9  : 12;   /* rayon des deux angles du biseau */
+      var k  = 0.7071 * rr;       /* projection du rayon sur la diagonale a 45 deg */
+
+      Array.prototype.forEach.call(document.querySelectorAll('.card'), function(el){
+        var b = el.getBoundingClientRect();
+        var W = Math.round(b.width), H = Math.round(b.height);
+        if (!W || !H) return;     /* vue masquee : rien a tracer */
+        var d = [
+          'M ' + r + ',0',
+          'L ' + (W-r) + ',0',
+          'Q ' + W + ',0 ' + W + ',' + r,                      /* haut-droit */
+          'L ' + W + ',' + (H-r),
+          'Q ' + W + ',' + H + ' ' + (W-r) + ',' + H,          /* bas-droit */
+          'L ' + (c+rr) + ',' + H,
+          'Q ' + c + ',' + H + ' ' + (c-k) + ',' + (H-k),      /* angle 1 du biseau */
+          'L ' + k + ',' + (H-c+k),
+          'Q 0,' + (H-c) + ' 0,' + (H-c-rr),                   /* angle 2 du biseau */
+          'L 0,' + r,
+          'Q 0,0 ' + r + ',0',                                 /* haut-gauche */
+          'Z'
+        ].join(' ');
+        el.style.clipPath = "path('" + d + "')";
+      });
+    }
+    var galberT;
+    window.addEventListener('resize', function(){
+      clearTimeout(galberT); galberT = setTimeout(galber, 80);
+    });
+
     /* ---------- Navigation ---------- */
     function montrer(id){
       ['vAgences','vVilles','vProjets'].forEach(function(v){
@@ -309,9 +350,10 @@
     function route(){
       var parts = location.hash.replace(/^#/,'').split('/').filter(Boolean);
       var A = (window.AGENCIES||{})[parts[0]];
-      if (!A) { renderAgences(document.getElementById('q').value); montrer('vAgences'); return; }
-      if (parts[1] && renderProjets(A, parts[1])) { montrer('vProjets'); return; }
-      renderVilles(A); montrer('vVilles');
+      if (!A)                                   { renderAgences(document.getElementById('q').value); montrer('vAgences'); }
+      else if (parts[1] && renderProjets(A, parts[1])) { montrer('vProjets'); }
+      else                                      { renderVilles(A); montrer('vVilles'); }
+      galber();   /* apres montrer() : une vue masquee mesure 0 */
     }
 
     /* ---------- Porte ---------- */
@@ -329,7 +371,9 @@
     document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')tryPwd();});
     try{if(sessionStorage.getItem('hub_ok')==='1')unlock();}catch(e){}
 
-    document.getElementById('q').addEventListener('input',function(e){ renderAgences(e.target.value); });
+    document.getElementById('q').addEventListener('input',function(e){
+      renderAgences(e.target.value); galber();
+    });
     Array.prototype.forEach.call(document.querySelectorAll('[data-home]'), function(b){
       b.addEventListener('click', function(){ go(''); });
     });
