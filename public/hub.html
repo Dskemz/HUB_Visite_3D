@@ -28,84 +28,100 @@
     .head h1{font-size:2rem;font-weight:800;margin-top:.4rem}
     .head p{color:#8b96ad;margin-top:.5rem;font-size:.92rem}
 
-    /* --- Barre d'outils : recherche + compteur --- */
-    .tools{display:flex;align-items:center;gap:.8rem;margin-top:1.8rem;flex-wrap:wrap}
-    .tools input{flex:1 1 220px;min-width:0;background:#111827;border:1px solid #212c44;color:#e8ecf6;border-radius:10px;padding:.68rem .95rem;font-size:.88rem;outline:none}
+    .tools{display:flex;align-items:center;gap:.8rem;margin-top:1.6rem;flex-wrap:wrap}
+    .tools input{flex:1 1 220px;min-width:0;background:#111827;border:1px solid #212c44;color:#e8ecf6;border-radius:10px;padding:.66rem .95rem;font-size:.88rem;outline:none}
     .tools input:focus{border-color:#33405f}
     .tools input::placeholder{color:#5b6580}
     .count{font-size:.78rem;color:#6f7c99;font-weight:600;white-space:nowrap}
 
-    /* --- Niveau 1 : une agence par ligne ------------------------------------
-       Bande coloree aux teintes de l'agence + carte blanche en surimpression,
-       raccordees par une encoche diagonale. Le fond garde navy -> accent, donc
-       chaque ligne reste identifiable au premier coup d'oeil. */
-    .grid{display:flex;flex-direction:column;gap:1.1rem;margin-top:1.4rem}
+    /* --- Niveau 1 : une agence par ligne -------------------------------------
+       Bande degradee navy -> accent + carte blanche raccordee par une encoche
+       diagonale. Logo, nom et compteur sur la meme ligne. */
+    .grid{display:flex;flex-direction:column;gap:.85rem;margin-top:1.3rem}
     .folder{position:relative;display:block;width:100%;text-align:left;cursor:pointer;
-            border:none;padding:0 0 7px 0;border-radius:22px;color:inherit;
-            box-shadow:0 10px 26px rgba(0,0,0,.34);
+            border:none;padding:0 0 6px 0;border-radius:18px;color:inherit;
+            box-shadow:0 8px 20px rgba(0,0,0,.32);
             transition:transform .16s ease,box-shadow .16s ease}
-    .folder:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(0,0,0,.46)}
+    .folder:hover{transform:translateY(-2px);box-shadow:0 13px 28px rgba(0,0,0,.44)}
     .folder:focus-visible{outline:2px solid #4a6cff;outline-offset:3px}
 
-    /* La carte blanche : coin haut-gauche taille en biais -> la couleur apparait */
-    .folder .card{background:#fff;color:#0f1524;border-radius:22px;margin-left:78px;
-                  min-height:128px;display:flex;align-items:center;gap:1.2rem;
-                  padding:1.4rem 1.5rem 1.4rem 3.2rem;
-                  clip-path:polygon(66px 0, 100% 0, 100% 100%, 0 100%, 0 66px)}
+    .folder .card{background:#fff;color:#0f1524;border-radius:18px;margin-left:62px;
+                  min-height:84px;display:flex;align-items:center;gap:.85rem;
+                  padding:1rem 1.2rem 1rem 2.3rem;
+                  clip-path:polygon(50px 0, 100% 0, 100% 100%, 0 100%, 0 50px)}
 
-    .folder .mark{flex:0 0 auto;width:44px;height:44px;display:flex;align-items:center;
+    .folder .mark{flex:0 0 auto;width:32px;height:32px;display:flex;align-items:center;
                   justify-content:center}
-    .folder .mark svg{width:38px;height:38px}
+    .folder .mark svg{width:29px;height:29px}
 
-    .folder .txt{flex:1 1 auto;min-width:0}
-    .folder .nm{display:block;font-size:1.08rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
-                color:#0f1524;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .folder .sub{display:block;font-size:.84rem;color:#5b6580;margin-top:.25rem;overflow:hidden;
-                 text-overflow:ellipsis;white-space:nowrap}
+    .folder .nm{font-size:.98rem;font-weight:800;letter-spacing:.045em;text-transform:uppercase;
+                color:#0f1524;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+                min-width:0}
+    /* Compteur juste a droite du nom */
+    .folder .badge{flex:0 0 auto;font-size:.73rem;font-weight:700;color:#5b6580;
+                   background:#eef1f6;border-radius:999px;padding:.24rem .6rem;white-space:nowrap}
 
-    .folder .side{flex:0 0 auto;display:flex;align-items:center;gap:.9rem}
-    .folder .sws{display:flex;gap:.35rem}
-    .folder .sw{width:18px;height:18px;border-radius:5px;border:1px solid rgba(0,0,0,.12)}
-    .folder .go{font-size:1.5rem;color:#c2cadb;line-height:1}
+    .folder .side{flex:0 0 auto;margin-left:auto;display:flex;align-items:center;gap:.85rem}
+    .folder .sws{display:flex;gap:.32rem}
+    .folder .sw{width:16px;height:16px;border-radius:5px;border:1px solid rgba(0,0,0,.12)}
+    .folder .go{font-size:1.35rem;color:#c2cadb;line-height:1}
     .folder:hover .go{color:#5b6580}
 
-    @media(max-width:620px){
-      .folder .card{margin-left:56px;padding:1.15rem 1.1rem 1.15rem 2.2rem;min-height:110px;
-                    gap:.85rem;clip-path:polygon(46px 0, 100% 0, 100% 100%, 0 100%, 0 46px)}
-      .folder .mark{width:34px;height:34px}
-      .folder .mark svg{width:30px;height:30px}
-      .folder .nm{font-size:.95rem;letter-spacing:.03em}
-      .folder .sub{font-size:.78rem}
-      .folder .sws{display:none}
-    }
-
-    /* --- Niveau 2 : projets d'une agence --- */
-    .crumb{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#8b96ad;margin-bottom:1.5rem;flex-wrap:wrap}
+    /* --- Fil d'Ariane --- */
+    .crumb{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#8b96ad;
+           margin-bottom:1.4rem;flex-wrap:wrap}
     .crumb button{background:none;border:none;color:#8b96ad;cursor:pointer;font-weight:600;padding:0}
     .crumb button:hover{color:#e8ecf6}
     .crumb .sep{color:#3d4763}
     .crumb .cur{color:#e8ecf6;font-weight:700}
 
-    .agbar{display:flex;align-items:center;gap:.8rem;padding:1.1rem 1.3rem;border-radius:14px;margin-bottom:1.4rem;color:#fff;font-weight:800;font-size:1.15rem;min-width:0}
-    .agbar svg{width:26px;height:26px;flex:0 0 auto}
+    .agbar{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.2rem;border-radius:16px;
+           margin-bottom:1.3rem;color:#fff;font-weight:800;font-size:1.05rem;min-width:0}
+    .agbar svg{width:24px;height:24px;flex:0 0 auto}
 
+    /* --- Niveau 2 : les villes --- */
+    .villes{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.85rem}
+    .ville{background:#111827;border:1px solid #212c44;border-radius:14px;padding:1.1rem 1.2rem;
+           cursor:pointer;text-align:left;width:100%;color:inherit;display:flex;
+           align-items:center;gap:.8rem;transition:transform .15s ease,border-color .15s ease}
+    .ville:hover{transform:translateY(-2px);border-color:#33405f}
+    .ville .pin{width:34px;height:34px;border-radius:9px;flex:0 0 auto;display:flex;
+                align-items:center;justify-content:center;font-size:1rem;color:#fff}
+    .ville .vt{flex:1 1 auto;min-width:0}
+    .ville .vn{font-weight:700;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;
+               white-space:nowrap}
+    .ville .vc{font-size:.76rem;color:#6f7c99;margin-top:.15rem}
+    .ville .go{color:#3d4763;font-size:1.2rem;flex:0 0 auto}
+    .ville:hover .go{color:#8b96ad}
+
+    /* --- Niveau 3 : les projets --- */
     .plist{display:flex;flex-direction:column;gap:.7rem}
-    .proj{display:flex;align-items:center;gap:1rem;background:#111827;border:1px solid #212c44;border-radius:12px;padding:1rem 1.1rem;flex-wrap:wrap}
+    .proj{display:flex;align-items:center;gap:1rem;background:#111827;border:1px solid #212c44;
+          border-radius:12px;padding:1rem 1.1rem;flex-wrap:wrap}
     .proj:hover{border-color:#33405f}
-    .proj .chip{width:42px;height:42px;border-radius:9px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#fff}
+    .proj .chip{width:40px;height:40px;border-radius:9px;flex:0 0 auto;display:flex;
+                align-items:center;justify-content:center;font-size:1rem;color:#fff}
     .proj .txt{flex:1 1 160px;min-width:0}
-    .proj .pn{font-weight:700;font-size:.95rem;overflow:hidden;text-overflow:ellipsis}
-    .proj .pid{font-size:.75rem;color:#6f7c99;font-family:ui-monospace,monospace}
+    .proj .pn{font-weight:700;font-size:.93rem;overflow:hidden;text-overflow:ellipsis}
+    .proj .pid{font-size:.74rem;color:#6f7c99;font-family:ui-monospace,monospace}
     .proj .acts{display:flex;gap:.55rem;flex:0 0 auto}
-    .proj .acts a{padding:.6rem 1rem;border-radius:9px;font-weight:600;font-size:.85rem;white-space:nowrap}
+    .proj .acts a{padding:.58rem 1rem;border-radius:9px;font-weight:600;font-size:.85rem;
+                  white-space:nowrap}
     .proj .acts .primary{background:#fff;color:#0a0f1c}
     .proj .acts .ghost{border:1px solid #2c3854;color:#c7d0e4}
     .proj .acts a:hover{opacity:.85}
 
     .empty{color:#6f7c99;font-size:.9rem;padding:2rem 0;text-align:center}
-    .foot{margin-top:2.5rem;color:#586178;font-size:.8rem}
-    @media(max-width:560px){
+    .foot{margin-top:2.4rem;color:#586178;font-size:.8rem;line-height:1.7}
+
+    @media(max-width:620px){
       .wrap{padding:2rem 1rem}
+      .folder .card{margin-left:48px;padding:.85rem 1rem .85rem 1.8rem;min-height:74px;
+                    gap:.65rem;clip-path:polygon(38px 0, 100% 0, 100% 100%, 0 100%, 0 38px)}
+      .folder .mark{width:26px;height:26px}
+      .folder .mark svg{width:24px;height:24px}
+      .folder .nm{font-size:.86rem;letter-spacing:.03em}
+      .folder .sws{display:none}
       .proj .acts{flex:1 1 100%}
       .proj .acts a{flex:1;text-align:center}
     }
@@ -123,12 +139,13 @@
   </div>
 
   <div class="wrap" id="app" style="display:none">
-    <!-- Niveau 1 : les agences -->
-    <div id="viewAgences">
+
+    <!-- Niveau 1 : agences -->
+    <div id="vAgences">
       <div class="head">
         <div class="eyebrow">Panneau interne</div>
         <h1>Agences</h1>
-        <p>Un dossier par agence. Ouvre-en un pour voir ses projets (annonce + visite 3D).</p>
+        <p>Un dossier par agence. Ouvre-en un pour voir ses villes, puis ses projets.</p>
       </div>
       <div class="tools">
         <input id="q" placeholder="Rechercher une agence…">
@@ -136,50 +153,48 @@
       </div>
       <div class="grid" id="grid"></div>
       <div class="empty" id="noRes" style="display:none">Aucune agence ne correspond.</div>
-      <div class="foot">Nouvelle agence : un bloc dans <b>branding.js</b> + un <b>index-&lt;id&gt;.html</b> — le dossier apparaît ici tout seul.</div>
+      <div class="foot">Nouvelle agence : un bloc dans <b>branding.js</b> + un
+        <b>index-&lt;id&gt;.html</b> — le dossier apparaît ici tout seul.</div>
     </div>
 
-    <!-- Niveau 2 : les projets d'une agence -->
-    <div id="viewProjets" style="display:none">
+    <!-- Niveau 2 : villes -->
+    <div id="vVilles" style="display:none">
       <div class="crumb">
-        <button id="back">&larr; Toutes les agences</button>
+        <button data-nav="">&larr; Toutes les agences</button>
         <span class="sep">/</span>
-        <span class="cur" id="curName"></span>
+        <span class="cur" id="vAgName"></span>
       </div>
-      <div class="agbar" id="agbar"></div>
-      <div class="plist" id="plist"></div>
-      <div class="foot">Nouveau projet : ajoute un dossier dans <b>/properties/</b>, puis une entrée
-        <b>properties</b> dans le bloc de l'agence (branding.js).</div>
+      <div class="agbar" id="vAgBar"></div>
+      <div class="villes" id="villes"></div>
+      <div class="foot">Une ville apparaît dès qu'un projet de l'agence lui est rattaché
+        (champ <b>city</b>).</div>
     </div>
+
+    <!-- Niveau 3 : projets -->
+    <div id="vProjets" style="display:none">
+      <div class="crumb">
+        <button data-nav="">&larr; Toutes les agences</button>
+        <span class="sep">/</span>
+        <button id="upVille"></button>
+        <span class="sep">/</span>
+        <span class="cur" id="pVilleName"></span>
+      </div>
+      <div class="agbar" id="pAgBar"></div>
+      <div class="plist" id="plist"></div>
+      <div class="foot">Nouveau projet : un dossier dans <b>/properties/</b>, puis une entrée dans
+        <b>properties</b> du bloc agence (branding.js) :<br>
+        <b>{ id:'demo-x', name:'Maison 5 pièces', city:'Épernon', page:'index-xxx.html' }</b></div>
+    </div>
+
   </div>
 
   <script>
     var HUB_PASSWORD = 'visite2026';   /* a changer */
 
-    /* --- Porte --- */
-    function unlock(){
-      document.getElementById('gate').style.display='none';
-      document.getElementById('app').style.display='block';
-      renderAgences();
-    }
-    function tryPwd(){
-      var v=document.getElementById('pwd').value;
-      if(v===HUB_PASSWORD){try{sessionStorage.setItem('hub_ok','1');}catch(e){}unlock();}
-      else{document.getElementById('err').textContent='Mot de passe incorrect.';}
-    }
-    document.getElementById('go').addEventListener('click',tryPwd);
-    document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')tryPwd();});
-    try{if(sessionStorage.getItem('hub_ok')==='1')unlock();}catch(e){}
-
-    /* --- Projets d'une agence -------------------------------------------------
-       Si le bloc agence declare un tableau `properties`, on l'utilise. Sinon on
-       retombe sur l'unique `property` historique. Ajouter un 2e appartement ne
-       demandera donc AUCUNE retouche de ce fichier : juste une ligne dans
-       branding.js.
-         properties: [
-           { id:'demo-rambouillet', name:'Appartement 2 pieces', page:'index-laforet.html' },
-           { id:'demo-strasbourg',  name:'Maison 5 pieces',      page:'index-laforet-02.html' }
-         ]
+    /* ---------- Donnees -------------------------------------------------------
+       Chaque agence peut declarer un tableau `properties`. Chaque projet porte
+       une `city` : c'est elle qui cree le sous-dossier ville. Sans tableau, on
+       retombe sur l'unique `property` historique (compat).
     -------------------------------------------------------------------------- */
     function projetsDe(A){
       if (A.properties && A.properties.length) {
@@ -187,53 +202,63 @@
           return {
             id:   p.id,
             name: p.name || p.id,
+            city: p.city || 'Autres',
             page: p.page || ('index-' + A.id + '.html')
           };
         });
       }
       return [{
         id:   A.property || 'demo-rambouillet',
-        name: 'Appartement 2 pièces — Rambouillet',
+        name: 'Appartement 2 pièces',
+        city: 'Rambouillet',
         page: 'index-' + A.id + '.html'
       }];
+    }
+
+    /* Regroupe les projets par ville -> [{ville, projets:[…]}] */
+    function villesDe(A){
+      var par = {};
+      projetsDe(A).forEach(function(p){
+        (par[p.city] = par[p.city] || []).push(p);
+      });
+      return Object.keys(par).sort(function(a,b){ return a.localeCompare(b,'fr'); })
+        .map(function(v){ return { ville:v, projets:par[v] }; });
     }
 
     function agences(){
       var ag = window.AGENCIES || {};
       return Object.keys(ag).map(function(k){ return ag[k]; });
     }
+    function svgDe(A){
+      var l = (window.brandLogoHTML && window.brandLogoHTML(A)) || '';
+      return (l.match(/<svg[\s\S]*?<\/svg>/) || [''])[0];
+    }
+    function slug(s){
+      return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+              .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    }
 
-    /* --- Niveau 1 --- */
+    /* ---------- Niveau 1 : agences ---------- */
     function renderAgences(filtre){
       var grid = document.getElementById('grid');
-      var list = agences();
+      var toutes = agences();
       var f = (filtre||'').trim().toLowerCase();
-      if (f) list = list.filter(function(A){
+      var list = f ? toutes.filter(function(A){
         return (A.name+' '+A.id).toLowerCase().indexOf(f) !== -1;
-      });
+      }) : toutes;
 
       grid.innerHTML = '';
       list.forEach(function(A){
-        var logo = (window.brandLogoHTML && window.brandLogoHTML(A)) || A.name;
-        /* brandLogoHTML renvoie <svg>…</svg>NOM : on isole le svg pour maitriser la typo */
-        var svg = (logo.match(/<svg[\s\S]*?<\/svg>/) || [''])[0];
-
-        var projets = projetsDe(A);
-        var n = projets.length;
-
+        var n = projetsDe(A).length;
         var b = document.createElement('button');
         b.className = 'folder';
-        /* Le degrade navy -> accent est le fond de la bande ; la carte blanche
-           le recouvre sauf a gauche et dans l'encoche. */
-        b.style.background = 'linear-gradient(120deg,' + A.navy + ' 0%,' + A.accent + ' 100%)';
+        b.style.background = 'linear-gradient(120deg,'+A.navy+' 0%,'+A.accent+' 100%)';
         b.setAttribute('aria-label', 'Ouvrir ' + A.name);
         b.innerHTML =
-          '<div class="card">' +
-            '<span class="mark" style="color:'+A.navy+'">'+svg+'</span>' +
-            '<span class="txt">' +
-              '<span class="nm">'+A.name+'</span>' +
-              '<span class="sub">'+n+' projet'+(n>1?'s':'')+' \u00b7 '+projets[0].name+'</span>' +
-            '</span>' +
+          '<span class="card">' +
+            '<span class="mark" style="color:'+A.navy+'">'+svgDe(A)+'</span>' +
+            '<span class="nm">'+A.name+'</span>' +
+            '<span class="badge">'+n+' projet'+(n>1?'s':'')+'</span>' +
             '<span class="side">' +
               '<span class="sws">' +
                 '<span class="sw" style="background:'+A.navy+'"></span>' +
@@ -241,32 +266,55 @@
               '</span>' +
               '<span class="go">&rsaquo;</span>' +
             '</span>' +
-          '</div>';
-        b.addEventListener('click', function(){ ouvrir(A.id); });
+          '</span>';
+        b.addEventListener('click', function(){ go(A.id); });
         grid.appendChild(b);
       });
 
-      document.getElementById('count').textContent =
-        list.length + ' / ' + agences().length + ' agences';
+      document.getElementById('count').textContent = list.length+' / '+toutes.length+' agences';
       document.getElementById('noRes').style.display = list.length ? 'none' : 'block';
     }
 
-    /* --- Niveau 2 --- */
-    function ouvrir(id){
-      var A = (window.AGENCIES||{})[id];
-      if (!A) return;
+    function barre(el, A){
+      el.style.background = A.navy;
+      el.innerHTML = svgDe(A) + '<span>' + A.name + '</span>';
+    }
 
-      var logo = (window.brandLogoHTML && window.brandLogoHTML(A)) || A.name;
-      var svg  = (logo.match(/<svg[\s\S]*?<\/svg>/) || [''])[0];
+    /* ---------- Niveau 2 : villes ---------- */
+    function renderVilles(A){
+      document.getElementById('vAgName').textContent = A.name;
+      barre(document.getElementById('vAgBar'), A);
 
-      document.getElementById('curName').textContent = A.name;
-      var bar = document.getElementById('agbar');
-      bar.style.background = A.navy;
-      bar.innerHTML = svg + '<span>' + A.name + '</span>';
+      var box = document.getElementById('villes');
+      box.innerHTML = '';
+      villesDe(A).forEach(function(v){
+        var n = v.projets.length;
+        var b = document.createElement('button');
+        b.className = 'ville';
+        b.innerHTML =
+          '<span class="pin" style="background:'+A.accent+'">&#9679;</span>' +
+          '<span class="vt"><span class="vn">'+v.ville+'</span>' +
+            '<span class="vc">'+n+' projet'+(n>1?'s':'')+'</span></span>' +
+          '<span class="go">&rsaquo;</span>';
+        b.addEventListener('click', function(){ go(A.id, slug(v.ville)); });
+        box.appendChild(b);
+      });
+    }
+
+    /* ---------- Niveau 3 : projets ---------- */
+    function renderProjets(A, villeSlug){
+      var v = villesDe(A).filter(function(x){ return slug(x.ville) === villeSlug; })[0];
+      if (!v) return false;
+
+      document.getElementById('pVilleName').textContent = v.ville;
+      var up = document.getElementById('upVille');
+      up.textContent = A.name;
+      up.onclick = function(){ go(A.id); };
+      barre(document.getElementById('pAgBar'), A);
 
       var pl = document.getElementById('plist');
       pl.innerHTML = '';
-      projetsDe(A).forEach(function(p){
+      v.projets.forEach(function(p){
         var row = document.createElement('div');
         row.className = 'proj';
         row.innerHTML =
@@ -279,29 +327,52 @@
           '</span>';
         pl.appendChild(row);
       });
+      return true;
+    }
 
-      document.getElementById('viewAgences').style.display = 'none';
-      document.getElementById('viewProjets').style.display = 'block';
-      location.hash = id;
+    /* ---------- Navigation (hash : #agence ou #agence/ville) ---------- */
+    function montrer(id){
+      ['vAgences','vVilles','vProjets'].forEach(function(v){
+        document.getElementById(v).style.display = (v === id) ? 'block' : 'none';
+      });
       window.scrollTo(0,0);
     }
 
-    function retour(){
-      document.getElementById('viewProjets').style.display = 'none';
-      document.getElementById('viewAgences').style.display = 'block';
-      location.hash = '';
-      window.scrollTo(0,0);
+    function go(agId, villeSlug){
+      location.hash = agId ? (villeSlug ? agId+'/'+villeSlug : agId) : '';
+      route();
     }
 
-    document.getElementById('back').addEventListener('click', retour);
-    document.getElementById('q').addEventListener('input', function(e){
-      renderAgences(e.target.value);
+    function route(){
+      var h = location.hash.replace(/^#/,'');
+      var parts = h ? h.split('/') : [];
+      var A = (window.AGENCIES||{})[parts[0]];
+
+      if (!A) { renderAgences(document.getElementById('q').value); montrer('vAgences'); return; }
+      if (parts[1] && renderProjets(A, parts[1])) { montrer('vProjets'); return; }
+      renderVilles(A); montrer('vVilles');
+    }
+
+    /* ---------- Porte ---------- */
+    function unlock(){
+      document.getElementById('gate').style.display='none';
+      document.getElementById('app').style.display='block';
+      route();
+    }
+    function tryPwd(){
+      var v=document.getElementById('pwd').value;
+      if(v===HUB_PASSWORD){try{sessionStorage.setItem('hub_ok','1');}catch(e){}unlock();}
+      else{document.getElementById('err').textContent='Mot de passe incorrect.';}
+    }
+    document.getElementById('go').addEventListener('click',tryPwd);
+    document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')tryPwd();});
+    try{if(sessionStorage.getItem('hub_ok')==='1')unlock();}catch(e){}
+
+    document.getElementById('q').addEventListener('input',function(e){ renderAgences(e.target.value); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-nav=""]'), function(b){
+      b.addEventListener('click', function(){ go(''); });
     });
-    /* Le bouton « precedent » du navigateur ramene a la liste */
-    window.addEventListener('hashchange', function(){
-      var h = location.hash.replace('#','');
-      if (h && (window.AGENCIES||{})[h]) ouvrir(h); else retour();
-    });
+    window.addEventListener('hashchange', route);
   </script>
 </body>
 </html>
