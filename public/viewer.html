@@ -3272,6 +3272,26 @@ function hudProject(world) {
   return { x: p.x * (cv.clientWidth / w), y: p.y * (cv.clientHeight / h) };
 }
 
+/* Inverse de hudProject, valable en vue de dessus (projection affine).
+   On sonde 3 points connus et on retourne le systeme 2x2 : aucune dependance
+   aux conventions internes de Babylon (scaling materiel, viewport...). */
+function hudUnproject(px, py) {
+  if (!modelBounds) return null;
+  const yF = modelBounds.min.y;
+  const O  = hudProject(new BABYLON.Vector3(0, yF, 0));
+  const X  = hudProject(new BABYLON.Vector3(1, yF, 0));
+  const Z  = hudProject(new BABYLON.Vector3(0, yF, 1));
+  const a  = { x: X.x - O.x, y: X.y - O.y };     // ecran par unite de monde X
+  const b  = { x: Z.x - O.x, y: Z.y - O.y };     // ecran par unite de monde Z
+  const d  = { x: px  - O.x, y: py  - O.y };
+  const det = a.x * b.y - a.y * b.x;
+  if (Math.abs(det) < 1e-9) return null;          // degenere (pas en vue de dessus)
+  return new BABYLON.Vector3(
+    (d.x * b.y - d.y * b.x) / det, yF,
+    (a.x * d.y - a.y * d.x) / det
+  );
+}
+
 function hudFormat(worldLen) {
   return (worldLen * HUD.unitScale).toFixed(HUD.unitDecimals).replace('.', ',') + HUD.unitSuffix;
 }
@@ -3332,7 +3352,9 @@ function hudRoomLabels() {
       // Emprise (pour l'isolation) : bounds/rect manifest, sinon node de meubles
       let rect = hudNormRect(r.bounds || r.rect);
       if (!rect && r.id && roomNodes[r.id]) { const rr = hudRoomRect(roomNodes[r.id]); if (rr) rect = rr; }
-      out.push({ label: name, id: r.id, rect, world: new BABYLON.Vector3(x, (y != null ? y : yFloor), z) });
+      out.push({ label: name, id: r.id, rect, ref: r,
+                 style: { color: r.color || null, size: r.fontSize || null },
+                 world: new BABYLON.Vector3(x, (y != null ? y : yFloor), z) });
     });
     if (out.length) return out;
   }
@@ -3416,12 +3438,14 @@ function hudDimension(g, e1, e2, n, text, offParam) {
   g.appendChild(t);
 }
 
-function hudRoomLabel(g, p, label, dim) {
+function hudRoomLabel(g, p, label, dim, style) {
+  const col  = (style && style.color) || HUD.roomColor;   // surcharge manifest
+  const size = (style && style.size)  || HUD.roomFont;    // surcharge manifest
   const t = svgEl('text', {
     x: p.x, y: p.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
-    'font-family': 'system-ui, sans-serif', 'font-size': HUD.roomFont * hudScale,
+    'font-family': 'system-ui, sans-serif', 'font-size': size * hudScale,
     'font-weight': 700, 'letter-spacing': '0.04em',
-    fill: HUD.roomColor, stroke: HUD.halo, 'stroke-width': 3.5 * hudScale, 'paint-order': 'stroke',
+    fill: col, stroke: HUD.halo, 'stroke-width': 3.5 * hudScale, 'paint-order': 'stroke',
     opacity: dim ? 0.4 : 1
   });
   t.textContent = (label || '').toUpperCase();
@@ -3511,11 +3535,11 @@ function hudUpdate() {
     hudDrawMask(g, Q);                                   // assombrit les autres pièces
     hudQuadDimensions(g, Q, hudFormat(r[2] - r[0]),      // cotations de la pièce (4 côtés)
                       hudFormat(r[3] - r[1]), HUD.roomDimOffset * hudOffsetFactor());
-    hudRoomLabel(g, hudProject(hudIsolatedRoom.world), hudIsolatedRoom.label); // libellé actif
+    hudRoomLabel(g, hudProject(hudIsolatedRoom.world), hudIsolatedRoom.label, false, hudIsolatedRoom.style); // libellé actif
     // Autres libellés, atténués, cliquables pour basculer directement
     labels.forEach(e => {
       if (e === hudIsolatedRoom || (e.id && e.id === hudIsolatedRoom.id)) return;
-      hudMakeIsolable(hudRoomLabel(g, hudProject(e.world), e.label, true), e);
+      hudMakeIsolable(hudRoomLabel(g, hudProject(e.world), e.label, true, e.style), e);
     });
     return;
   }
@@ -3554,7 +3578,7 @@ function hudUpdate() {
   drawSide('left',   leftE,  { x: -1, y: 0 }, false, wDepth);
   drawSide('right',  rightE, { x: 1, y: 0 },  false, wDepth);
 
-  labels.forEach(e => hudMakeIsolable(hudRoomLabel(g, hudProject(e.world), e.label), e));
+  labels.forEach(e => hudMakeIsolable(hudRoomLabel(g, hudProject(e.world), e.label, false, e.style), e));
 }
 
 function setHudVisible(on) {
@@ -3775,6 +3799,8 @@ function computeTopViewRadiusForViewport(viewportWidth) {
   return Math.max(distForDepth, distForWidth) * CONFIG.topViewPadding;
 }
 
+let topViewZoom = 1;   // 1 = cadrage nominal. Pilote par l'editeur uniquement.
+
 /* Passer en mode orthographique avec cadrage sur le modèle */
 function switchToOrthographic() {
   if (!modelBounds) return;
@@ -3786,8 +3812,10 @@ function switchToOrthographic() {
   const depth = modelBounds.max.z - modelBounds.min.z;
   const aspect = engine.getAspectRatio(camera);
 
-  // Prendre la plus grande dimension pour que tout rentre
-  const halfSize = Math.max(width, depth) / 2 * 1.15; // 15% de marge
+  // Prendre la plus grande dimension pour que tout rentre.
+  // topViewZoom (editeur seulement) resserre la boite ortho : le GLB ET les
+  // cotations grossissent ensemble, puisque le HUD projette via cette camera.
+  const halfSize = Math.max(width, depth) / 2 * 1.15 / (topViewZoom || 1);
 
   camera.orthoTop = halfSize;
   camera.orthoBottom = -halfSize;
@@ -3843,16 +3871,15 @@ function createAxesHelper() {
    ZOOM VUE DE DESSUS — éditeur uniquement (?edit=1)
    ============================================================================ */
 const EDIT_MODE = new URLSearchParams(location.search).get('edit') === '1';
-let topViewZoom = 1;
 
 function setTopViewZoom(z) {
-  topViewZoom = parseFloat(z);
-  const svg = document.getElementById('hud-svg');
-  if (svg) {
-    svg.style.transform = 'scale(' + topViewZoom + ')';
-    svg.style.transformOrigin = 'center center';
+  topViewZoom = parseFloat(z) || 1;
+  if (camera && camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+    switchToOrthographic();   // recalcule la boite ortho avec le nouveau zoom
+    if (hudVisible) hudUpdate();
   }
-  document.getElementById('topview-zoom-val').textContent = Math.round(topViewZoom * 100);
+  const v = document.getElementById('topview-zoom-val');
+  if (v) v.textContent = Math.round(topViewZoom * 100);
 }
 
 function showTopViewZoomCtrl(show) {

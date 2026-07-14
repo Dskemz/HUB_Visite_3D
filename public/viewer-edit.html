@@ -25,9 +25,10 @@
     /* Panneau d'edition, HORS du viewer */
     #side{width:330px;flex:0 0 330px;background:#111827;border-left:1px solid #212c44;
           display:flex;flex-direction:column;overflow:hidden;transition:width .05s linear}
-    #resize-handle{width:8px;background:#0d1220;border-left:1px solid #1c2740;border-right:1px solid #2c3854;
-                   cursor:ew-resize;flex:0 0 8px;opacity:0;transition:opacity .15s}
-    #side:hover #resize-handle{opacity:1}
+    #resize-handle{width:12px;flex:0 0 12px;cursor:ew-resize;background:#0d1220;
+                   border-left:1px solid #1c2740;border-right:1px solid #2c3854;
+                   display:flex;align-items:center;justify-content:center;touch-action:none}
+    #resize-handle::before{content:'';width:2px;height:28px;border-radius:2px;background:#3a4666}
     #resize-handle:hover{background:#1a2438}
     #drag-overlay{position:fixed;inset:0;display:none;z-index:999;cursor:ew-resize}
     #drag-overlay.active{display:block}
@@ -91,6 +92,7 @@
       <div style="display:flex;gap:.35rem;flex:1;">
         <button class="tab on" id="t-pov" onclick="tab('pov')" style="flex:1;">POV</button>
         <button class="tab"    id="t-cot" onclick="tab('cot')" style="flex:1;">Cotations</button>
+        <button class="tab"    id="t-piece" onclick="tab('piece')" style="flex:1;">Pièces</button>
       </div>
       <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein ecran" style="flex:0 0 auto;">⛶</button>
     </div>
@@ -115,6 +117,12 @@
           · <b>clic sur une graduation</b> → elle disparaît, les deux cotes fusionnent.<br><br>
           Aucun calcul, aucune saisie.</p>
         <div class="list" id="cot-list"></div>
+      </div>
+      <div id="p-piece" hidden>
+        <p class="hint">Passe le viewer en <b>vue de dessus</b>.
+          Renomme, change la couleur ou la taille — l'effet est immédiat sur le plan.<br><br>
+          <b>Placer</b> : clique le bouton, puis clique sur le plan à l'endroit voulu.</p>
+        <div class="list" id="piece-list"></div>
       </div>
     </div>
 
@@ -183,7 +191,53 @@ const PONT = `
   }
 
   let onCot = false;
+  let onRooms = false;    // onglet Pieces actif
+  let placeIdx = -1;      // piece en attente d'un clic de placement
   let undoStack = [];
+
+  function majCurseur(){
+    const s = document.getElementById('hud-svg');
+    if (!s) return;
+    const actif = onCot || onRooms;
+    s.style.pointerEvents = actif ? 'auto' : '';
+    s.style.cursor        = (onRooms && placeIdx >= 0) ? 'crosshair'
+                          : (onCot ? 'crosshair' : '');
+  }
+
+  /* Les libelles peuvent etre absents du manifest (deduits des meubles).
+     On les materialise pour qu'ils deviennent editables ET exportables. */
+  function assurerPieces(){
+    if (Array.isArray(propertyData.roomLabels) && propertyData.roomLabels.length) return;
+    const yF = modelBounds ? modelBounds.min.y : 0;
+    propertyData.roomLabels = (hudRoomLabels() || []).map(function(e){
+      return { id: e.id || undefined, name: e.label,
+               position: [ Math.round(e.world.x*100)/100, yF, Math.round(e.world.z*100)/100 ] };
+    });
+  }
+
+  function posDe(r){
+    const c = r.position || r.coords || r.xz;
+    if (Array.isArray(c)) return (c.length>=3) ? [c[0],c[1],c[2]] : [c[0],0,c[1]];
+    return [r.x, r.y, r.z];
+  }
+
+  /* Deuxieme ecouteur, independant de clicCotation : il ne fait rien tant
+     qu'aucune piece n'attend d'etre placee. */
+  function clicPiece(ev){
+    if (!onRooms || placeIdx < 0) return;
+    const svg = document.getElementById('hud-svg');
+    const r = svg.getBoundingClientRect();
+    const w = hudUnproject(ev.clientX - r.left, ev.clientY - r.top);
+    if (!w) return;
+    const cible = propertyData.roomLabels[placeIdx];
+    if (!cible) return;
+    cible.position = [ Math.round(w.x*100)/100, w.y, Math.round(w.z*100)/100 ];
+    ['x','y','z','coords','xz'].forEach(function(k){ delete cible[k]; });
+    placeIdx = -1;
+    majCurseur();
+    hudUpdate();
+    parent.__edEvent('piece','placee');
+  }
 
   function sauvegarder(){
     undoStack.push(JSON.parse(JSON.stringify(propertyData.dimensions || {})));
@@ -248,6 +302,7 @@ const PONT = `
 
     const svg = document.getElementById('hud-svg');
     if (svg) svg.addEventListener('click', clicCotation);
+    if (svg) svg.addEventListener('click', clicPiece);
 
     window.__ed = {
       nom: function(){ return propertyData.name || 'Visite 3D'; },
@@ -292,9 +347,38 @@ const PONT = `
 
       editerCotations: function(on){
         onCot = !!on;
-        const s = document.getElementById('hud-svg');
-        if (s){ s.style.pointerEvents = on ? 'auto' : ''; s.style.cursor = on ? 'crosshair' : ''; }
+        majCurseur();
       },
+
+      editerPieces: function(on){
+        onRooms = !!on;
+        if (!on) placeIdx = -1;
+        majCurseur();
+      },
+
+      pieces: function(){
+        assurerPieces();
+        return propertyData.roomLabels.map(function(r, i){
+          const p = posDe(r);
+          return { i:i,
+                   name:  r.name || r.label || r.id || '',
+                   color: r.color || '',
+                   size:  r.fontSize || 0,
+                   pos:   [ p[0], p[2] ] };
+        });
+      },
+      renommer:   function(i,v){ assurerPieces(); propertyData.roomLabels[i].name = v; hudUpdate(); },
+      setCouleur: function(i,v){ assurerPieces();
+                                 if (v) propertyData.roomLabels[i].color = v;
+                                 else   delete propertyData.roomLabels[i].color;
+                                 hudUpdate(); },
+      setTaille:  function(i,v){ assurerPieces();
+                                 v = parseFloat(v);
+                                 if (v > 0) propertyData.roomLabels[i].fontSize = v;
+                                 else       delete propertyData.roomLabels[i].fontSize;
+                                 hudUpdate(); },
+      armerPlacement: function(i){ placeIdx = i; majCurseur(); },
+      enVueDeDessus:  function(){ return !!(typeof hudVisible !== 'undefined' && hudVisible); },
 
       manifest: function(){ return JSON.stringify(propertyData, null, 2); },
       undo: function(){
@@ -343,6 +427,7 @@ window.__edPret = function(){
   ed.editerCotations(mode === 'cot');
 };
 window.__edEvent = function(kind, what){
+  if (kind === 'piece'){ flash('📍 Libellé déplacé'); refresh(); return; }
   if (kind === 'cot'){
     if (what === 'undo') flash('↶ Annulé');
     else flash(what === 'fusion' ? '🔗 Graduation retirée' : '✂️ Cotation scindée');
@@ -350,32 +435,46 @@ window.__edEvent = function(kind, what){
   }
 };
 /* Resize du panneau lateral */
-let isResizing = false;
+/* Resize du panneau.
+   Piege : pendant le glissement le curseur survole l'IFRAME du viewer ; les
+   evenements souris partent alors dans le document de l'iframe et le parent
+   n'entend plus rien. D'ou (1) setPointerCapture, qui force tous les events a
+   revenir sur la poignee, et (2) un overlay plein ecran au-dessus de l'iframe. */
+(function(){
+  const handle  = document.getElementById('resize-handle');
+  const overlay = document.getElementById('drag-overlay');
+  const side    = document.getElementById('side');
+  const stage   = document.getElementById('stage');
 
-document.getElementById('resize-handle').addEventListener('mousedown', function(e){
-  isResizing = true;
-  document.body.style.userSelect = 'none';
-  const side = document.getElementById('side');
-  const startX = e.clientX;
-  const startW = side.offsetWidth;
-  
-  const moveHandler = function(em){
-    if (!isResizing) return;
-    const newW = Math.max(250, Math.min(window.innerWidth - 200, startW + (startX - em.clientX)));
-    side.style.width = newW + 'px';
-    side.style.flex = '0 0 ' + newW + 'px';
-  };
-  
-  const upHandler = function(){
-    isResizing = false;
-    document.body.style.userSelect = 'auto';
-    document.removeEventListener('mousemove', moveHandler);
-    document.removeEventListener('mouseup', upHandler);
-  };
-  
-  document.addEventListener('mousemove', moveHandler);
-  document.addEventListener('mouseup', upHandler);
-});
+  handle.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);      // <- l'iframe ne vole plus les events
+    overlay.classList.add('active');
+    document.body.style.userSelect = 'none';
+
+    const startX = e.clientX;
+    const startW = side.offsetWidth;
+
+    function move(em){
+      const w = Math.max(260, Math.min(window.innerWidth - 260, startW + (startX - em.clientX)));
+      side.style.flex = '0 0 ' + w + 'px';
+      side.style.width = w + 'px';
+      stage.style.flex = '1 1 auto';
+      isExpanded = false;
+    }
+    function up(){
+      overlay.classList.remove('active');
+      document.body.style.userSelect = '';
+      handle.releasePointerCapture(e.pointerId);
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+    }
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  });
+})();
 
 let isExpanded = false;
 function toggleExpand(){
@@ -407,11 +506,15 @@ document.addEventListener('keydown', function(e){
 /* -------- UI ------------------------------------------------------------- */
 function tab(m){
   mode = m;
-  document.getElementById('t-pov').classList.toggle('on', m==='pov');
-  document.getElementById('t-cot').classList.toggle('on', m==='cot');
-  document.getElementById('p-pov').hidden = (m!=='pov');
-  document.getElementById('p-cot').hidden = (m!=='cot');
-  if (ed) ed.editerCotations(m==='cot');
+  ['pov','cot','piece'].forEach(function(k){
+    document.getElementById('t-'+(k==='piece'?'piece':k)).classList.toggle('on', m===k);
+    document.getElementById('p-'+(k==='piece'?'piece':k)).hidden = (m!==k);
+  });
+  if (ed){
+    ed.editerCotations(m==='cot');
+    ed.editerPieces(m==='piece');
+    if (m==='piece') refresh();
+  }
 }
 
 function v(id){ return (document.getElementById(id).value || '').trim(); }
@@ -506,6 +609,54 @@ function refresh(){
     }
     cl.appendChild(row);
   });
+
+  const ql = document.getElementById('piece-list');
+  if (ql){
+    ql.innerHTML = '';
+    ed.pieces().forEach(function(p){
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.style.flexWrap = 'wrap';
+
+      const nom = document.createElement('input');
+      nom.value = p.name;
+      nom.style.cssText = 'flex:1 1 100%;margin-bottom:.35rem;';
+      nom.onchange = function(){ ed.renommer(p.i, nom.value); flash('✏️ Renommé'); };
+      row.appendChild(nom);
+
+      const col = document.createElement('input');
+      col.type = 'color';
+      col.value = p.color || '#0046FE';
+      col.title = 'Couleur du texte';
+      col.style.cssText = 'flex:0 0 34px;height:28px;padding:2px;margin:0 .3rem 0 0;';
+      col.oninput = function(){ ed.setCouleur(p.i, col.value); };
+      row.appendChild(col);
+
+      const raz = document.createElement('button');
+      raz.textContent = '⟲';
+      raz.title = 'Couleur par défaut';
+      raz.onclick = function(){ ed.setCouleur(p.i, ''); refresh(); };
+      row.appendChild(raz);
+
+      const tail = document.createElement('input');
+      tail.type = 'number'; tail.min = '6'; tail.max = '48'; tail.step = '1';
+      tail.value = p.size || 14;
+      tail.title = 'Taille du texte (px)';
+      tail.style.cssText = 'flex:0 0 58px;margin:0 .3rem;';
+      tail.onchange = function(){ ed.setTaille(p.i, tail.value); };
+      row.appendChild(tail);
+
+      const plc = document.createElement('button');
+      plc.textContent = '📍 Placer';
+      plc.onclick = function(){
+        ed.armerPlacement(p.i);
+        flash('Clique sur le plan pour poser « ' + p.name + ' »');
+      };
+      row.appendChild(plc);
+
+      ql.appendChild(row);
+    });
+  }
 
   document.getElementById('st').textContent =
     pois.length + ' POV · manifest a jour en memoire';
