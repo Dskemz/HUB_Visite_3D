@@ -1449,19 +1449,16 @@ async function init() {
     // Grain filmique (réduit le banding) — 0 = désactivé (évite le "bruit partout")
     grain: 0,
 
-    // AO de contact (SSAO2). ON : donne du modelé et des ombres de contact dans les
-    // recoins (angles murs/sol, sous les meubles) — c'est ce qui « ancre » les objets
-    // dans la scène et augmente fortement le réalisme, pour un coût GPU maîtrisé
-    // (rendu à 50% de résolution). Désactivé automatiquement sur mobile/tablette tactile.
-    ao: !IS_TOUCH,
+    // AO de contact (SSAO2) : DÉSACTIVÉ. Le viewer rend dans un VIEWPORT PARTIEL
+    // (largeur réduite quand le panneau latéral est ouvert : `camera.viewport`).
+    // Le SSAO2 est un effet d'espace-écran qui échantillonne le depth buffer PLEIN
+    // CADRE : dans un sous-cadre il se décale et se comprime horizontalement → image
+    // fantôme dédoublée + modèle « rétracté » sur l'axe X. Incompatible par nature.
+    // L'occlusion de contact est de toute façon déjà BAKÉE dans les GLB (ambientTexture).
+    ao: false,
   };
 
-  // --- 1) AMBIENT OCCLUSION DE CONTACT (SSAO2) : créé PLUS BAS, après le pipeline ---
-  // (voir bloc 3). L'ordre de création compte : le SSAO2 doit s'attacher à la caméra
-  // APRÈS le pipeline de compositing, sinon les deux se disputent le back-buffer et
-  // provoquent les artefacts plein écran qu'on voyait avant.
-
-  // --- 2) PIPELINE DE COMPOSITING (tone mapping + grade + bloom + netteté + vignette) ---
+  // --- PIPELINE DE COMPOSITING (tone mapping + grade + bloom + netteté + vignette) ---
   try {
     const ip = scene.imageProcessingConfiguration;
     ip.toneMappingEnabled = true;
@@ -1514,33 +1511,6 @@ async function init() {
 
     window.compositingPipeline = pipe;  // réglages live possibles depuis la console
     console.log('✅ Compositing réaliste activé (ACES + grade + bloom + netteté + vignette)');
-
-    // --- 3) AO DE CONTACT (SSAO2) — attaché APRÈS le pipeline (ordre = clé anti-artefacts) ---
-    // Le SSAO2 assombrit les recoins (jonctions mur/sol/plafond, dessous de meubles) :
-    // c'est LE détail qui « pose » les objets dans la pièce et donne la profondeur.
-    // Créé ici, à la caméra, JUSTE après le pipeline de compositing → plus de conflit
-    // plein écran. Rendu à 50% de résolution (ssaoRatio 0.5) : quasi invisible à l'œil,
-    // 2× plus léger. blurRatio 0.5 = flou moins coûteux. Désactivé sur tactile (GRADE.ao).
-    if (GRADE.ao && BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
-      const ssao2 = new BABYLON.SSAO2RenderingPipeline('ssao2', scene,
-        { ssaoRatio: 0.5, blurRatio: 0.5 }, [camera]);
-      ssao2.radius        = 1.2;   // rayon d'occlusion (m) — adapté à l'échelle intérieure
-      ssao2.totalStrength = 1.0;   // force de l'ombre de contact (1.0 = franc mais naturel)
-      ssao2.base          = 0.2;   // luminosité minimale préservée (évite le « tout noir »)
-      ssao2.samples       = 16;    // qualité de l'échantillonnage
-      ssao2.maxZ          = 60;    // profondeur max prise en compte (scène intérieure)
-      ssao2.minZAspect    = 0.5;
-      ssao2.expensiveBlur = false; // flou rapide : suffisant à 50% de résolution
-      // Exclure le ciel des calculs d'AO (sinon halo sombre au bord de l'écran)
-      try {
-        const sky = scene.getMeshByName('skybox');
-        if (sky) ssao2.addExcludedMesh(sky);
-      } catch (_) {}
-      window.ssao2Pipeline = ssao2; // réglages live possibles depuis la console
-      console.log('✅ SSAO2 (occlusion de contact) activé — réalisme +');
-    } else if (GRADE.ao) {
-      console.log('ℹ️ SSAO2 indisponible (WebGL1 / tactile) — AO ignoré');
-    }
   } catch (e) {
     console.warn('⚠️ Compositing non activé, rendu standard :', e.message);
     // Repli minimal pour ne jamais casser le rendu
@@ -1917,8 +1887,6 @@ function resetView() {
 
   // Repasser en perspective
   camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
-  // Réactiver l'occlusion de contact (coupée en vue de dessus)
-  try { if (window.ssao2Pipeline) window.ssao2Pipeline.totalStrength = 1.0; } catch (_) {}
 
   // Libérer temporairement les limites de zoom pour permettre l'éloignement
   // (en 1ère personne, lower=upper=radius bloquerait l'animation)
@@ -2515,8 +2483,6 @@ function enterFirstPerson(poi) {
 
   camera.detachControl();
   camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
-  // Réactiver l'occlusion de contact (coupée en vue de dessus)
-  try { if (window.ssao2Pipeline) window.ssao2Pipeline.totalStrength = 1.0; } catch (_) {}
 
   // Masquer les marqueurs pendant qu'on est immergé dans la pièce
   setMarkersVisible(false);
@@ -3887,11 +3853,6 @@ function afficherMarqueurPov(show){
 /* Passer en mode orthographique avec cadrage sur le modèle */
 function switchToOrthographic() {
   if (!modelBounds) return;
-
-  // Couper le SSAO2 en vue de dessus : l'occlusion de contact est calibrée pour la
-  // perspective (profondeur réelle) et produit un léger halo en projection orthographique.
-  // On la réactive au retour en navigation (voir switchToPerspective ci-dessous).
-  try { if (window.ssao2Pipeline) window.ssao2Pipeline.totalStrength = 0; } catch (_) {}
 
   camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
 
