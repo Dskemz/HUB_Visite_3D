@@ -93,6 +93,7 @@
         <button class="tab on" id="t-pov" onclick="tab('pov')" style="flex:1;">POV</button>
         <button class="tab"    id="t-cot" onclick="tab('cot')" style="flex:1;">Cotations</button>
         <button class="tab"    id="t-piece" onclick="tab('piece')" style="flex:1;">Pièces</button>
+        <button class="tab"    id="t-amb" onclick="tab('amb')" style="flex:1;">Ambiance</button>
       </div>
       <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein ecran" style="flex:0 0 auto;">⛶</button>
     </div>
@@ -175,12 +176,49 @@
         </div>
         <div class="list" id="piece-list"></div>
       </div>
+
+      <div id="p-amb" hidden>
+        <p class="hint"><b>Occlusion ambiante (AO).</b> Assombrit les recoins pour « poser »
+          les objets. Ajuste la puissance et le rayon en direct.</p>
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.6rem;">
+            <input type="checkbox" id="f-ao-on" onchange="ambSetAO()"> Activer l'AO
+          </label>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Puissance</label>
+            <input type="range" id="f-ao-strength" min="0" max="2" step="0.05" value="1" style="flex:1;" oninput="ambSetAO()">
+            <span id="v-ao-strength" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">1.0</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Rayon</label>
+            <input type="range" id="f-ao-radius" min="0.2" max="4" step="0.1" value="1.2" style="flex:1;" oninput="ambSetAO()">
+            <span id="v-ao-radius" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">1.2</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Présence</label>
+            <input type="range" id="f-ao-base" min="0" max="1" step="0.05" value="0.2" style="flex:1;" oninput="ambSetAO()">
+            <span id="v-ao-base" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">0.2</span>
+          </div>
+          <p class="hint" style="margin:.5rem 0 0;font-size:.68rem;">Présence = luminosité minimale préservée dans les zones occluses (plus haut = AO plus discrète).</p>
+        </div>
+
+        <p class="hint"><b>Lumières.</b> Ajoute des sources, puis clique « 📍 Placer » et
+          clique sur le plan (vue de dessus) pour positionner. Point = ampoule,
+          Spot = faisceau dirigé, Soleil = lumière directionnelle globale.</p>
+        <div style="display:flex;gap:.35rem;margin-bottom:.8rem;">
+          <button class="btn" onclick="ambAddLight('point')" style="flex:1;">➕ Point</button>
+          <button class="btn" onclick="ambAddLight('spot')" style="flex:1;">➕ Spot</button>
+          <button class="btn" onclick="ambAddLight('directional')" style="flex:1;">➕ Soleil</button>
+        </div>
+        <div class="list" id="light-list"></div>
+      </div>
     </div>
 
     <div class="warn" id="warn" hidden></div>
 
     <div class="ft">
       <button class="btn sec" id="b-dl" onclick="download()">💾 Télécharger manifest.json</button>
+      <button class="btn sec" id="b-dl-light" onclick="downloadLighting()">💡 Télécharger lighting-config.json</button>
       <div class="st" id="st">Chargement du viewer…</div>
     </div>
   </aside>
@@ -300,6 +338,18 @@ const PONT = `
     parent.__edEvent('piece','placee');
   }
 
+  let lightToPlace = null; // id de lumière en attente de placement (onglet Ambiance)
+  function clicLight(ev){
+    if (!lightToPlace) return;
+    const svg = document.getElementById('hud-svg');
+    const r = svg.getBoundingClientRect();
+    const w = hudUnproject(ev.clientX - r.left, ev.clientY - r.top);
+    if (!w) return;
+    if (window.__ed && window.__ed.placeLightAt) window.__ed.placeLightAt(lightToPlace, w.x, w.z);
+    lightToPlace = null;
+    parent.__edEvent('light','placee');
+  }
+
   function sauvegarder(){
     undoStack.push(JSON.parse(JSON.stringify(propertyData.dimensions || {})));
     if (undoStack.length > 20) undoStack.shift();   // garde les 20 derniers
@@ -364,6 +414,8 @@ const PONT = `
     const svg = document.getElementById('hud-svg');
     if (svg) svg.addEventListener('click', clicCotation);
     if (svg) svg.addEventListener('click', clicPiece);
+    if (svg) svg.addEventListener('click', placerPov);
+    if (svg) svg.addEventListener('click', clicLight);
 
     window.__ed = {
       nom: function(){ return propertyData.name || 'Visite 3D'; },
@@ -504,6 +556,88 @@ const PONT = `
       enVueDeDessus:  function(){ return !!(typeof hudVisible !== 'undefined' && hudVisible); },
 
       manifest: function(){ return JSON.stringify(propertyData, null, 2); },
+
+      /* ===== AMBIANCE : AO + LUMIÈRES (lighting-config.json) ===== */
+      /* L'état d'ambiance vit dans window.__lightingState du viewer (initialisé au
+         chargement depuis lighting-config.json). L'éditeur le lit/écrit ici et
+         applique les changements en direct via les API du viewer (setAO / addLight…). */
+      aoParams: function(){
+        var s = window.__lightingState || {};
+        var ao = s.ao || {};
+        return {
+          enabled:  ao.enabled !== false,
+          strength: (ao.strength != null) ? ao.strength : (window.__AO_STRENGTH__ != null ? window.__AO_STRENGTH__ : 1.0),
+          radius:   (ao.radius   != null) ? ao.radius   : 1.2,
+          base:     (ao.base     != null) ? ao.base     : 0.2
+        };
+      },
+      setAO: function(p){
+        window.__lightingState = window.__lightingState || {};
+        window.__lightingState.ao = window.__lightingState.ao || {};
+        if (p.enabled  != null) window.__lightingState.ao.enabled  = !!p.enabled;
+        if (p.strength != null) window.__lightingState.ao.strength = parseFloat(p.strength);
+        if (p.radius   != null) window.__lightingState.ao.radius   = parseFloat(p.radius);
+        if (p.base     != null) window.__lightingState.ao.base     = parseFloat(p.base);
+        // Application live
+        if (typeof window.setAO === 'function') {
+          var st = window.__lightingState.ao;
+          window.setAO({
+            strength: (st.enabled === false ? 0 : st.strength),
+            radius: st.radius, base: st.base
+          });
+        }
+      },
+
+      /* ===== LUMIÈRES ÉDITABLES ===== */
+      lights: function(){
+        var s = window.__lightingState || {};
+        return (s.lights || []).map(function(l){ return Object.assign({}, l); });
+      },
+      addLight: function(kind){
+        window.__lightingState = window.__lightingState || {};
+        window.__lightingState.lights = window.__lightingState.lights || [];
+        var c = modelBounds ? modelBounds.center : {x:0,y:2,z:0};
+        var id = kind + '-' + (window.__lightingState.lights.length + 1);
+        var def = {
+          id: id, kind: kind,
+          position: [r2(c.x), r2((modelBounds?modelBounds.max.y:2.4)*0.85), r2(c.z)],
+          color: [1.0, 0.95, 0.85], intensity: kind==='directional'?0.8:1.5,
+          range: 40
+        };
+        if (kind === 'spot') { def.direction = [0,-1,0]; def.angle = 1.2; def.exponent = 2; }
+        if (kind === 'directional') { def.direction = [0.7,-1,0.2]; delete def.position; delete def.range; }
+        window.__lightingState.lights.push(def);
+        if (typeof window.applyEditableLights === 'function') window.applyEditableLights(window.__lightingState.lights);
+        return def;
+      },
+      updateLight: function(id, patch){
+        var s = window.__lightingState; if (!s || !s.lights) return;
+        var l = s.lights.find(function(x){ return x.id===id; }); if (!l) return;
+        Object.keys(patch).forEach(function(k){ l[k] = patch[k]; });
+        if (typeof window.applyEditableLights === 'function') window.applyEditableLights(s.lights);
+      },
+      removeLight: function(id){
+        var s = window.__lightingState; if (!s || !s.lights) return;
+        s.lights = s.lights.filter(function(x){ return x.id!==id; });
+        if (typeof window.applyEditableLights === 'function') window.applyEditableLights(s.lights);
+      },
+      /* Place une lumière sur le plan (clic vue de dessus → monde XZ), comme les POV */
+      placeLightAt: function(id, x, z){
+        var s = window.__lightingState; if (!s || !s.lights) return;
+        var l = s.lights.find(function(x2){ return x2.id===id; }); if (!l || !l.position) return;
+        l.position[0] = r2(x); l.position[2] = r2(z);
+        if (typeof window.applyEditableLights === 'function') window.applyEditableLights(s.lights);
+      },
+      armLightPlacement: function(id){ lightToPlace = id; },
+      /* Export du lighting-config.json (AO + lumières + base héritée du fichier chargé) */
+      lightingConfigJSON: function(){
+        var s = window.__lightingState || {};
+        var out = Object.assign({}, window.__lightingBase || {});
+        out.ao = s.ao || out.ao;
+        out.editableLights = s.lights || [];
+        return JSON.stringify(out, null, 2);
+      },
+
       /* ===== POV ===== */
       setCiblePov: function(x,z){ povEnAttenteX=x; povEnAttenteZ=z; povEnAttenteY=modelBounds?modelBounds.max.y:0; afficherMarqueurPov(true); parent.__edEvent('pov','placee'); },
       setHauteurPov: function(h){ povEnAttenteY=Math.max(0,Math.min(2,parseFloat(h)||0)); if(hudVisible)hudUpdate(); },
@@ -638,15 +772,116 @@ document.addEventListener('keydown', function(e){
 /* -------- UI ------------------------------------------------------------- */
 function tab(m){
   mode = m;
-  ['pov','cot','piece'].forEach(function(k){
-    document.getElementById('t-'+(k==='piece'?'piece':k)).classList.toggle('on', m===k);
-    document.getElementById('p-'+(k==='piece'?'piece':k)).hidden = (m!==k);
+  ['pov','cot','piece','amb'].forEach(function(k){
+    var tb = document.getElementById('t-'+k);
+    var pb = document.getElementById('p-'+k);
+    if (tb) tb.classList.toggle('on', m===k);
+    if (pb) pb.hidden = (m!==k);
   });
   if (ed){
     ed.editerCotations(m==='cot');
     ed.editerPieces(m==='piece');
     if (m==='piece') refresh();
+    if (m==='amb') refreshAmbiance();
   }
+}
+
+/* -------- AMBIANCE : AO + LUMIÈRES -------------------------------------- */
+let lightPlaceId = null; // id de la lumière en attente de placement au clic
+
+function refreshAmbiance(){
+  if (!ed || !ed.aoParams) return;
+  var ao = ed.aoParams();
+  document.getElementById('f-ao-on').checked = ao.enabled;
+  document.getElementById('f-ao-strength').value = ao.strength;
+  document.getElementById('f-ao-radius').value = ao.radius;
+  document.getElementById('f-ao-base').value = ao.base;
+  document.getElementById('v-ao-strength').textContent = (+ao.strength).toFixed(2);
+  document.getElementById('v-ao-radius').textContent = (+ao.radius).toFixed(1);
+  document.getElementById('v-ao-base').textContent = (+ao.base).toFixed(2);
+  refreshLightList();
+}
+
+function ambSetAO(){
+  if (!ed) return;
+  var enabled = document.getElementById('f-ao-on').checked;
+  var strength = parseFloat(document.getElementById('f-ao-strength').value);
+  var radius = parseFloat(document.getElementById('f-ao-radius').value);
+  var base = parseFloat(document.getElementById('f-ao-base').value);
+  document.getElementById('v-ao-strength').textContent = strength.toFixed(2);
+  document.getElementById('v-ao-radius').textContent = radius.toFixed(1);
+  document.getElementById('v-ao-base').textContent = base.toFixed(2);
+  ed.setAO({ enabled: enabled, strength: strength, radius: radius, base: base });
+}
+
+function ambAddLight(kind){
+  if (!ed) return;
+  var def = ed.addLight(kind);
+  refreshLightList();
+  flash('Lumière ' + kind + ' ajoutée');
+}
+
+function refreshLightList(){
+  if (!ed || !ed.lights) return;
+  var list = document.getElementById('light-list');
+  var lights = ed.lights();
+  if (!lights.length){ list.innerHTML = '<p class="hint" style="font-size:.7rem;">Aucune lumière éditable.</p>'; return; }
+  list.innerHTML = '';
+  lights.forEach(function(l){
+    var col = l.color ? rgbToHex(l.color) : '#ffffff';
+    var hasPos = !!l.position;
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#0d1220;padding:.6rem;border-radius:8px;margin-bottom:.55rem;';
+    card.innerHTML =
+      '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem;">'+
+        '<b style="font-size:.76rem;color:#c7d0e4;flex:1;">'+l.id+'</b>'+
+        (hasPos ? '<button class="btn" style="flex:0 0 auto;padding:.3rem .5rem;" onclick="ambPlaceLight(\''+l.id+'\')">📍 Placer</button>' : '')+
+        '<button class="btn sec" style="flex:0 0 auto;padding:.3rem .5rem;" onclick="ambRemoveLight(\''+l.id+'\')">✕</button>'+
+      '</div>'+
+      '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.35rem;">'+
+        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Intensité</label>'+
+        '<input type="range" min="0" max="5" step="0.1" value="'+(l.intensity!=null?l.intensity:1.5)+'" style="flex:1;" oninput="ambUpdateLight(\''+l.id+'\',{intensity:parseFloat(this.value)})">'+
+      '</div>'+
+      '<div style="display:flex;gap:.4rem;align-items:center;'+(l.range!=null?'':'display:none;')+'margin-bottom:.35rem;">'+
+        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Portée</label>'+
+        '<input type="range" min="1" max="80" step="1" value="'+(l.range!=null?l.range:40)+'" style="flex:1;" oninput="ambUpdateLight(\''+l.id+'\',{range:parseFloat(this.value)})">'+
+      '</div>'+
+      '<div style="display:flex;gap:.4rem;align-items:center;">'+
+        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Couleur</label>'+
+        '<input type="color" value="'+col+'" style="flex:0 0 auto;width:40px;height:26px;padding:0;border:none;background:none;cursor:pointer;" oninput="ambUpdateLight(\''+l.id+'\',{color:hexToRgb(this.value)})">'+
+      '</div>';
+    list.appendChild(card);
+  });
+}
+
+function ambUpdateLight(id, patch){ if (ed) ed.updateLight(id, patch); }
+function ambRemoveLight(id){ if (ed){ ed.removeLight(id); refreshLightList(); flash('Lumière supprimée'); } }
+function ambPlaceLight(id){
+  lightPlaceId = id;
+  if (ed && ed.armLightPlacement) ed.armLightPlacement(id);
+  // Bascule le viewer en vue de dessus pour cliquer le plan
+  var frame = document.getElementById('vw').contentWindow;
+  if (frame && !frame.hudVisible && frame.playTopViewAnimation) frame.playTopViewAnimation();
+  flash('Clique sur le plan pour placer la lumière');
+}
+
+function rgbToHex(rgb){
+  var to2 = function(v){ var h = Math.round(Math.max(0,Math.min(1,v))*255).toString(16); return h.length<2?'0'+h:h; };
+  return '#'+to2(rgb[0])+to2(rgb[1])+to2(rgb[2]);
+}
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  return [parseInt(hex.slice(0,2),16)/255, parseInt(hex.slice(2,4),16)/255, parseInt(hex.slice(4,6),16)/255];
+}
+
+function downloadLighting(){
+  if (!ed || !ed.lightingConfigJSON){ flash('Éditeur non prêt'); return; }
+  var blob = new Blob([ed.lightingConfigJSON()], { type:'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lighting-config.json';
+  a.click();
+  flash('lighting-config.json téléchargé');
 }
 
 function v(id){ return (document.getElementById(id).value || '').trim(); }

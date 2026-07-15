@@ -1402,7 +1402,55 @@ async function init() {
       console.log(`✅ Interior light créée: ${ilConfig.name}`);
     });
   }
-  
+
+  // ========== LUMIÈRES ÉDITABLES (créées par l'éditeur, persistées dans lighting-config.json) ==========
+  // Séparées des lumières « système » ci-dessus : on peut les ajouter/supprimer/déplacer
+  // à volonté sans toucher au reste. L'état vit dans window.__lightingState (lu/écrit par
+  // l'éditeur) ; window.__lightingBase garde la config d'origine pour l'export.
+  window.__lightingBase = JSON.parse(JSON.stringify(lightConfig));
+  window.__lightingState = {
+    ao: lightConfig.ao || { enabled: true, strength: 1.0, radius: 1.2, base: 0.2 },
+    lights: Array.isArray(lightConfig.editableLights) ? JSON.parse(JSON.stringify(lightConfig.editableLights)) : []
+  };
+  const _editableLightObjs = {}; // id → objet lumière Babylon
+  window.applyEditableLights = function(defs) {
+    defs = defs || [];
+    // Supprimer les lumières retirées
+    Object.keys(_editableLightObjs).forEach(id => {
+      if (!defs.find(d => d.id === id)) {
+        try { _editableLightObjs[id].dispose(); } catch(_) {}
+        delete _editableLightObjs[id];
+      }
+    });
+    // Créer / mettre à jour
+    defs.forEach(d => {
+      let L = _editableLightObjs[d.id];
+      const pos = d.position ? new BABYLON.Vector3(...d.position) : null;
+      const dir = d.direction ? new BABYLON.Vector3(...d.direction) : null;
+      if (!L) {
+        if (d.kind === 'spot') {
+          L = new BABYLON.SpotLight(d.id, pos || BABYLON.Vector3.Zero(),
+            dir || new BABYLON.Vector3(0,-1,0), d.angle || 1.2, d.exponent || 2, scene);
+        } else if (d.kind === 'directional') {
+          L = new BABYLON.DirectionalLight(d.id, dir || new BABYLON.Vector3(0.7,-1,0.2), scene);
+        } else { // point
+          L = new BABYLON.PointLight(d.id, pos || BABYLON.Vector3.Zero(), scene);
+        }
+        _editableLightObjs[d.id] = L;
+      }
+      // Propriétés communes
+      if (pos && L.position) L.position = pos;
+      if (dir && 'direction' in L) L.direction = dir;
+      L.intensity = (d.intensity != null) ? d.intensity : 1.0;
+      if (d.range != null && 'range' in L) L.range = d.range;
+      if (d.angle != null && 'angle' in L) L.angle = d.angle;
+      if (d.exponent != null && 'exponent' in L) L.exponent = d.exponent;
+      if (d.color) L.diffuse = new BABYLON.Color3(...d.color);
+    });
+  };
+  // Appliquer les lumières éditables persistées au chargement
+  window.applyEditableLights(window.__lightingState.lights);
+
   console.log('✅ Lighting appliqué depuis config');
 
   await loadManifest();
@@ -1449,13 +1497,15 @@ async function init() {
     // Grain filmique (réduit le banding) — 0 = désactivé (évite le "bruit partout")
     grain: 0,
 
-    // AO de contact (SSAO2) : DÉSACTIVÉ. Le viewer rend dans un VIEWPORT PARTIEL
-    // (largeur réduite quand le panneau latéral est ouvert : `camera.viewport`).
-    // Le SSAO2 est un effet d'espace-écran qui échantillonne le depth buffer PLEIN
-    // CADRE : dans un sous-cadre il se décale et se comprime horizontalement → image
-    // fantôme dédoublée + modèle « rétracté » sur l'axe X. Incompatible par nature.
-    // L'occlusion de contact est de toute façon déjà BAKÉE dans les GLB (ambientTexture).
-    ao: false,
+    // AO de contact (SSAO2) : RÉACTIVABLE. Le rendu est désormais TOUJOURS plein écran
+    // (le décalage panneau passe par targetScreenOffset, plus par un viewport partiel),
+    // donc le SSAO2 fonctionne sans image fantôme ni déformation. Les réglages viennent
+    // de lighting-config.json (contrôlables dans l'éditeur) : `ao` (on/off), `aoStrength`
+    // (puissance), `aoRadius` (rayon), `aoBase` (présence mini). Défauts ci-dessous.
+    ao:        (lightConfig.ao && lightConfig.ao.enabled) !== false, // ON par défaut
+    aoStrength: (lightConfig.ao && lightConfig.ao.strength != null) ? lightConfig.ao.strength : 1.0,
+    aoRadius:   (lightConfig.ao && lightConfig.ao.radius   != null) ? lightConfig.ao.radius   : 1.2,
+    aoBase:     (lightConfig.ao && lightConfig.ao.base     != null) ? lightConfig.ao.base     : 0.2,
   };
 
   // --- PIPELINE DE COMPOSITING (tone mapping + grade + bloom + netteté + vignette) ---
@@ -1511,6 +1561,37 @@ async function init() {
 
     window.compositingPipeline = pipe;  // réglages live possibles depuis la console
     console.log('✅ Compositing réaliste activé (ACES + grade + bloom + netteté + vignette)');
+
+    // --- AO DE CONTACT (SSAO2) — rendu plein écran → aucun artefact ---
+    // Assombrit les recoins (jonctions mur/sol/plafond, dessous des meubles) : c'est ce
+    // qui « pose » les objets et donne la profondeur. Rendu à 50% de résolution (léger).
+    // Piloté par GRADE (lui-même alimenté par lighting-config.json → éditable).
+    // AO créé dès que WebGL2 le permet (même si désactivé au départ : on démarre à
+    // strength 0), pour que l'éditeur puisse l'activer en direct sans recharger.
+    if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
+      const aoOn = GRADE.ao;
+      const ssao2 = new BABYLON.SSAO2RenderingPipeline('ssao2', scene,
+        { ssaoRatio: 0.5, blurRatio: 0.5 }, [camera]);
+      ssao2.radius        = GRADE.aoRadius;
+      ssao2.totalStrength = aoOn ? GRADE.aoStrength : 0;
+      ssao2.base          = GRADE.aoBase;
+      ssao2.samples       = 16;
+      ssao2.maxZ          = 60;
+      ssao2.minZAspect    = 0.5;
+      ssao2.expensiveBlur = false;
+      try { const sky = scene.getMeshByName('skybox'); if (sky) ssao2.addExcludedMesh(sky); } catch (_) {}
+      window.ssao2Pipeline = ssao2;
+      window.__AO_STRENGTH__ = aoOn ? GRADE.aoStrength : 0; // puissance courante (restaurée après l'ortho)
+      // API simple pour l'éditeur : ajuster l'AO en direct sans recharger.
+      window.setAO = function(opts) {
+        opts = opts || {};
+        if (!window.ssao2Pipeline) return;
+        if (opts.strength != null) { window.ssao2Pipeline.totalStrength = opts.strength; window.__AO_STRENGTH__ = opts.strength; }
+        if (opts.radius   != null) window.ssao2Pipeline.radius = opts.radius;
+        if (opts.base     != null) window.ssao2Pipeline.base   = opts.base;
+      };
+      console.log('✅ SSAO2 (occlusion de contact) ' + (aoOn ? 'activé' : 'prêt (désactivé)'));
+    }
   } catch (e) {
     console.warn('⚠️ Compositing non activé, rendu standard :', e.message);
     // Repli minimal pour ne jamais casser le rendu
@@ -1583,12 +1664,12 @@ async function init() {
   function relayout() {
     if (isAnimating) return;
     if (isFirstPerson && fpCamera) {
-      fpCamera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+      applyViewportShift(fpCamera);
     } else if (isTopView) {
       applyTopViewViewport();
       camera.radius = computeTopViewRadius();
     } else {
-      camera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+      applyViewportShift(camera);
     }
   }
 
@@ -1606,9 +1687,9 @@ async function loadWalls() {
   try {
     const result = await importGlbResilient(base, CONFIG.wallsFile, scene);
     wallsRoot = groupUnder(result.meshes, 'wallsRoot');
-    // Appliquer le viewport selon l'état du panneau AVANT le cadrage, pour que le modèle
-    // soit cadré dans la zone réellement visible (gauche si panneau ouvert, plein écran sinon).
-    camera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+    // Appliquer le décalage écran selon l'état du panneau AVANT le cadrage, pour que le
+    // modèle soit cadré dans la zone réellement visible (gauche si panneau ouvert).
+    applyViewportShift(camera);
     frameModel(wallsRoot);
 
     // Construire la liste des POV depuis le manifest
@@ -1887,6 +1968,8 @@ function resetView() {
 
   // Repasser en perspective
   camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+  // Réactiver l'AO (neutralisée en vue de dessus ortho de l'éditeur)
+  try { if (window.ssao2Pipeline && window.__AO_STRENGTH__ != null) window.ssao2Pipeline.totalStrength = window.__AO_STRENGTH__; } catch (_) {}
 
   // Libérer temporairement les limites de zoom pour permettre l'éloignement
   // (en 1ère personne, lower=upper=radius bloquerait l'animation)
@@ -1897,7 +1980,7 @@ function resetView() {
   camera.upperBetaLimit = Math.PI / 2 + 0.15;
 
   // États de départ et d'arrivée
-  const startViewportWidth = camera.viewport.width;
+  const startViewportWidth = getEffectiveViewportWidthAtStart(); // largeur utile de départ
   const targetViewportWidth = getEffectiveViewportWidth(); // Considère l'état du panneau
   const startRadius = camera.radius;
   const startBeta = camera.beta;
@@ -1918,9 +2001,9 @@ function resetView() {
     const t = Math.min(frame / totalFrames, 1);
     const eased = easeInOut(t);
 
-    // Viewport revient au viewport effectif en continu (pas de "clac")
+    // Rendu TOUJOURS plein écran ; le décalage écran suit en continu (pas de "clac")
     const vpWidth = startViewportWidth + (targetViewportWidth - startViewportWidth) * eased;
-    camera.viewport = new BABYLON.Viewport(0, 0, vpWidth, 1);
+    camera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
 
     // Caméra revient à sa position de navigation
     camera.target = BABYLON.Vector3.Lerp(startTarget, targetCenter, eased);
@@ -1928,6 +2011,7 @@ function resetView() {
     camera.beta = startBeta + (targetBeta - startBeta) * eased;
     camera.alpha = startAlpha + (targetAlpha - startAlpha) * eased;
     camera.fov = startFov + (targetFovValue - startFov) * eased;
+    if (camera.targetScreenOffset) camera.targetScreenOffset.x = computeScreenShiftX(vpWidth, camera);
 
     if (t >= 1) {
       scene.onBeforeRenderObservable.remove(currentAnimObserver);
@@ -1937,8 +2021,8 @@ function resetView() {
       camera.upperRadiusLimit = initialFraming.radius * CONFIG.zoomOutLimitRatio;
       camera.minZ = modelBounds.radius * CONFIG.clipNearRatio;
       camera.fov = defaultFov;
-      // Fin propre : viewport effectif net + contrôles réactivés
-      camera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+      // Fin propre : décalage écran net + contrôles réactivés
+      applyViewportShift(camera);
       camera.attachControl(document.getElementById('canvas'), true);
       isAnimating = false;
       updateToggleButton();
@@ -2307,7 +2391,7 @@ function enterPanoramaCamera(eyePos, lookAt) {
   fpCamera.rotation.z = 0;      // roulis
   const fixedPitch = pitch;     // verrouiller le tangage immédiatement
 
-  fpCamera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+  fpCamera.viewport = new BABYLON.Viewport(0, 0, 1, 1); // POV : plein écran (immersif, panneau en overlay)
 
   // ========== PANORAMIC (haut/bas/gauche/droite) avec garde-fou vertical ==========
   // On autorise le regard vers le haut et vers le bas, mais on empêche le
@@ -2503,8 +2587,8 @@ function enterFirstPerson(poi) {
   const startRadius = camera.radius;
   const startAlpha = camera.alpha;
   const startBeta = camera.beta;
-  const startVp = camera.viewport.width;
-  const targetVp = getEffectiveViewportWidth();
+  const startVp = getEffectiveViewportWidthAtStart();
+  const targetVp = 1; // POV = plein écran (offset écran ramené à 0)
   const startFov = camera.fov;
   // On anime directement vers le GRAND ANGLE (firstPersonFovWide), la valeur finale
   // de la caméra POV. Ainsi l'élargissement du champ se fait EN MÊME TEMPS que le vol
@@ -2526,7 +2610,9 @@ function enterFirstPerson(poi) {
     const t = Math.min(frame / totalFrames, 1);
     const eased = easeInOut(t);
 
-    camera.viewport = new BABYLON.Viewport(0, 0, startVp + (targetVp - startVp) * eased, 1);
+    const vpNow = startVp + (targetVp - startVp) * eased;
+    camera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
+    if (camera.targetScreenOffset) camera.targetScreenOffset.x = computeScreenShiftX(vpNow, camera);
     camera.target = BABYLON.Vector3.Lerp(startTarget, lookAt, eased);
     camera.radius = startRadius + (targetRadius - startRadius) * eased;
     camera.alpha = startAlpha + (targetAlpha - startAlpha) * eased;
@@ -3123,7 +3209,7 @@ function playTopViewAnimation() {
   const finalAlpha = -Math.PI / 2; // Centré
 
   // États de départ
-  const startViewportWidth = camera.viewport.width;
+  const startViewportWidth = getEffectiveViewportWidthAtStart();
   const targetViewportWidth = getEffectiveViewportWidth(); // Considère l'état du panneau
   const startRadius = camera.radius;
   const startBeta = camera.beta;
@@ -3142,21 +3228,22 @@ function playTopViewAnimation() {
     const t = Math.min(frame / totalFrames, 1);
     const eased = easeInOut(t);
 
-    // Viewport glisse vers la zone gauche (ou reste plein écran si panneau fermé)
+    // Rendu plein écran ; le décalage écran glisse vers la zone gauche
     const vpWidth = startViewportWidth + (targetViewportWidth - startViewportWidth) * eased;
-    camera.viewport = new BABYLON.Viewport(0, 0, vpWidth, 1);
+    camera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
 
     // Cible recentrée progressivement (corrige toute translation préalable)
     camera.target = BABYLON.Vector3.Lerp(startTarget, targetCenter, eased);
 
-    // Beta + alpha interpolés manuellement (synchronisés avec le viewport)
+    // Beta + alpha interpolés manuellement
     camera.beta = startBeta + (finalBeta - startBeta) * eased;
     camera.alpha = startAlpha + (finalAlpha - startAlpha) * eased;
     camera.fov = startFov + (defaultFov - startFov) * eased;
 
-    // Radius recalculé pour le viewport courant (cadrage continu)
+    // Radius recalculé pour la largeur utile courante (cadrage continu)
     const targetRadius = computeTopViewRadiusForViewport(vpWidth);
     camera.radius = startRadius + (targetRadius - startRadius) * eased;
+    if (camera.targetScreenOffset) camera.targetScreenOffset.x = computeScreenShiftX(vpWidth, camera);
 
     if (t >= 1) {
       scene.onBeforeRenderObservable.remove(currentAnimObserver);
@@ -3642,9 +3729,9 @@ function togglePoiPanel() {
   // Une transition est déjà en cours : son état final prendra en compte le panneau
   if (isAnimating) return;
 
-  // En 1ère personne : seul le viewport de la caméra panorama est ajusté (pas de recadrage)
+  // En 1ère personne : rendu plein écran (le panneau reste en overlay à droite)
   if (isFirstPerson && fpCamera) {
-    fpCamera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+    fpCamera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
     return;
   }
 
@@ -3653,11 +3740,19 @@ function togglePoiPanel() {
 }
 
 /* ============================================================================
-   VIEWPORT DÉCALÉ — déporte le rendu 3D sur la gauche pour libérer la droite
+   DÉCALAGE DU RENDU (plein écran + targetScreenOffset) — remplace le viewport partiel
+   ----------------------------------------------------------------------------
+   AVANT : on rétrécissait `camera.viewport` à gauche pour libérer la droite. Mais un
+   viewport partiel casse tous les effets d'ESPACE-ÉCRAN (SSAO2, etc.) : ils lisent le
+   depth buffer PLEIN CADRE → image fantôme dédoublée + modèle « rétracté » sur l'axe X.
+   MAINTENANT : le rendu reste TOUJOURS plein écran (viewport 0,0,1,1). Pour pousser le
+   modèle à gauche quand le panneau est ouvert, on décale la caméra en espace écran via
+   `targetScreenOffset.x` (déjà utilisé pour la feuille mobile sur l'axe Y). Le depth
+   buffer est cohérent → SSAO2 et tout post-process fonctionnent parfaitement.
    ============================================================================ */
 function getTopViewViewportWidth() {
   // Sur petit écran (téléphone / tablette portrait), le panneau passe en overlay
-  // plein écran : on ne réserve aucun espace 3D, le viewport reste plein.
+  // plein écran : on ne réserve aucun espace 3D → pas de décalage.
   if (window.innerWidth < 900) return 1;
   const cv = document.getElementById('canvas');
   const canvasW = cv ? cv.clientWidth : window.innerWidth;
@@ -3665,20 +3760,68 @@ function getTopViewViewportWidth() {
   const wrap = document.querySelector('.right-panel-wrapper');
   const panelW = wrap ? wrap.getBoundingClientRect().width : 0;
   const panelFraction = canvasW > 0 ? panelW / canvasW : 0;
-  return Math.max(0.25, 1 - panelFraction); // largeur mini 25%
+  return Math.max(0.25, 1 - panelFraction); // largeur « utile » mini 25%
 }
 
 function getEffectiveViewportWidth() {
-  // Si le panneau est ouvert, utiliser la largeur réduite; sinon, plein écran
+  // Fraction de largeur « utile » (gauche) quand le panneau est ouvert ; sinon 1.
+  // Sert au CALCUL DU RADIUS (le modèle garde sa taille apparente). Le rendu, lui,
+  // reste plein écran — le décalage est appliqué par applyViewportShift().
   return isPoiPanelOpen ? getTopViewViewportWidth() : 1;
 }
 
+/* Largeur utile « actuelle » déduite du décalage écran en cours (pour démarrer une
+   animation depuis l'état visuel réel, sans « clac »). Inverse de computeScreenShiftX. */
+function getEffectiveViewportWidthAtStart() {
+  if (!camera || !camera.targetScreenOffset) return getEffectiveViewportWidth();
+  const off = camera.targetScreenOffset.x || 0;
+  if (Math.abs(off) < 1e-4) return 1;
+  const renderW = engine.getRenderWidth();
+  const renderH = engine.getRenderHeight();
+  const fovH = 2 * Math.atan(Math.tan(camera.fov / 2) * (renderW / renderH));
+  const halfWorld = (camera.radius || 10) * Math.tan(fovH / 2);
+  if (halfWorld <= 0) return 1;
+  return Math.max(0.25, 1 - off / halfWorld);
+}
+
+/* Convertit la fraction de largeur utile en décalage écran (unités monde) pour pousser
+   le modèle dans la zone de gauche, rendu plein écran. */
+function computeScreenShiftX(usableWidth, cam) {
+  cam = cam || camera;
+  if (!cam || usableWidth >= 0.999) return 0;
+  const renderW = engine.getRenderWidth();
+  const renderH = engine.getRenderHeight();
+  const fovV = cam.fov || (camera && camera.fov) || 0.8;
+  const aspect = renderW / renderH;
+  const fovH = 2 * Math.atan(Math.tan(fovV / 2) * aspect);
+  const r = cam.radius || 10;
+  // Demi-largeur monde visible au niveau de la cible.
+  const halfWorld = r * Math.tan(fovH / 2);
+  // Le centre de la zone utile est à usableWidth/2 depuis le bord gauche ; en plein
+  // écran le centre est à 0.5. Écart = (1 - usableWidth)/2. On pousse le modèle À
+  // GAUCHE (panneau à droite) → offset X positif. Si jamais le modèle partait du
+  // MAUVAIS côté, inverser SHIFT_SIGN ci-dessous (mettre -1).
+  const SHIFT_SIGN = 1;
+  return SHIFT_SIGN * (1 - usableWidth) * halfWorld;
+}
+
+/* Applique le rendu plein écran + le décalage écran correspondant au panneau.
+   Agit sur la caméra passée (ou la caméra active par défaut : nav ArcRotate ou fpCamera). */
+function applyViewportShift(cam) {
+  cam = cam || (isFirstPerson && fpCamera ? fpCamera : camera);
+  if (!cam) return;
+  cam.viewport = new BABYLON.Viewport(0, 0, 1, 1); // TOUJOURS plein écran
+  if (cam.targetScreenOffset) {
+    cam.targetScreenOffset.x = computeScreenShiftX(getEffectiveViewportWidth(), cam);
+  }
+}
+
 function applyTopViewViewport() {
-  camera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+  applyViewportShift();
 }
 
 function resetViewport() {
-  camera.viewport = new BABYLON.Viewport(0, 0, getEffectiveViewportWidth(), 1);
+  applyViewportShift();
 }
 
 /* ============================================================================
@@ -3711,7 +3854,7 @@ function animateViewportAndRadius(targetViewport, targetRadius, targetCenter, fr
   isAnimating = true;
   camera.detachControl();
 
-  const startVp     = camera.viewport.width;
+  const startVp     = getEffectiveViewportWidthAtStart();
   const startRadius = camera.radius;
   const startTarget = camera.target.clone();
 
@@ -3726,14 +3869,15 @@ function animateViewportAndRadius(targetViewport, targetRadius, targetCenter, fr
     const e = easeInOut(t);
 
     const vp = startVp + (targetViewport - startVp) * e;
-    camera.viewport = new BABYLON.Viewport(0, 0, vp, 1);
+    camera.viewport = new BABYLON.Viewport(0, 0, 1, 1); // plein écran
     camera.radius = startRadius + (targetRadius - startRadius) * e;
     if (targetCenter) camera.target = BABYLON.Vector3.Lerp(startTarget, targetCenter, e);
+    if (camera.targetScreenOffset) camera.targetScreenOffset.x = computeScreenShiftX(vp, camera);
 
     if (t >= 1) {
       scene.onBeforeRenderObservable.remove(currentAnimObserver);
       currentAnimObserver = null;
-      camera.viewport = new BABYLON.Viewport(0, 0, targetViewport, 1);
+      applyViewportShift(camera); // décalage final net
       isAnimating = false;
       if (isTopView) {
         // La vue de dessus reste verrouillée (caméra détachée)
@@ -3764,9 +3908,10 @@ function reframeForPanel(animated) {
   if (animated) {
     animateViewportAndRadius(targetViewport, targetRadius, center);
   } else {
-    camera.viewport = new BABYLON.Viewport(0, 0, targetViewport, 1);
+    camera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
     camera.target = center;
     camera.radius = targetRadius;
+    if (camera.targetScreenOffset) camera.targetScreenOffset.x = computeScreenShiftX(targetViewport, camera);
   }
 }
 
@@ -3777,7 +3922,9 @@ function reframeForPanel(animated) {
    selon le FOV vertical/horizontal le plus contraignant.
    ============================================================================ */
 function computeTopViewRadius() {
-  return computeTopViewRadiusForViewport(camera.viewport.width);
+  // Le viewport est désormais toujours plein écran (1) ; la largeur « utile » vient de
+  // l'état du panneau, pas de camera.viewport.width.
+  return computeTopViewRadiusForViewport(getEffectiveViewportWidth());
 }
 
 function computeTopViewRadiusForViewport(viewportWidth) {
@@ -3853,6 +4000,10 @@ function afficherMarqueurPov(show){
 /* Passer en mode orthographique avec cadrage sur le modèle */
 function switchToOrthographic() {
   if (!modelBounds) return;
+
+  // SSAO2 est calibré pour la perspective (profondeur réelle) → léger halo en ortho.
+  // On le neutralise en vue de dessus éditeur, réactivé au retour perspective.
+  try { if (window.ssao2Pipeline) window.ssao2Pipeline.totalStrength = 0; } catch (_) {}
 
   camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
 
