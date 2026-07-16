@@ -2455,6 +2455,22 @@ function enterPanoramaCamera(eyePos, lookAt) {
     } catch (e) {
       console.warn('⚠️ Compositing non rattaché à la fpCamera :', e.message);
     }
+
+    // ========== OCCLUSION DE CONTACT (SSAO2) IDENTIQUE EN VUE POV ==========
+    // Le SSAO2 n'était attaché qu'à l'ArcRotateCamera : en POV l'occlusion de
+    // contact disparaissait (coins/jonctions non assombris → rendu plus « plat »).
+    // On rattache le MÊME pipeline SSAO2 à la fpCamera, dans le même ordre que sur
+    // la caméra principale (compositing puis ssao2), pour un rendu strictement
+    // identique dans les 2 vues. L'exclusion des vitres reste globale (prepass).
+    try {
+      if (window.ssao2Pipeline && scene.postProcessRenderPipelineManager) {
+        scene.postProcessRenderPipelineManager
+          .attachCamerasToRenderPipeline('ssao2', fpCamera);
+        console.log('✅ SSAO2 rattaché à la fpCamera (AO actif en POV)');
+      }
+    } catch (e) {
+      console.warn('⚠️ SSAO2 non rattaché à la fpCamera :', e.message);
+    }
   }
   fpCamera.position.copyFrom(eyePos);
   fpCamera.fov = CONFIG.firstPersonFovWide;
