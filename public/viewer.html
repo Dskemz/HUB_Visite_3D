@@ -1713,6 +1713,43 @@ async function init() {
 }
 
 /* ============================================================================
+   RÉFRACTION DES VITRES — aligner l'IOR sur la valeur du shader (~1.01)
+   ----------------------------------------------------------------------------
+   Le shader d'origine vise un IOR ~1.01 (réfraction quasi nulle → verre clair).
+   Or l'IOR par défaut d'un matériau réfractif dans Babylon est 1.5 : si
+   l'extension glTF KHR_materials_ior n'est pas reprise à l'import, le verre est
+   rendu avec une FORTE réfraction (l'image vue au travers est décalée/distordue,
+   montants « dédoublés »). On réaligne donc l'IOR des matériaux RÉFRACTIFS sur
+   1.01. On ne touche QUE la réfraction : ni l'alpha (transparence), ni la couleur,
+   ni le reste du matériau. Réglable en direct via window.setGlassIOR(v).
+   ============================================================================ */
+window.__GLASS_IOR = 1.01;
+function applyGlassRefraction(root, ior) {
+  const val = (typeof ior === 'number') ? ior : window.__GLASS_IOR;
+  const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
+  const seen = new Set();
+  let n = 0;
+  meshes.forEach(m => {
+    const mats = m.material
+      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+      : [];
+    mats.forEach(mat => {
+      if (!mat || seen.has(mat)) return;
+      const ss = mat.subSurface;
+      if (ss && ss.isRefractionEnabled) {
+        ss.indexOfRefraction = val;                                   // réfraction PBR / KHR_transmission
+        if ('volumeIndexOfRefraction' in ss) ss.volumeIndexOfRefraction = val; // volume (KHR_volume)
+        seen.add(mat); n++;
+      }
+    });
+  });
+  if (n) console.log('🪟 Réfraction verre : IOR aligné sur ' + val + ' (' + n + ' matériau(x))');
+  return n;
+}
+// Réglage live (console) : window.setGlassIOR(1.0) … 1.05 pour ajuster finement.
+window.setGlassIOR = function (v) { window.__GLASS_IOR = v; return applyGlassRefraction(null, v); };
+
+/* ============================================================================
    LOAD MODELS
    ============================================================================ */
 async function loadWalls() {
@@ -1750,6 +1787,8 @@ async function loadWalls() {
       });
       console.log('✅ Filtrage anisotrope appliqué (netteté vues obliques) : ' + aniso + '×');
     } catch (e) { /* caps absentes : filtrage par défaut conservé */ }
+    // Vitres : réfraction alignée sur l'IOR du shader (~1.01), sinon défaut 1.5 = distorsion
+    applyGlassRefraction(wallsRoot);
   } catch (err) {
     console.error('Échec chargement walls.glb :', err);
     document.querySelector('#loading-bar h3').textContent = 'Modèle introuvable (walls.glb)';
@@ -2188,6 +2227,7 @@ function loadRoomsAsync() {
         roomState[r.id].loaded = true;
         roomState[r.id].enabled = !!CONFIG.roomsStartVisible;
 
+        applyGlassRefraction(node); // vitres du mobilier/pièce : IOR aligné
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
       } catch (err) {
         roomState[r.id].failed = true;
