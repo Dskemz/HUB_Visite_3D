@@ -1272,6 +1272,8 @@ async function init() {
     hdrTexture.onLoadObservable.add(() => {
       scene.environmentTexture = hdrTexture;
       scene.environmentIntensity = 1.25;  // intensité réflexions/IBL (légèrement relevée pour le réalisme)
+      // La HDRi remplace la réflexion de repli : on libère la sonde devenue inutile.
+      if (window.__envFallbackProbe) { try { window.__envFallbackProbe.dispose(); } catch (_) {} window.__envFallbackProbe = null; }
 
       // NB : le tone mapping / exposition / contraste sont gérés UNIQUEMENT par le
       // bloc GRADE + pipeline (plus bas). On ne les réécrit plus ici, sinon ce
@@ -1284,6 +1286,31 @@ async function init() {
     });
   } catch (e) {
     console.warn('⚠️ Erreur HDRi (non bloquant):', e.message);
+  }
+
+  // --- FALLBACK RÉFLEXION : les métaux ne doivent JAMAIS être noirs ---------
+  // Un matériau metallic=1 ne tire sa couleur QUE de l'environnement réfléchi :
+  // sans `scene.environmentTexture` il s'affiche NOIR. La HDRi est chargée en
+  // asynchrone et peut échouer en prod (fichier .hdr absent / pointeur LFS non
+  // résolu). On installe donc IMMÉDIATEMENT une réflexion de repli dérivée de la
+  // skybox (sonde rendue une seule fois) pour que les métaux réfléchissent le ciel
+  // au lieu d'être noirs. La HDRi la remplace ensuite si elle finit par charger.
+  try {
+    if (!scene.environmentTexture && BABYLON.ReflectionProbe) {
+      const envProbe = new BABYLON.ReflectionProbe('envFallback', 128, scene);
+      if ('refreshRate' in envProbe) {
+        envProbe.refreshRate = BABYLON.RenderTargetTexture.REFRESHRATE_RENDER_ONCE;
+      }
+      envProbe.renderList.push(skybox);
+      scene.environmentTexture = envProbe.cubeTexture;
+      if (scene.environmentIntensity == null || scene.environmentIntensity === 1) {
+        scene.environmentIntensity = 1.0;
+      }
+      window.__envFallbackProbe = envProbe;
+      console.log('✅ Réflexion de repli installée (métaux réfléchissent la skybox)');
+    }
+  } catch (e) {
+    console.warn('⚠️ Fallback réflexion non créé :', e.message);
   }
   
   // --- ÉCLAIRAGE PRO AGRESSIF (vraies variations) ---
