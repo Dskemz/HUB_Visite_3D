@@ -1643,8 +1643,10 @@ async function init() {
 
   // Détecter les clics sur les marqueurs POI
   window.addEventListener('click', (event) => {
-    // En mode placement, on navigue librement : pas de déclenchement POV
-    if (placementMode) return;
+    // En mode placement, on navigue librement : pas de déclenchement POV.
+    // (placementMode n'existe que dans l'éditeur ; dans le viewer public il est absent
+    //  → on teste son existence pour ne pas lever de ReferenceError qui tuerait le clic.)
+    if (typeof placementMode !== 'undefined' && placementMode) return;
     // Ne pas déclencher si on clique sur un bouton ou un élément UI
     if (event.target.closest('button') || event.target.closest('.poi-panel') ||
         event.target.closest('.info-panel') || event.target.closest('.toggle-panel-btn') ||
