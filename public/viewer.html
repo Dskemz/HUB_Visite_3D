@@ -254,6 +254,9 @@
       display: flex;
       flex-direction: column;
       border-left: 1px solid rgba(255, 255, 255, 0.12);
+      /* Coins gauches (côté scène) très légèrement arrondis pour matcher les boutons */
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
     }
 
     /* ===== Skin « verre navy » du panneau : textes & éléments internes en clair ===== */
@@ -731,6 +734,7 @@
         width: 100%; height: auto; flex: 1 1 auto; min-height: 0;
         overflow-y: auto; -webkit-overflow-scrolling: touch;
         box-shadow: none; border-left: none;
+        border-radius: 0; /* feuille mobile plein écran : coins droits */
         background: rgba(var(--brand-navy-rgb),0.94);
       }
       .poi-panel.closed { transform: none !important; pointer-events: auto; }
