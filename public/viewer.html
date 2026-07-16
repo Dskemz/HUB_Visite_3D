@@ -1713,50 +1713,6 @@ async function init() {
 }
 
 /* ============================================================================
-   VITRES x SSAO2 - pas d'occlusion de contact sur le verre
-   ----------------------------------------------------------------------------
-   Le SSAO2 est un effet ECRAN base sur la profondeur/normales (via le
-   PrePassRenderer en WebGL2). Sur une vitre (transparence + legere refraction),
-   les normales/profondeur ecrites sont celles du VERRE alors que la couleur, elle,
-   montre le decor REFRACTE derriere : l'AO calcule sur la geometrie du verre se
-   superpose a cette image refractee -> on voit "tout en double" a travers la vitre.
-   On exclut donc les materiaux transparents/refractifs du prepass SSAO2. L'AO reste
-   sur toute la geometrie opaque (murs, sols, meubles) ; le shader du verre s'affiche
-   seul, tel quel (transparence + refraction), sans dedoublement.
-   ============================================================================ */
-function isGlassMaterial(mat) {
-  if (!mat) return false;
-  if (Array.isArray(mat.subMaterials)) return mat.subMaterials.some(isGlassMaterial);
-  const blended    = (typeof mat.needAlphaBlending === 'function') ? mat.needAlphaBlending() : false;
-  const semiTransp = (mat.alpha != null && mat.alpha < 0.999);
-  const refractStd = !!mat.refractionTexture;                                   // StandardMaterial
-  const refractPbr = !!(mat.subSurface && mat.subSurface.isRefractionEnabled);  // PBR / KHR_transmission
-  return blended || semiTransp || refractStd || refractPbr;
-}
-
-function excludeGlassFromAO(root) {
-  // SSAO2 (WebGL2) alimente sa profondeur/normales via le PrePassRenderer : on en
-  // exclut les MATERIAUX de verre (API native `excludedMaterials`). En repli WebGL1
-  // eventuel, SSAO2 passe par le geometryBufferRenderer (exclusion par mesh).
-  const pp  = scene.prePassRenderer;
-  const gbr = scene.geometryBufferRenderer;
-  if (!pp && !gbr) return;
-  const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
-  let nMat = 0, nMesh = 0;
-  meshes.forEach(m => {
-    const mat = m.material;
-    if (!mat || !isGlassMaterial(mat)) return;
-    const subs = Array.isArray(mat.subMaterials) ? mat.subMaterials.filter(isGlassMaterial) : [mat];
-    if (pp && Array.isArray(pp.excludedMaterials)) {
-      subs.forEach(sm => { if (sm && pp.excludedMaterials.indexOf(sm) === -1) { pp.excludedMaterials.push(sm); nMat++; } });
-    }
-    if (gbr && Array.isArray(gbr.excludedMeshes) && gbr.excludedMeshes.indexOf(m) === -1) { gbr.excludedMeshes.push(m); }
-    nMesh++;
-  });
-  if (nMat || nMesh) console.log('\uD83E\uDE9F Verre hors SSAO2 : ' + nMat + ' materiau(x), ' + nMesh + ' maille(s)');
-}
-
-/* ============================================================================
    LOAD MODELS
    ============================================================================ */
 async function loadWalls() {
@@ -1794,8 +1750,6 @@ async function loadWalls() {
       });
       console.log('✅ Filtrage anisotrope appliqué (netteté vues obliques) : ' + aniso + '×');
     } catch (e) { /* caps absentes : filtrage par défaut conservé */ }
-    // Vitres : jamais d'occlusion de contact (evite l'image dedoublee a travers le verre)
-    excludeGlassFromAO(wallsRoot);
   } catch (err) {
     console.error('Échec chargement walls.glb :', err);
     document.querySelector('#loading-bar h3').textContent = 'Modèle introuvable (walls.glb)';
@@ -2234,8 +2188,6 @@ function loadRoomsAsync() {
         roomState[r.id].loaded = true;
         roomState[r.id].enabled = !!CONFIG.roomsStartVisible;
 
-
-        excludeGlassFromAO(node); // vitres du mobilier/piece : hors SSAO2
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
       } catch (err) {
         roomState[r.id].failed = true;
