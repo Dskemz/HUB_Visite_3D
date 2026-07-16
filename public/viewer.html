@@ -3781,7 +3781,7 @@ function getEffectiveViewportWidthAtStart() {
   const fovH = 2 * Math.atan(Math.tan(camera.fov / 2) * (renderW / renderH));
   const halfWorld = (camera.radius || 10) * Math.tan(fovH / 2);
   if (halfWorld <= 0) return 1;
-  return Math.max(0.25, 1 - off / halfWorld);
+  return Math.max(0.25, 1 - Math.abs(off) / halfWorld);
 }
 
 /* Convertit la fraction de largeur utile en décalage écran (unités monde) pour pousser
@@ -3798,10 +3798,11 @@ function computeScreenShiftX(usableWidth, cam) {
   // Demi-largeur monde visible au niveau de la cible.
   const halfWorld = r * Math.tan(fovH / 2);
   // Le centre de la zone utile est à usableWidth/2 depuis le bord gauche ; en plein
-  // écran le centre est à 0.5. Écart = (1 - usableWidth)/2. On pousse le modèle À
-  // GAUCHE (panneau à droite) → offset X positif. Si jamais le modèle partait du
-  // MAUVAIS côté, inverser SHIFT_SIGN ci-dessous (mettre -1).
-  const SHIFT_SIGN = 1;
+  // écran le centre est à 0.5. Écart = (1 - usableWidth)/2. Le panneau est à DROITE :
+  // on pousse le modèle À GAUCHE, dans la bande visible → targetScreenOffset.x NÉGATIF
+  // (un offset positif décale le rendu vers la droite, sous le panneau). Si jamais le
+  // modèle partait du mauvais côté, repasser SHIFT_SIGN à +1.
+  const SHIFT_SIGN = -1;
   return SHIFT_SIGN * (1 - usableWidth) * halfWorld;
 }
 
@@ -3812,7 +3813,11 @@ function applyViewportShift(cam) {
   if (!cam) return;
   cam.viewport = new BABYLON.Viewport(0, 0, 1, 1); // TOUJOURS plein écran
   if (cam.targetScreenOffset) {
-    cam.targetScreenOffset.x = computeScreenShiftX(getEffectiveViewportWidth(), cam);
+    // En POV (vue 1ère personne), la vue est immersive plein écran, le panneau
+    // reste en overlay : jamais de décalage horizontal sur la fpCamera.
+    cam.targetScreenOffset.x = (isFirstPerson && cam === fpCamera)
+      ? 0
+      : computeScreenShiftX(getEffectiveViewportWidth(), cam);
   }
 }
 
