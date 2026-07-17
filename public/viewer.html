@@ -1713,25 +1713,58 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — matériau de base du GLB PRÉSERVÉ (aucune modification)
+   VERRE — réduire la réfraction au maximum (isRefractionEnabled=true + intensité 1%)
    ----------------------------------------------------------------------------
-   On laisse le matériau de verre EXACTEMENT tel qu'il est authoré dans Blender
-   (Principled BSDF : transmission=1, IOR 1.01, roughness 0, metalness 0) et
-   importé par Babylon via glTF KHR_materials_transmission
-   (→ subSurface.isRefractionEnabled). Aucune conversion en alpha, aucune coupure
-   de réfraction, aucun albédo forcé : le verre conserve toutes ses propriétés
-   natives (transmission, réflexions, réfraction légère de l'environnement).
-   applyGlassTreatment est volontairement neutre (no-op) — les appels existants
-   restent en place mais ne touchent plus au matériau.
+   Le matériau de verre du GLB (Principled BSDF transmission=1, IOR 1.01) est
+   conservé INTACT. On ne touche qu'à refractionIntensity (l'intensité de la
+   déformation du ciel vue à travers le verre) et la baisse à quasi-zéro (0.01 = 1%).
+   Résultat : transmission vraie + réflexions/Fresnel/roughness natives, mais la
+   déformation grise du ciel flouté devient quasi-imperceptible. Le verre garde
+   toutes ses propriétés PBR d'origine, on ne supprime RIEN.
    ============================================================================ */
-function applyGlassTreatment(root, opacity) {
-  // No-op volontaire : le matériau de verre du GLB est conservé tel quel.
-  return 0;
+function applyGlassTreatment(root) {
+  const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
+  const seen = new Set();
+  let n = 0;
+  meshes.forEach(m => {
+    const mats = m.material
+      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+      : [];
+    mats.forEach(mat => {
+      if (!mat || seen.has(mat)) return;
+      const ss = mat.subSurface;
+      // Cible : uniquement le verre = matériau à réfraction/transmission activée.
+      if (ss && ss.isRefractionEnabled) {
+        // Garder la réfraction ACTIVE mais la réduire au maximum (quasi-invisible)
+        ss.refractionIntensity = 0.01;  // 1% de l'intensité max → transmission vraie, pas de gris
+        seen.add(mat); n++;
+      }
+    });
+  });
+  if (n) console.log('🪟 Verre : réfraction réduite à 1% (' + n + ' matériau(x))');
+  return n;
 }
-// Stubs conservés pour compatibilité (ne modifient plus le matériau de base) :
-window.setGlassOpacity   = function () { return 0; };
-window.setGlassReflect   = function () { return 0; };
-window.setGlassRoughness = function () { return 0; };
+// Réglage live (console) : ajuster l'intensité de la réfraction sans recompiler.
+window.setGlassRefraction = function (v) {
+  const meshes = scene.meshes;
+  const seen = new Set();
+  let n = 0;
+  meshes.forEach(m => {
+    const mats = m.material
+      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+      : [];
+    mats.forEach(mat => {
+      if (!mat || seen.has(mat)) return;
+      const ss = mat.subSurface;
+      if (ss && ss.isRefractionEnabled) {
+        ss.refractionIntensity = v;
+        seen.add(mat); n++;
+      }
+    });
+  });
+  if (n) console.log('🪟 refractionIntensity = ' + v + ' (' + n + ' matériau(x))');
+  return n;
+};
 
 /* ============================================================================
    LOAD MODELS
