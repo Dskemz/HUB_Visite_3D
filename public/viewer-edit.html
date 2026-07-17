@@ -180,7 +180,7 @@
 
       <div id="p-verre" hidden>
         <p class="hint"><b>Matériaux de la scène.</b> Regroupés par catégorie :<br>
-          <code>M_glass_*</code> · <code>M_architecture_*</code> · <code>M_sol_*</code><br>
+          <code>M_glass_*</code> · <code>M_architecture_*</code> · <code>M_sol_*</code> · <code>M_plastique_*</code> · <code>M_metal_*</code><br>
           Clique une catégorie pour la déplier, puis ajuste chaque matériau en direct.</p>
         <button class="btn sec" onclick="chargerVerres()" style="margin-bottom:.8rem;">🔄 Recharger la liste</button>
         <div id="glass-list"></div>
@@ -1245,10 +1245,11 @@ const CTRL_META = {
   alpha:      { label: 'Transparence', min: 0, max: 1, step: 0.01 },
   roughness:  { label: 'Rugosité',     min: 0, max: 1, step: 0.01 },
   reflection: { label: 'Réflexions',   min: 0, max: 3, step: 0.05 },
-  refraction: { label: 'Réfraction',   min: 0, max: 1, step: 0.05 }
+  refraction: { label: 'Réfraction',   min: 0, max: 1, step: 0.05 },
+  ior:        { label: 'IOR',          min: 1, max: 2, step: 0.05 }
 };
 
-let openCategories = { glass: true, architecture: true, sol: true };  // état déplié/replié par catégorie
+let openCategories = { glass: true, architecture: true, sol: true, plastique: true, metal: true };  // état déplié/replié par catégorie
 
 function chargerVerres(){
   const w = vwWin();
@@ -1289,7 +1290,9 @@ function chargerVerres(){
       '<b>Tes catégories :</b><br>' +
       '· <code>M_glass_*</code> → Verre<br>' +
       '· <code>M_architecture_*</code> → Murs, plinthes, etc.<br>' +
-      '· <code>M_sol_*</code> → Sols<br><br>' +
+      '· <code>M_sol_*</code> → Sols<br>' +
+      '· <code>M_plastique_*</code> → Plastiques<br>' +
+      '· <code>M_metal_*</code> → Métaux<br><br>' +
       'Clique « 🔄 Recharger » après modification.</p>';
     return;
   }

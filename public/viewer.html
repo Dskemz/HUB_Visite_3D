@@ -1771,10 +1771,12 @@ function applyGlassTreatment(root) {
    Extensible : ajouter une entrée dans MATERIAL_CATEGORIES suffit.
    ============================================================================ */
 window.MATERIAL_CATEGORIES = {
-  glass:        { label: 'Verre',        controls: ['alpha', 'roughness', 'reflection', 'refraction'] },
+  glass:        { label: 'Verre',        controls: ['alpha', 'roughness', 'reflection', 'refraction', 'ior'] },
   architecture: { label: 'Architecture', controls: ['roughness', 'reflection'] },
-  sol:          { label: 'Sol',          controls: ['roughness', 'reflection'] }
-  // À étendre plus tard : wood, crepis, metal, fabric, stone...
+  sol:          { label: 'Sol',          controls: ['roughness', 'reflection'] },
+  plastique:    { label: 'Plastique',    controls: ['roughness', 'reflection'] },
+  metal:        { label: 'Métal',        controls: ['roughness', 'reflection'] }
+  // À étendre plus tard : wood, crepis, fabric, stone...
 };
 
 // Extraire la catégorie d'un nom de matériau : "M_glass_transparent" → "glass"
@@ -1815,7 +1817,8 @@ window.getMaterialsByCategory = function() {
         alpha: (typeof mat.alpha === 'number') ? mat.alpha : 1,
         roughness: (typeof mat.roughness === 'number') ? mat.roughness : 0,
         reflection: ('environmentIntensity' in mat) ? mat.environmentIntensity : 1,
-        refraction: (ss && typeof ss.refractionIntensity === 'number') ? ss.refractionIntensity : 1
+        refraction: (ss && typeof ss.refractionIntensity === 'number') ? ss.refractionIntensity : 1,
+        ior: (ss && typeof ss.indexOfRefraction === 'number') ? ss.indexOfRefraction : 1.5
       };
       (groups[cat] = groups[cat] || []).push(entry);
     });
@@ -1842,6 +1845,9 @@ window.setMaterialProps = function(matId, props) {
       }
       if (typeof props.refraction !== 'undefined' && mat.subSurface) {
         mat.subSurface.refractionIntensity = props.refraction;
+      }
+      if (typeof props.ior !== 'undefined' && mat.subSurface) {
+        mat.subSurface.indexOfRefraction = props.ior;
       }
     });
   });
