@@ -1638,12 +1638,13 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — INERTE. Charger tel quel du GLB, aucune modification.
+   VERRE — TRANSMISSION BABYLON DÉSACTIVÉE
+   ============================================================================
+   KHR_materials_transmission refracte scene.environmentTexture (IBL) au lieu
+   de la scène réelle → décalage spatial + duplication POV. Solution : retirer
+   la transmission, utiliser alpha-blend classique pour la transparence.
    ============================================================================ */
 function applyGlassTreatment(root) {
-  // Détection et marquage pour debug/diagnostic (applyGlassTreatment.diagnose()),
-  // mais AUCUNE modification ni exclusion du post-process.
-  // Le verre se comporte exactement comme Blender l'a exporté.
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
   let glassCount = 0;
   meshes.forEach(m => {
@@ -1652,15 +1653,32 @@ function applyGlassTreatment(root) {
       : [];
     mats.forEach(mat => {
       if (!mat) return;
-      // Marquage pour diagnostic SEULEMENT
-      if (materialCategory(mat.name) === 'glass') {
+      
+      // Détection verre
+      const isGlass = materialCategory(mat.name) === 'glass' ||
+                      (mat.subSurface && mat.subSurface.isRefractionEnabled);
+      
+      if (isGlass) {
         m.__isGlass = true;
+        
+        // DÉSACTIVER TRANSMISSION : aucune réfraction IBL
+        if (mat.subSurface) {
+          mat.subSurface.isRefractionEnabled = false;
+          // Assurer transparence par alpha, pas transmission
+          if (mat.alpha == null || mat.alpha > 0.99) {
+            mat.alpha = 0.9; // légèrement transparent mais CLAIR
+          }
+        }
+        // Mode de rendu transparent standard (pas transmission)
+        mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
+        
         glassCount++;
       }
     });
   });
+  
   if (glassCount > 0) {
-    console.log('🪟 Verre (inerte) : ' + glassCount + ' mesh(es) — aucune modification, chargement Blender brut');
+    console.log('🪟 Verre : ' + glassCount + ' mesh(es) — transmission DÉSACTIVÉE, alpha-blend activé (aucune réfraction IBL)');
   }
   return glassCount;
 }
