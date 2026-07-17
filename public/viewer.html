@@ -1486,6 +1486,13 @@ async function init() {
 
   await loadManifest();
   await loadWalls();
+  
+  // Caméra principale rend tout SAUF le verre (layer 0 uniquement)
+  camera.layerMask = 1;  // layer 0
+  
+  // Caméra séparée pour le verre SANS post-processing
+  setupGlassCamera();
+  
   loadRoomsAsync();
 
   // HDRi et skybox gérées par createDefaultEnvironment()
@@ -1713,59 +1720,55 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — shader de base intact, réduire UNIQUEMENT refractionIntensity + IOR
+   VERRE — caméra séparée SANS pipeline (isole 100% du post-processing)
    ============================================================================ */
 function applyGlassTreatment(root) {
+  // Identifier et tagger tous les meshes de verre (pour la caméra séparée)
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
   let glassCount = 0;
   meshes.forEach(m => {
     const mats = m.material
       ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
       : [];
-    let hasGlass = false;
     mats.forEach(mat => {
       if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-        // Réduire drastiquement la réfraction de l'environnement (0.02 = quasi-invisible)
-        mat.subSurface.refractionIntensity = 0.02;
-        // Forcer l'IOR correct depuis Blender (transmission ne l'importe pas toujours)
-        mat.subSurface.indexOfRefraction = 1.01;
-        if ('volumeIndexOfRefraction' in mat.subSurface) {
-          mat.subSurface.volumeIndexOfRefraction = 1.01;
-        }
-        hasGlass = true;
+        // Tagger ce mesh comme "verre" (layer 1) — sera rendu par la caméra de verre uniquement
+        m.layerMask = 2;  // layer 1 (bit 1)
+        glassCount++;
       }
     });
-    if (hasGlass) {
-      // Exclure ce mesh du post-processing (AO, bloom, grading, etc.)
-      if (scene.postProcessRenderPipelineManager && scene.postProcessRenderPipelineManager._renderPipelines.compositing) {
-        const pipe = scene.postProcessRenderPipelineManager._renderPipelines.compositing;
-        if (pipe.excludedMeshes && !pipe.excludedMeshes.includes(m)) {
-          pipe.excludedMeshes.push(m);
-        }
-      }
-      if (window.ssao2Pipeline) {
-        try { window.ssao2Pipeline.addExcludedMesh(m); } catch (_) {}
-      }
-      glassCount++;
-    }
   });
   if (glassCount > 0) {
-    console.log('🪟 Verre : refractionIntensity 0.02, IOR 1.01, exclu post-processing (' + glassCount + ' mesh(es))');
+    console.log('🪟 Verre : ' + glassCount + ' mesh(es) taguées pour rendu isolé (layer 1)');
   }
   return glassCount;
 }
-// Live tuning si besoin (refractionIntensity seulement)
-window.setGlassRefraction = function (v) {
-  scene.meshes.forEach(m => {
-    const mats = m.material ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material]) : [];
-    mats.forEach(mat => {
-      if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-        mat.subSurface.refractionIntensity = v;
-      }
-    });
+// À appeler APRÈS que la caméra et la pipeline soient créées :
+window.setupGlassCamera = function() {
+  if (window.glassCamera) return;  // déjà créé
+  
+  // Caméra dédiée au verre : elle rend JUSTE le layer 1 (le verre)
+  const cam = new BABYLON.UniversalCamera('glassCamera', camera.position.clone());
+  cam.attachControl(canvas, true);
+  cam.layerMask = 2;  // rend JUSTE le layer 1 (verre)
+  cam.inertia = camera.inertia;
+  cam.angularSensibility = camera.angularSensibility;
+  cam.target = camera.target.clone();
+  
+  // Synchroniser cette caméra avec la principale en temps réel
+  // (elle doit voir la même chose, mais sans pipeline)
+  scene.registerBeforeRender(() => {
+    cam.position = camera.position.clone();
+    cam.target = camera.target.clone();
   });
-  console.log('🪟 refractionIntensity = ' + v);
+  
+  // Cette caméra ne reçoit AUCUN pipeline (DefaultRenderingPipeline, SSAO2, etc.)
+  // Elle rend le verre tel quel, après le rendu principal
+  
+  window.glassCamera = cam;
+  console.log('🪟 Caméra de verre créée (rendergroup, aucune pipeline)');
 };
+
 
 /* ============================================================================
    LOAD MODELS
