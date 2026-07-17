@@ -1593,36 +1593,15 @@ async function init() {
     window.compositingPipeline = pipe;  // réglages live possibles depuis la console
     console.log('✅ Compositing réaliste activé (ACES + grade + bloom + netteté + vignette)');
 
-    // --- AO DE CONTACT (SSAO2) — rendu plein écran → aucun artefact ---
-    // Assombrit les recoins (jonctions mur/sol/plafond, dessous des meubles) : c'est ce
-    // qui « pose » les objets et donne la profondeur. Rendu à 50% de résolution (léger).
-    // Piloté par GRADE (lui-même alimenté par lighting-config.json → éditable).
-    // AO créé dès que WebGL2 le permet (même si désactivé au départ : on démarre à
-    // strength 0), pour que l'éditeur puisse l'activer en direct sans recharger.
-    if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
-      const aoOn = GRADE.ao;
-      const ssao2 = new BABYLON.SSAO2RenderingPipeline('ssao2', scene,
-        { ssaoRatio: 0.5, blurRatio: 0.5 }, [camera]);
-      ssao2.radius        = GRADE.aoRadius;
-      ssao2.totalStrength = aoOn ? GRADE.aoStrength : 0;
-      ssao2.base          = GRADE.aoBase;
-      ssao2.samples       = 16;
-      ssao2.maxZ          = 60;
-      ssao2.minZAspect    = 0.5;
-      ssao2.expensiveBlur = false;
-      try { const sky = scene.getMeshByName('skybox'); if (sky) ssao2.addExcludedMesh(sky); } catch (_) {}
-      window.ssao2Pipeline = ssao2;
-      window.__AO_STRENGTH__ = aoOn ? GRADE.aoStrength : 0; // puissance courante (restaurée après l'ortho)
-      // API simple pour l'éditeur : ajuster l'AO en direct sans recharger.
-      window.setAO = function(opts) {
-        opts = opts || {};
-        if (!window.ssao2Pipeline) return;
-        if (opts.strength != null) { window.ssao2Pipeline.totalStrength = opts.strength; window.__AO_STRENGTH__ = opts.strength; }
-        if (opts.radius   != null) window.ssao2Pipeline.radius = opts.radius;
-        if (opts.base     != null) window.ssao2Pipeline.base   = opts.base;
-      };
-      console.log('✅ SSAO2 (occlusion de contact) ' + (aoOn ? 'activé' : 'prêt (désactivé)'));
-    }
+    // --- SSAO2 RETIRÉ (juillet 2026) ---
+    // SSAO2 était en conflit avec le verre réfractif → rendu dégradé.
+    // Approche : retirer complètement du viewer, le rajouter goutte à goutte via l'éditeur
+    // une fois que le verre se comportera bien seul.
+    // L'API window.setAO() reste pour l'éditeur (inopérante pour l'instant).
+    window.ssao2Pipeline = null;
+    window.__AO_STRENGTH__ = 0;
+    window.setAO = function(opts) { /* SSAO2 retiré — en attente de réintégration */ };
+    console.log('⚠️ SSAO2 retiré — verre sans post-processing');
 
     // --- SSR (reflets écran) — TEST du verre, OFF par défaut ---------------
     // Créé DÉTACHÉ (aucune caméra) : tant qu'il n'est pas activé, aucune passe
@@ -1767,17 +1746,23 @@ async function init() {
    ============================================================================ */
 function applyGlassTreatment(root) {
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
-  let glassCount = 0;
+  let glassCount = 0, fallbackCount = 0;
   meshes.forEach(m => {
     const mats = m.material
       ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
       : [];
     let isGlass = false;
     mats.forEach(mat => {
-      // Détection par nomenclature M_glass_* (fallback : isRefractionEnabled)
-      if (mat && (materialCategory(mat.name) === 'glass' ||
-                  (mat.subSurface && mat.subSurface.isRefractionEnabled))) {
+      if (!mat) return;
+      // PRIORITÉ 1 : nomenclature M_glass_* (stricte, exclut plastique/etc.)
+      if (materialCategory(mat.name) === 'glass') {
         isGlass = true;
+      }
+      // FALLBACK 2 : isRefractionEnabled SEULEMENT si pas de M_* (capture vrais verres non-nommés)
+      else if (mat.subSurface && mat.subSurface.isRefractionEnabled &&
+               !String(mat.name).startsWith('M_')) {
+        isGlass = true;
+        fallbackCount++;
       }
     });
     if (isGlass) {
@@ -1797,17 +1782,10 @@ function applyGlassTreatment(root) {
     });
   }
   
-  // EXCLURE du pipeline SSAO2
-  if (window.ssao2Pipeline) {
-    meshes.forEach(m => {
-      if (m.__isGlass) {
-        try { window.ssao2Pipeline.addExcludedMesh(m); } catch (_) {}
-      }
-    });
-  }
-  
   if (glassCount > 0) {
-    console.log('🪟 Verre : ' + glassCount + ' mesh(es) exclus des pipelines');
+    let msg = '🪟 Verre : ' + glassCount + ' mesh(es) exclus des pipelines';
+    if (fallbackCount > 0) msg += ' (' + fallbackCount + ' par isRefractionEnabled, non-nommés M_glass_* — à renommer dans Blender)';
+    console.log(msg);
   }
   return glassCount;
 }
@@ -1852,8 +1830,9 @@ window.getMaterialsByCategory = function() {
       if (!mat || seen.has(mat.uniqueId)) return;
       let cat = materialCategory(mat.name);
       
-      // FALLBACK : si pas de nom M_glass_*, détecte le verre par isRefractionEnabled
-      if (!cat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
+      // FALLBACK : isRefractionEnabled seulement si pas de M_* prefix (exclut plastiques nommés M_plastique_* avec refr activée)
+      if (!cat && mat.subSurface && mat.subSurface.isRefractionEnabled &&
+          !String(mat.name).startsWith('M_')) {
         cat = 'glass';
       }
       
@@ -2273,8 +2252,6 @@ function resetView() {
 
   // Repasser en perspective
   camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
-  // Réactiver l'AO (neutralisée en vue de dessus ortho de l'éditeur)
-  try { if (window.ssao2Pipeline && window.__AO_STRENGTH__ != null) window.ssao2Pipeline.totalStrength = window.__AO_STRENGTH__; } catch (_) {}
   // Ré-attacher le SSR s'il était activé (détaché en vue de dessus ortho).
   try { if (window.ssrPipeline && window.__SSR_STATE__ && window.__SSR_STATE__.enabled && scene.postProcessRenderPipelineManager) scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline('ssr', camera); } catch (_) {}
 
@@ -2681,22 +2658,6 @@ function enterPanoramaCamera(eyePos, lookAt) {
       }
     } catch (e) {
       console.warn('⚠️ Compositing non rattaché à la fpCamera :', e.message);
-    }
-
-    // ========== OCCLUSION DE CONTACT (SSAO2) IDENTIQUE EN VUE POV ==========
-    // Le SSAO2 n'était attaché qu'à l'ArcRotateCamera : en POV l'occlusion de
-    // contact disparaissait (coins/jonctions non assombris → rendu plus « plat »).
-    // On rattache le MÊME pipeline SSAO2 à la fpCamera, dans le même ordre que sur
-    // la caméra principale (compositing puis ssao2), pour un rendu strictement
-    // identique dans les 2 vues. L'exclusion des vitres reste globale (prepass).
-    try {
-      if (window.ssao2Pipeline && scene.postProcessRenderPipelineManager) {
-        scene.postProcessRenderPipelineManager
-          .attachCamerasToRenderPipeline('ssao2', fpCamera);
-        console.log('✅ SSAO2 rattaché à la fpCamera (AO actif en POV)');
-      }
-    } catch (e) {
-      console.warn('⚠️ SSAO2 non rattaché à la fpCamera :', e.message);
     }
 
     // SSR en POV : seulement s'il est activé (sinon on ne touche à rien).
@@ -4340,9 +4301,6 @@ function afficherMarqueurPov(show){
 function switchToOrthographic() {
   if (!modelBounds) return;
 
-  // SSAO2 est calibré pour la perspective (profondeur réelle) → léger halo en ortho.
-  // On le neutralise en vue de dessus éditeur, réactivé au retour perspective.
-  try { if (window.ssao2Pipeline) window.ssao2Pipeline.totalStrength = 0; } catch (_) {}
   // Le SSR n'a pas de sens en vue de dessus ortho → on le détache (ré-attaché au retour).
   try { if (window.ssrPipeline && scene.postProcessRenderPipelineManager) scene.postProcessRenderPipelineManager.detachCamerasFromRenderPipeline('ssr', camera); } catch (_) {}
 
