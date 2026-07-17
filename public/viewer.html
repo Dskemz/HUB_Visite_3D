@@ -1946,6 +1946,41 @@ window.setMaterialProps = function(matId, props) {
   });
 };
 
+/* ============================================================================
+   DIAGNOSTIC VERRE — dresse l'état réel de chaque mesh/matériau « verre ».
+   Sert à vérifier ce qu'on manipule vraiment (nom, réfraction, IOR, alpha,
+   exclusion post-process) avant tout refactor. N'altère rien.
+   ============================================================================ */
+window.diagnoseGlass = function() {
+  const out = [];
+  scene.meshes.forEach(m => {
+    const mats = m.material
+      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+      : [];
+    mats.forEach(mat => {
+      if (!mat) return;
+      const ss = mat.subSurface;
+      const isGlass = (materialCategory(mat.name) === 'glass') ||
+                      (ss && ss.isRefractionEnabled) || !!m.__isGlass;
+      if (!isGlass) return;
+      out.push({
+        mesh: m.name,
+        material: mat.name || ('#' + mat.uniqueId),
+        type: mat.getClassName ? mat.getClassName() : '?',
+        refractionEnabled: ss ? !!ss.isRefractionEnabled : false,
+        refractionIntensity: (ss && ss.refractionIntensity != null) ? +ss.refractionIntensity.toFixed(3) : null,
+        ior: (ss && ss.indexOfRefraction != null) ? +ss.indexOfRefraction.toFixed(3) : null,
+        maxThickness: (ss && ss.maximumThickness != null) ? +ss.maximumThickness.toFixed(3) : null,
+        alpha: (mat.alpha != null) ? +Number(mat.alpha).toFixed(3) : null,
+        transparencyMode: mat.transparencyMode,
+        hasBump: !!mat.bumpTexture,
+        markedGlass: !!m.__isGlass
+      });
+    });
+  });
+  try { console.table(out); } catch (_) { console.log(out); }
+  return out;
+};
 
 /* ============================================================================
    LOAD MODELS

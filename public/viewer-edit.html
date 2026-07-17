@@ -183,6 +183,8 @@
           <code>M_glass_*</code> · <code>M_architecture_*</code> · <code>M_sol_*</code> · <code>M_plastique_*</code> · <code>M_metal_*</code><br>
           Clique une catégorie pour la déplier, puis ajuste chaque matériau en direct.</p>
         <button class="btn sec" onclick="chargerVerres()" style="margin-bottom:.8rem;">🔄 Recharger la liste</button>
+        <button class="btn sec" onclick="diagnostiquerVerre()" style="margin-bottom:.8rem;">🔍 Diagnostic verre</button>
+        <div id="glass-diag"></div>
         <div id="glass-list"></div>
       </div>
 
@@ -1520,6 +1522,43 @@ function setMatToggle(matId, prop, checked){
   // Décocher « Réfraction » = verre plat → l'opacité α devient le vrai levier :
   // on recharge la liste pour rafraîchir les valeurs affichées.
   if (prop === 'refractionOn') setTimeout(chargerVerres, 60);
+}
+
+function diagnostiquerVerre(){
+  const w = vwWin();
+  const box = document.getElementById('glass-diag');
+  if (!box) return;
+  if (!w || !w.diagnoseGlass){
+    box.innerHTML = '<p class="hint" style="color:#e8cfa4;">⏳ Viewer pas prêt.</p>';
+    return;
+  }
+  let rows;
+  try { rows = w.diagnoseGlass(); }
+  catch(e){ box.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ '+e.message+'</p>'; return; }
+  if (!rows || !rows.length){
+    box.innerHTML = '<div style="background:#2a1f12;border:1px solid #5a4526;color:#e8cfa4;'+
+      'padding:.7rem;border-radius:8px;font-size:.74rem;line-height:1.5;margin-bottom:.8rem;">'+
+      '⚠️ <b>Aucun mesh de verre détecté.</b> Le matériau du verre n\'est ni nommé '+
+      '<code>M_glass_*</code>, ni marqué en réfraction. C\'est sans doute pour ça que couper '+
+      'la réfraction n\'a rien changé : la case ne tombait sur rien. La déformation vient '+
+      'd\'un autre matériau — envoie-moi une capture + le nom exact du matériau du verre.</div>';
+    return;
+  }
+  let html = '<div style="background:#0d1220;border:1px solid #263149;border-radius:8px;'+
+    'padding:.5rem .6rem;margin-bottom:.8rem;font-size:.7rem;font-family:ui-monospace,monospace;'+
+    'color:#c7d0e4;overflow-x:auto;">'+
+    '<div style="color:#6f7c99;margin-bottom:.4rem;">'+rows.length+' mesh(es) verre détecté(s) :</div>';
+  rows.forEach(function(r){
+    html += '<div style="border-top:1px solid #1c2740;padding:.4rem 0;">'+
+      '<div style="color:#e8ecf6;font-weight:600;">'+r.material+' <span style="color:#6f7c99;">('+r.mesh+' · '+r.type+')</span></div>'+
+      '<div>réfraction: <b style="color:'+(r.refractionEnabled?'#7dd3fc':'#8b96ad')+'">'+r.refractionEnabled+'</b>'+
+      ' · int: '+r.refractionIntensity+' · IOR: '+r.ior+' · épais.: '+r.maxThickness+'</div>'+
+      '<div>alpha: '+r.alpha+' · tMode: '+r.transparencyMode+' · normalMap: '+(r.hasBump?'oui':'non')+' · exclu: '+(r.markedGlass?'oui':'non')+'</div>'+
+      '</div>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+  flash('🔍 ' + rows.length + ' mesh(es) verre — voir le détail');
 }
 </script>
 </body>
