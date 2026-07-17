@@ -1275,11 +1275,7 @@ async function init() {
       // La HDRi remplace la réflexion de repli : on libère la sonde devenue inutile.
       if (window.__envFallbackProbe) { try { window.__envFallbackProbe.dispose(); } catch (_) {} window.__envFallbackProbe = null; }
 
-      // NB : le tone mapping / exposition / contraste sont gérés UNIQUEMENT par le
-      // bloc GRADE + pipeline (plus bas). On ne les réécrit plus ici, sinon ce
-      // callback asynchrone écrasait les valeurs de GRADE quand la HDRi finissait
-      // de charger (selon l'ordre de chargement).
-      console.log('✅ HDRi chargée (IBL) + tone mapping ACES');
+      console.log('✅ HDRi chargée (IBL)');
     });
     hdrTexture.onErrorObservable.add(() => {
       console.warn('⚠️ HDRi non trouvée, skybox simple conservée');
@@ -1499,109 +1495,16 @@ async function init() {
   setTimeout(() => { flashExploreHint(); }, 700);
 
   // ========================================================================
-  //  COMPOSITING / ÉTALONNAGE RÉALISTE  (post-traitement caméra)
-  //  AO de contact + tone mapping filmique ACES + étalonnage couleur
-  //  + bloom + netteté + vignette. Réglages centralisés dans GRADE.
+  //  COMPOSITING RETIRÉ (juillet 2026)
+  //  DefaultRenderingPipeline + tone mapping ACES + color grading étaient
+  //  la source de la déformation du verre réfractif.
+  //  Approche : verre seul d'abord, puis rajouter compositing goutte à goutte.
   // ========================================================================
-  const GRADE = {
-    exposure:   1.18,    // exposition globale (monter si trop sombre)
-    contrast:   1.55,    // ↑ contraste légèrement augmenté (rendu plus réaliste)
-    toneMapping:'ACES',  // 'ACES' (filmique, réaliste) ou 'STANDARD'
-
-    // Étalonnage couleur cinéma : ombres froides / hautes lumières chaudes
-    satGlobal:        12,
-    shadowsHue:      220, shadowsDensity:    14, shadowsSaturation:     0,
-    highlightsHue:    32, highlightsDensity: 10, highlightsSaturation: -8,
-
-    // Bloom : diffusion lumineuse sur les zones très claires (fenêtres, lampes)
-    // Kernel abaissé 64→40 : le halo reste identique à l'œil mais le calcul du flou
-    // est nettement plus léger (le bloom est l'un des post-process les plus coûteux).
-    bloom: true, bloomThreshold: 0.82, bloomWeight: 0.18, bloomKernel: 40, bloomScale: 0.5,
-
-    // Netteté → contraste perçu. Léger boost 0.30→0.38 : les arêtes et textures
-    // ressortent mieux (aspect plus « propre »/pro) sans halo visible. Coût nul.
-    sharpenEdge: 0.38, sharpenColor: 1.0,
-
-    // Vignette (profondeur / focalisation)
-    vignette: true, vignetteWeight: 2.4,
-
-    // Grain filmique (réduit le banding) — 0 = désactivé (évite le "bruit partout")
-    grain: 0,
-
-    // AO de contact (SSAO2) : RÉACTIVABLE. Le rendu est désormais TOUJOURS plein écran
-    // (le décalage panneau passe par targetScreenOffset, plus par un viewport partiel),
-    // donc le SSAO2 fonctionne sans image fantôme ni déformation. Les réglages viennent
-    // de lighting-config.json (contrôlables dans l'éditeur) : `ao` (on/off), `aoStrength`
-    // (puissance), `aoRadius` (rayon), `aoBase` (présence mini). Défauts ci-dessous.
-    ao:        (lightConfig.ao && lightConfig.ao.enabled) !== false, // ON par défaut
-    aoStrength: (lightConfig.ao && lightConfig.ao.strength != null) ? lightConfig.ao.strength : 1.0,
-    aoRadius:   (lightConfig.ao && lightConfig.ao.radius   != null) ? lightConfig.ao.radius   : 1.2,
-    aoBase:     (lightConfig.ao && lightConfig.ao.base     != null) ? lightConfig.ao.base     : 0.2,
-  };
-
-  // --- PIPELINE DE COMPOSITING (tone mapping + grade + bloom + netteté + vignette) ---
-  try {
-    const ip = scene.imageProcessingConfiguration;
-    ip.toneMappingEnabled = true;
-    ip.toneMappingType = (GRADE.toneMapping === 'ACES')
-      ? BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES
-      : BABYLON.ImageProcessingConfiguration.TONEMAPPING_STANDARD;
-    ip.exposure = GRADE.exposure;
-    ip.contrast = GRADE.contrast;
-
-    // Étalonnage couleur (ombres froides / lumières chaudes + saturation)
-    const curves = new BABYLON.ColorCurves();
-    curves.globalSaturation     = GRADE.satGlobal;
-    curves.shadowsHue           = GRADE.shadowsHue;
-    curves.shadowsDensity       = GRADE.shadowsDensity;
-    curves.shadowsSaturation    = GRADE.shadowsSaturation;
-    curves.highlightsHue        = GRADE.highlightsHue;
-    curves.highlightsDensity    = GRADE.highlightsDensity;
-    curves.highlightsSaturation = GRADE.highlightsSaturation;
-    ip.colorCurves = curves;
-    ip.colorCurvesEnabled = true;
-
-    // Vignette
-    ip.vignetteEnabled = GRADE.vignette;
-    ip.vignetteWeight  = GRADE.vignetteWeight;
-    ip.vignetteColor   = new BABYLON.Color4(0, 0, 0, 0);
-    ip.vignetteStretch = 0.4;
-
-    const pipe = new BABYLON.DefaultRenderingPipeline('compositing', true, scene, [camera]);
-    pipe.imageProcessingEnabled = true;  // applique l'étalonnage en post-process (1 seule fois)
-    pipe.fxaaEnabled = true;             // anti-aliasing (FXAA seul — pas de MSAA pour éviter
-    pipe.samples = 1;                    // les conflits de pipeline / artefacts plein écran)
-
-    pipe.bloomEnabled = GRADE.bloom;
-    if (GRADE.bloom) {
-      pipe.bloomThreshold = GRADE.bloomThreshold;
-      pipe.bloomWeight    = GRADE.bloomWeight;
-      pipe.bloomKernel    = GRADE.bloomKernel;
-      pipe.bloomScale     = GRADE.bloomScale;
-    }
-
-    pipe.sharpenEnabled = true;
-    pipe.sharpen.edgeAmount  = GRADE.sharpenEdge;
-    pipe.sharpen.colorAmount = GRADE.sharpenColor;
-
-    if (GRADE.grain > 0) {
-      pipe.grainEnabled = true;
-      pipe.grain.intensity = GRADE.grain;
-      pipe.grain.animated  = true;
-    }
-
-    window.compositingPipeline = pipe;  // réglages live possibles depuis la console
-    console.log('✅ Compositing réaliste activé (ACES + grade + bloom + netteté + vignette)');
-
-    // --- SSAO2 RETIRÉ (juillet 2026) ---
-    // SSAO2 était en conflit avec le verre réfractif → rendu dégradé.
-    // Approche : retirer complètement du viewer, le rajouter goutte à goutte via l'éditeur
-    // une fois que le verre se comportera bien seul.
-    // L'API window.setAO() reste pour l'éditeur (inopérante pour l'instant).
-    window.ssao2Pipeline = null;
-    window.__AO_STRENGTH__ = 0;
-    window.setAO = function(opts) { /* SSAO2 retiré — en attente de réintégration */ };
-    console.log('⚠️ SSAO2 retiré — verre sans post-processing');
+  window.compositingPipeline = null;
+  window.ssao2Pipeline = null;
+  window.__AO_STRENGTH__ = 0;
+  window.setAO = function(opts) { /* Compositing retiré temporairement */ };
+  console.log('⚠️ Compositing retiré — verre en mode brut (IBL seul)');
 
     // --- SSR (reflets écran) — TEST du verre, OFF par défaut ---------------
     // Créé DÉTACHÉ (aucune caméra) : tant qu'il n'est pas activé, aucune passe
@@ -1652,13 +1555,6 @@ async function init() {
       };
       console.log('✅ SSR prêt (détaché — activable depuis l’éditeur)');
     }
-  } catch (e) {
-    console.warn('⚠️ Compositing non activé, rendu standard :', e.message);
-    // Repli minimal pour ne jamais casser le rendu
-    scene.imageProcessingConfiguration.toneMappingEnabled = true;
-    scene.imageProcessingConfiguration.exposure = 1.0;
-    scene.imageProcessingConfiguration.contrast = 1.1;
-  }
 
   // Afficher axes de coordonnées (debug)
   // createAxesHelper();
@@ -2622,21 +2518,6 @@ function enterPanoramaCamera(eyePos, lookAt) {
     // Souris : seulement le clic gauche pour pivoter, aucune translation
     if (fpCamera.inputs && fpCamera.inputs.attached && fpCamera.inputs.attached.mouse) {
       fpCamera.inputs.attached.mouse.buttons = [0];
-    }
-
-    // ========== TRAITEMENT D'IMAGE IDENTIQUE EN VUE POV ==========
-    // Le pipeline de compositing ('compositing') n'était attaché qu'à
-    // l'ArcRotateCamera. En passant sur la fpCamera, la vue POV ne traversait plus
-    // ce post-traitement → rendu plus sombre/contrasté et SANS bloom. On rattache
-    // donc LE MÊME pipeline à la fpCamera : ACES, exposition, contraste, bloom,
-    // vignette et netteté sont désormais strictement identiques dans les 2 vues.
-    try {
-      if (scene.postProcessRenderPipelineManager) {
-        scene.postProcessRenderPipelineManager
-          .attachCamerasToRenderPipeline('compositing', fpCamera);
-      }
-    } catch (e) {
-      console.warn('⚠️ Compositing non rattaché à la fpCamera :', e.message);
     }
 
     // SSR en POV : seulement s'il est activé (sinon on ne touche à rien).
