@@ -1515,8 +1515,8 @@ async function init() {
 
   // --- AO (SSAO2) : créé détaché, attaché seulement quand activé --------------
   window.ssao2Pipeline   = null;
-  window.__AO_STATE__    = { enabled:false, strength:1.0, radius:1.2, base:0.2 };
-  window.__AO_STRENGTH__ = 0;
+  window.__AO_STATE__    = { enabled:true, strength:1.0, radius:1.2, base:0.2 };
+  window.__AO_STRENGTH__ = 1.0;
   if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
     try {
       var ssao2 = new BABYLON.SSAO2RenderingPipeline('ssao2', scene, { ssaoRatio:0.5, blurRatio:0.5 }, []);
@@ -1528,7 +1528,9 @@ async function init() {
       ssao2.minZAspect    = 0.5;
       ssao2.expensiveBlur = false;
       window.ssao2Pipeline = ssao2;
-      console.log('✅ AO (SSAO2) prêt — détaché (activable dans Post-process)');
+      // Activé par défaut : on l'attache tout de suite à la caméra principale.
+      try { scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline('ssao2', [camera]); } catch(_){}
+      console.log('✅ AO (SSAO2) activé par défaut');
     } catch (e) { console.warn('⚠️ SSAO2 non créé :', e.message); }
   }
   // API AO pour l'éditeur : attache/détache + règle en direct.
@@ -1554,7 +1556,11 @@ async function init() {
   window.__SSR_STATE__ = { enabled:false, strength:0.7, falloff:2.5, roughnessFactor:0.2, thickness:0.5, blur:0.03 };
   if (BABYLON.SSRRenderingPipeline && engine.webGLVersion > 1) {
     try {
-      var ssr = new BABYLON.SSRRenderingPipeline('ssr', scene, [], false);
+      // IMPORTANT (Babylon 9) : le SSR s'appuie sur le PrePassRenderer, initialisé
+      // seulement si une caméra est fournie à la création. On le crée donc ATTACHÉ
+      // à la caméra, puis on le neutralise (isEnabled=false) au lieu de le créer
+      // détaché (cameras=[]), ce qui empêchait le prepass de se monter → SSR inerte.
+      var ssr = new BABYLON.SSRRenderingPipeline('ssr', scene, [camera], false);
       ssr.strength                          = 0.7;
       ssr.reflectionSpecularFalloffExponent = 2.5;
       ssr.roughnessFactor                   = 0.2;
@@ -1565,8 +1571,9 @@ async function init() {
       ssr.attenuateScreenBorders            = true;
       ssr.attenuateFacingCamera             = false;
       ssr.clipToFrustum                     = true;
+      ssr.isEnabled                         = false;   // éteint au départ (rendu inchangé)
       window.ssrPipeline = ssr;
-      console.log('✅ SSR prêt — détaché (activable dans Post-process)');
+      console.log('✅ SSR prêt (isEnabled=false — activable dans Post-process)');
     } catch (e) { console.warn('⚠️ SSR non créé :', e.message); }
   }
   window.setSSR = function(opts){
@@ -1580,11 +1587,8 @@ async function init() {
     if (opts.blur            != null){ st.blur=+opts.blur;                       p.blurDispersionStrength=st.blur; }
     if (opts.enabled != null){
       st.enabled = !!opts.enabled;
-      try {
-        var mgr = scene.postProcessRenderPipelineManager;
-        if (st.enabled) mgr.attachCamerasToRenderPipeline('ssr', window.__ppCams());
-        else            mgr.detachCamerasFromRenderPipeline('ssr', window.__ppCams());
-      } catch(_){}
+      // On bascule via isEnabled (le pipeline reste attaché → prepass déjà monté).
+      try { p.isEnabled = st.enabled; } catch(_){}
     }
   };
 
@@ -1618,6 +1622,7 @@ async function init() {
 
   // --- Liste de toutes les lumières de la scène ---
   window.listAllLights = function(){
+    var r2 = function(v){ return Math.round(v*100)/100; };
     return (scene.lights || []).map(function(l){
       var cls = l.getClassName ? l.getClassName() : 'Light';
       var kind = cls.replace('Light','').toLowerCase(); // spot / directional / point / hemispheric
@@ -2071,6 +2076,99 @@ window.listAllMaterialNames = function() {
   return names;
 };
 
+/* ============================================================================
+   INSPECTEUR MATÉRIAUX — style Babylon Sandbox
+   Liste plate de tous les matériaux avec leurs propriétés PBR réelles, éditables
+   en direct. Ne modifie rien tant que l'utilisateur ne touche pas un contrôle.
+   ============================================================================ */
+function _findMaterialById(matId){
+  var found = null;
+  scene.meshes.forEach(function(m){
+    var mats = m.material ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material]) : [];
+    mats.forEach(function(mat){ if (mat && mat.uniqueId === matId) found = mat; });
+  });
+  return found;
+}
+
+window.inspectorListMaterials = function(){
+  var seen = new Set(), out = [];
+  scene.meshes.forEach(function(m){
+    var mats = m.material ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material]) : [];
+    mats.forEach(function(mat){
+      if (!mat || seen.has(mat.uniqueId)) return;
+      seen.add(mat.uniqueId);
+      out.push({ id: mat.uniqueId, name: mat.name || ('Matériau ' + mat.uniqueId), className: mat.getClassName ? mat.getClassName() : 'Material' });
+    });
+  });
+  out.sort(function(a,b){ return String(a.name).localeCompare(String(b.name)); });
+  return out;
+};
+
+// Retourne l'état complet d'un matériau (propriétés reconnues + drapeau isPBR).
+window.inspectorGetMaterial = function(matId){
+  var mat = _findMaterialById(matId);
+  if (!mat) return null;
+  var isPBR = ('metallic' in mat) || ('albedoColor' in mat);
+  function hex(c){ return (c && c.toHexString) ? c.toHexString().slice(0,7) : '#000000'; }
+  var ss = mat.subSurface;
+  var out = {
+    id: mat.uniqueId,
+    name: mat.name || '',
+    className: mat.getClassName ? mat.getClassName() : 'Material',
+    isPBR: isPBR,
+    alpha: (typeof mat.alpha === 'number') ? mat.alpha : 1,
+    backFaceCulling: (mat.backFaceCulling !== false),
+    transparencyMode: (mat.transparencyMode != null) ? mat.transparencyMode : -1,
+    wireframe: !!mat.wireframe
+  };
+  if (isPBR){
+    out.albedoColor   = hex(mat.albedoColor || mat.baseColor);
+    out.metallic      = (mat.metallic   != null) ? mat.metallic   : 0;
+    out.roughness     = (mat.roughness  != null) ? mat.roughness  : 1;
+    out.emissiveColor = hex(mat.emissiveColor);
+    out.environmentIntensity = ('environmentIntensity' in mat) ? mat.environmentIntensity : 1;
+    if (ss){
+      out.hasSubSurface = true;
+      out.refractionEnabled   = !!ss.isRefractionEnabled;
+      out.refractionIntensity = (ss.refractionIntensity != null) ? ss.refractionIntensity : 0;
+      out.indexOfRefraction   = (ss.indexOfRefraction != null) ? ss.indexOfRefraction : 1.5;
+      out.tintColor           = hex(ss.tintColor);
+      out.maximumThickness    = (ss.maximumThickness != null) ? ss.maximumThickness : 0;
+    }
+  } else {
+    // StandardMaterial
+    out.diffuseColor  = hex(mat.diffuseColor);
+    out.specularColor = hex(mat.specularColor);
+    out.emissiveColor = hex(mat.emissiveColor);
+  }
+  return out;
+};
+
+// Applique une propriété. key = nom logique ; value = number | bool | hex string.
+window.inspectorSetMaterial = function(matId, key, value){
+  var mat = _findMaterialById(matId);
+  if (!mat) return;
+  function col(v){ try { return BABYLON.Color3.FromHexString(v); } catch(_){ return null; } }
+  switch(key){
+    case 'alpha':            mat.alpha = parseFloat(value); break;
+    case 'backFaceCulling':  mat.backFaceCulling = !!value; break;
+    case 'wireframe':        mat.wireframe = !!value; break;
+    case 'transparencyMode': mat.transparencyMode = (value === '' || value == null) ? null : parseInt(value); break;
+    case 'metallic':         if ('metallic' in mat)  mat.metallic  = parseFloat(value); break;
+    case 'roughness':        if ('roughness' in mat) mat.roughness = parseFloat(value); break;
+    case 'environmentIntensity': if ('environmentIntensity' in mat) mat.environmentIntensity = parseFloat(value); break;
+    case 'albedoColor':      if ('albedoColor' in mat) { var a=col(value); if(a) mat.albedoColor=a; } break;
+    case 'diffuseColor':     if ('diffuseColor' in mat){ var d=col(value); if(d) mat.diffuseColor=d; } break;
+    case 'specularColor':    if ('specularColor' in mat){ var s=col(value); if(s) mat.specularColor=s; } break;
+    case 'emissiveColor':    { var e=col(value); if(e) mat.emissiveColor=e; } break;
+    case 'refractionEnabled':   if (mat.subSurface) mat.subSurface.isRefractionEnabled = !!value; break;
+    case 'refractionIntensity': if (mat.subSurface) mat.subSurface.refractionIntensity = parseFloat(value); break;
+    case 'indexOfRefraction':   if (mat.subSurface) mat.subSurface.indexOfRefraction = parseFloat(value); break;
+    case 'maximumThickness':    if (mat.subSurface) mat.subSurface.maximumThickness = parseFloat(value); break;
+    case 'tintColor':           if (mat.subSurface){ var t=col(value); if(t){ mat.subSurface.tintColor=t; if(!mat.subSurface.tintColorAtDistance) mat.subSurface.tintColorAtDistance=1; } } break;
+  }
+};
+
 window.diagnoseGlass = function() {
   const out = [];
   scene.meshes.forEach(m => {
@@ -2108,7 +2206,7 @@ window.diagnoseGlass = function() {
 async function loadWalls() {
   const base = CONFIG.assetsBase(CONFIG.propertyId);
   try {
-    const result = await importGlbResilient(base, CONFIG.wallsFile, scene);
+    const result = await importGlbResilient(base, CONFIG.wallsFile, scene, { noCache: true });
     wallsRoot = groupUnder(result.meshes, 'wallsRoot');
     // Appliquer le décalage écran selon l'état du panneau AVANT le cadrage, pour que le
     // modèle soit cadré dans la zone réellement visible (gauche si panneau ouvert).
@@ -2169,12 +2267,15 @@ function groupUnder(meshes, name) {
    Aucun renommage requis : tant que le nom dans le viewer correspond au fichier,
    ça fonctionne.
    ============================================================================ */
-async function importGlbResilient(base, filename, scene) {
+async function importGlbResilient(base, filename, scene, opts) {
+  opts = opts || {};
   let buffer = null;
   try {
-    // cache:'no-cache' → revalidation serveur (ETag) : un GLB ré-exporté avec de
-    // nouveaux noms de matériaux est repris immédiatement, pas la version en cache.
-    const resp = await fetch(base + filename, { cache: 'no-cache' });
+    // Par défaut : cache navigateur normal (chargement instantané des meubles).
+    // noCache:true (walls uniquement) → revalidation serveur pour reprendre un GLB
+    // ré-exporté avec de nouveaux noms de matériaux sans purge manuelle.
+    const fetchOpts = opts.noCache ? { cache: 'no-cache' } : {};
+    const resp = await fetch(base + filename, fetchOpts);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     buffer = await resp.arrayBuffer();
   } catch (e) {

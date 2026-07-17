@@ -102,8 +102,8 @@
 
     <div class="body">
       <div id="p-pov">
-        <p class="hint"><b>Placement interactif.</b> Clique « Placer POV » puis clique sur le plan.
-          Ajuste la hauteur, puis clique « Voir » pour orienter ta vue, et « Valider ».</p>
+        <p class="hint"><b>Placement interactif.</b> Clique « Placer POV » puis clique dans la vue 3D :
+          le point se pose au sol. Règle la hauteur, oriente ta vue avec « Voir », puis « Valider ».</p>
         <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.7rem;">
           <div style="display:flex;gap:.4rem;margin-bottom:.5rem;">
             <button class="btn" id="b-place-pov" onclick="placerPov()" style="flex:1;">📍 Placer POV</button>
@@ -116,14 +116,20 @@
             <span id="h-height-val" style="font-size:.76rem;color:#c7d0e4;flex:0 0 40px;">0 m</span>
           </div>
         </div>
-        <div style="display:flex;gap:.4rem;">
-          <input id="f-id"     placeholder="id" style="flex:1;">
-          <input id="f-label"  placeholder="Nom affiché" style="flex:1;">
+        <div style="display:flex;gap:.4rem;margin-bottom:.5rem;">
+          <div style="flex:1;">
+            <label style="display:block;font-size:.68rem;color:#6f7c99;margin-bottom:.2rem;">Identifiant (technique, unique)</label>
+            <input id="f-id" placeholder="ex: pov-cuisine-1" style="width:100%;margin:0;">
+          </div>
+          <div style="flex:1;">
+            <label style="display:block;font-size:.68rem;color:#6f7c99;margin-bottom:.2rem;">Nom affiché au visiteur</label>
+            <input id="f-label" placeholder="ex: Cuisine" style="width:100%;margin:0;">
+          </div>
         </div>
         <select id="f-room" style="margin-bottom:.5rem;"><option value="">— pièce (optionnel) —</option></select>
         <input id="f-photos" placeholder="photos (Salon_01.png, Salon_02.png)" style="margin-bottom:.7rem;">
         <div style="display:flex;gap:.4rem;">
-          <button class="btn" id="b-voir" onclick="voirPov()" style="flex:1;display:none;">👁️ Voir</button>
+          <button class="btn" id="b-voir" onclick="voirPov()" style="flex:1;display:none;">👁️ Voir (orienter)</button>
           <button class="btn" id="b-valider" onclick="validerPov()" style="flex:1;display:none;">💾 Valider</button>
         </div>
         <div class="list" id="pov-list" style="margin-top:.9rem;"></div>
@@ -180,13 +186,17 @@
       </div>
 
       <div id="p-verre" hidden>
-        <p class="hint"><b>Matériaux par pièce.</b> Regroupés par pièce, puis par type :<br>
-          <code>M_&lt;pièce&gt;_&lt;type&gt;_&lt;n°&gt;</code> — ex : <code>M_salon_glass_01</code><br>
-          Types : glass · wood · plastic · metal · ceramic. Clique une pièce puis un type pour ajuster.</p>
-        <button class="btn sec" onclick="chargerVerres()" style="margin-bottom:.8rem;">🔄 Recharger la liste</button>
-        <button class="btn sec" onclick="diagnostiquerVerre()" style="margin-bottom:.8rem;">🔍 Diagnostic verre</button>
-        <div id="glass-diag"></div>
-        <div id="glass-list"></div>
+        <p class="hint"><b>Inspecteur matériaux</b> (façon Babylon Sandbox). Choisis un matériau
+          dans la liste pour voir et régler ses propriétés en direct.</p>
+        <button class="btn sec" onclick="inspectorRefresh()" style="margin-bottom:.6rem;">🔄 Recharger la liste</button>
+        <select id="mat-select" onchange="inspectorSelect()" style="margin-bottom:.7rem;">
+          <option value="">— choisir un matériau —</option>
+        </select>
+        <div id="mat-props"></div>
+        <details style="margin-top:.8rem;">
+          <summary style="cursor:pointer;font-size:.72rem;color:#6f7c99;">🔍 Diagnostic (noms bruts)</summary>
+          <div style="margin-top:.5rem;"><button class="btn sec" onclick="diagnostiquerVerre()" style="margin-bottom:.6rem;">Lister les noms vus par le viewer</button><div id="glass-diag"></div></div>
+        </details>
       </div>
 
       <div id="p-amb" hidden>
@@ -266,9 +276,12 @@
           </label>
         </div>
 
-        <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">💡 Toutes les lumières de la scène</div>
-        <p class="hint" style="font-size:.68rem;margin-top:0;">Inclut les lumières créées au chargement. Décoche pour éteindre, ✕ pour supprimer définitivement.</p>
-        <div class="list" id="scene-light-list" style="margin-bottom:1rem;"></div>
+        <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">💡 Lumières déjà dans la scène</div>
+        <p class="hint" style="font-size:.68rem;margin-top:0;">Sélectionne une lumière pour l'ajuster ou la supprimer (y compris celles créées au chargement).</p>
+        <select id="scene-light-select" onchange="onSceneLightSelect()" style="margin-bottom:.6rem;">
+          <option value="">— choisir une lumière —</option>
+        </select>
+        <div id="scene-light-ctrl" style="margin-bottom:1rem;"></div>
 
         <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;border-top:1px solid #263149;padding-top:.7rem;">➕ Ajouter une lumière éditable</div>
         <p class="hint" style="font-size:.68rem;margin-top:0;">Ajoute, clique « 📍 Placer » puis clique <b>dans la vue 3D</b>. Coche 👁 pour l'afficher et manipuler ses axes (déplacement + rotation).</p>
@@ -757,8 +770,9 @@ const PONT = `
           window.armPickPlacement('pov', function(w){
             povEnAttenteX = w.x; povEnAttenteZ = w.z;
             window.__povFloorY = (w.y != null ? w.y : (modelBounds ? modelBounds.min.y : 0));
-            var h = parseFloat((parent.document.getElementById('f-height')||{}).value) || 0;
-            povEnAttenteY = window.__povFloorY + h;
+            povEnAttenteY = window.__povFloorY;   // au SOL (hauteur 0) — l'utilisateur monte ensuite
+            // Remet le slider hauteur à 0 côté éditeur
+            try { var fh = parent.document.getElementById('f-height'); if (fh){ fh.value = 0; var lab = parent.document.getElementById('h-height-val'); if (lab) lab.textContent = '0 m'; } } catch(_){}
             afficherMarqueurPov(true);
             parent.__edEvent('pov','placee');
           });
@@ -912,7 +926,7 @@ function tab(m){
     if (m==='amb') refreshPostProcess();
     if (m==='light') refreshLighting();
   }
-  if (m==='verre') chargerVerres();
+  if (m==='verre') inspectorRefresh();
 }
 
 /* -------- AMBIANCE : AO + LUMIÈRES -------------------------------------- */
@@ -966,37 +980,58 @@ function importHdri(input){
 
 function refreshSceneLights(){
   if (!ed || !ed.allLights) return;
-  var list = document.getElementById('scene-light-list');
+  var sel = document.getElementById('scene-light-select');
+  if (!sel) return;
   var lights = ed.allLights();
-  if (!lights.length){ list.innerHTML = '<p class="hint" style="font-size:.7rem;">Aucune lumière détectée.</p>'; return; }
-  list.innerHTML = '';
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">— choisir une lumière (' + lights.length + ') —</option>';
   lights.forEach(function(l){
-    var col = l.color ? rgbToHex(l.color) : '#ffffff';
-    var card = document.createElement('div');
-    card.style.cssText = 'background:#0d1220;padding:.55rem;border-radius:8px;margin-bottom:.5rem;';
-    card.innerHTML =
-      '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem;">'+
-        '<label style="display:flex;align-items:center;gap:.3rem;flex:1;cursor:pointer;">'+
-          '<input type="checkbox" '+(l.enabled?'checked':'')+' onchange="sceneLightToggle(\''+l.id+'\',this.checked)">'+
-          '<b style="font-size:.74rem;color:#c7d0e4;">'+l.id+'</b>'+
-          '<span style="font-size:.64rem;color:#6f7c99;">'+l.kind+'</span>'+
+    var opt = document.createElement('option');
+    opt.value = l.id;
+    opt.textContent = l.id + '  (' + l.kind + (l.enabled ? '' : ' · éteinte') + ')';
+    sel.appendChild(opt);
+  });
+  if (cur && lights.some(function(l){ return l.id===cur; })) sel.value = cur;
+  else document.getElementById('scene-light-ctrl').innerHTML = '';
+}
+
+function onSceneLightSelect(){
+  var sel = document.getElementById('scene-light-select');
+  var box = document.getElementById('scene-light-ctrl');
+  var id = sel.value;
+  if (!id){ box.innerHTML = ''; return; }
+  var l = (ed.allLights() || []).find(function(x){ return x.id===id; });
+  if (!l){ box.innerHTML = ''; return; }
+  var col = l.color ? rgbToHex(l.color) : '#ffffff';
+  box.innerHTML =
+    '<div style="background:#0d1220;padding:.6rem;border-radius:8px;">'+
+      '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem;">'+
+        '<label style="display:flex;align-items:center;gap:.3rem;flex:1;cursor:pointer;font-size:.74rem;color:#c7d0e4;">'+
+          '<input type="checkbox" '+(l.enabled?'checked':'')+' onchange="sceneLightToggle(\''+l.id+'\',this.checked)"> Allumée'+
         '</label>'+
-        '<button class="btn sec" style="width:auto;flex:0 0 auto;padding:.25rem .5rem;font-size:.72rem;" onclick="sceneLightRemove(\''+l.id+'\')">✕</button>'+
+        '<button class="btn sec" style="width:auto;flex:0 0 auto;padding:.3rem .6rem;font-size:.74rem;" onclick="sceneLightRemove(\''+l.id+'\')">✕ Supprimer</button>'+
       '</div>'+
-      '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.3rem;">'+
-        '<label style="font-size:.68rem;color:#6f7c99;flex:0 0 58px;">Intensité</label>'+
+      '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
+        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Intensité</label>'+
         '<input type="range" min="0" max="5" step="0.1" value="'+l.intensity+'" style="flex:1;" oninput="sceneLightSet(\''+l.id+'\',{intensity:parseFloat(this.value)})">'+
       '</div>'+
       '<div style="display:flex;gap:.4rem;align-items:center;">'+
-        '<label style="font-size:.68rem;color:#6f7c99;flex:0 0 58px;">Couleur</label>'+
-        '<input type="color" value="'+col+'" style="flex:0 0 auto;width:38px;height:24px;padding:0;border:none;background:none;cursor:pointer;" oninput="sceneLightSet(\''+l.id+'\',{color:hexToRgb(this.value)})">'+
-      '</div>';
-    list.appendChild(card);
-  });
+        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Couleur</label>'+
+        '<input type="color" value="'+col+'" style="flex:0 0 auto;width:40px;height:26px;padding:0;border:none;background:none;cursor:pointer;" oninput="sceneLightSet(\''+l.id+'\',{color:hexToRgb(this.value)})">'+
+      '</div>'+
+    '</div>';
 }
-function sceneLightToggle(id, on){ if (ed) ed.setSceneLight(id, { enabled: on }); }
+function sceneLightToggle(id, on){ if (ed) ed.setSceneLight(id, { enabled: on }); refreshSceneLights(); }
 function sceneLightSet(id, patch){ if (ed) ed.setSceneLight(id, patch); }
-function sceneLightRemove(id){ if (ed){ ed.removeSceneLight(id); refreshSceneLights(); flash('Lumière « '+id+' » supprimée'); } }
+function sceneLightRemove(id){
+  if (ed){
+    ed.removeSceneLight(id);
+    document.getElementById('scene-light-select').value = '';
+    document.getElementById('scene-light-ctrl').innerHTML = '';
+    refreshSceneLights();
+    flash('Lumière « '+id+' » supprimée (cette session)');
+  }
+}
 
 function refreshSSR(){
   if (!ed || !ed.ssrParams) return;
@@ -1173,9 +1208,9 @@ function placerPov(){
   ed.setMode('pov');
   document.getElementById('b-place-pov').style.display = 'none';
   document.getElementById('b-cancel-pov').style.display = 'block';
-  document.getElementById('b-voir').style.display = 'none';
-  document.getElementById('b-valider').style.display = 'none';
-  flash('Clique sur le plan pour placer le POV');
+  document.getElementById('b-voir').style.display = 'block';
+  document.getElementById('b-valider').style.display = 'block';
+  flash('Clique dans la vue 3D — le POV se pose au sol, règle la hauteur ensuite');
 }
 
 function annulerPov(){
@@ -1489,195 +1524,107 @@ const CTRL_META = {
   alpha:        { label: 'Opacité α',    min: 0, max: 1, step: 0.01 }
 };
 
-let openRooms = {};   // état déplié/replié par pièce
-let openTypes = {};   // état déplié/replié par pièce+type ("pièce::type")
-
-function chargerVerres(){
+/* ============================================================================
+   INSPECTEUR MATÉRIAUX — style Babylon Sandbox
+   Dropdown de tous les matériaux → propriétés PBR réelles, éditables en direct.
+   ============================================================================ */
+function inspectorRefresh(){
   const w = vwWin();
-  const cont = document.getElementById('glass-list');
-  if (!cont) return;
-
-  if (!w){
-    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ Viewer iframe introuvable.</p>';
+  const sel = document.getElementById('mat-select');
+  if (!sel) return;
+  if (!w || !w.inspectorListMaterials){
+    sel.innerHTML = '<option value="">⏳ Viewer pas prêt…</option>';
     return;
   }
-  if (!w.getMaterialsByRoom){
-    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">⏳ Viewer pas encore prêt. Réessaie dans un instant.</p>';
-    return;
-  }
-
-  let data;
-  try { data = w.getMaterialsByRoom(); }
-  catch(err){
-    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ Erreur viewer : ' + err.message + '</p>';
-    console.error('getMaterialsByRoom error:', err);
-    return;
-  }
-
-  const types = data.types || {};
-  const rooms = data.rooms || {};
-  const roomKeys = Object.keys(rooms);
-
-  if (!roomKeys.length){
-    cont.innerHTML = '<p class="hint">❌ Aucun matériau trouvé.<br><br>' +
-      '<b>Convention de nommage Blender :</b><br>' +
-      '<code>M_&lt;pièce&gt;_&lt;type&gt;_&lt;n°&gt;</code><br>' +
-      'ex : <code>M_salon_glass_01</code>, <code>M_cuisine_wood_02</code><br><br>' +
-      '<b>Types :</b> glass · wood · plastic · metal · ceramic<br><br>' +
-      'Clique « 🔄 Recharger » après modification.</p>';
-    return;
-  }
-
-  cont.innerHTML = '';
-
-  // Tri : "Non classé" en dernier, le reste alpha
-  roomKeys.sort(function(a,b){
-    if (a === 'Non classé') return 1;
-    if (b === 'Non classé') return -1;
-    return a.localeCompare(b);
+  let mats = [];
+  try { mats = w.inspectorListMaterials(); } catch(e){ console.error(e); }
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— choisir un matériau (' + mats.length + ') —</option>';
+  mats.forEach(function(m){
+    const o = document.createElement('option');
+    o.value = m.id;
+    o.textContent = m.name;
+    sel.appendChild(o);
   });
+  if (cur && mats.some(function(m){ return String(m.id)===String(cur); })) { sel.value = cur; inspectorSelect(); }
+  else document.getElementById('mat-props').innerHTML = '';
+}
 
-  roomKeys.forEach(function(room){
-    const typeMap = rooms[room] || {};
-    const nbMat = Object.values(typeMap).reduce(function(s,a){ return s + a.length; }, 0);
-    if (!nbMat) return;
-    if (openRooms[room] === undefined) openRooms[room] = true;
-    const roomOpen = !!openRooms[room];
+function inspectorSelect(){
+  const w = vwWin();
+  const sel = document.getElementById('mat-select');
+  const box = document.getElementById('mat-props');
+  if (!w || !w.inspectorGetMaterial || !sel.value){ box.innerHTML=''; return; }
+  const d = w.inspectorGetMaterial(parseInt(sel.value));
+  if (!d){ box.innerHTML = '<p class="hint">Matériau introuvable.</p>'; return; }
+  const id = d.id;
+  let html = '<div style="background:#0d1220;padding:.7rem;border-radius:8px;">';
+  html += '<div style="font-size:.72rem;color:#6f7c99;margin-bottom:.6rem;">'+d.className+'</div>';
 
-    const section = document.createElement('div');
-    section.style.cssText = 'margin-bottom:.6rem;border:1px solid #263149;border-radius:8px;overflow:hidden;';
+  // Commun
+  html += insSlider('Opacité (alpha)', id, 'alpha', 0, 1, 0.01, d.alpha);
+  html += insColor('Émissif', id, 'emissiveColor', d.emissiveColor);
+  html += insToggle('Faces arrière (culling)', id, 'backFaceCulling', d.backFaceCulling);
+  html += insToggle('Fil de fer', id, 'wireframe', d.wireframe);
+  html += insTransparency(id, d.transparencyMode);
 
-    // En-tête PIÈCE
-    const head = document.createElement('div');
-    head.style.cssText = 'width:100%;text-align:left;background:#182238;padding:.6rem .8rem;cursor:pointer;'+
-      'display:flex;align-items:center;justify-content:space-between;user-select:none;';
-    const labelSpan = document.createElement('span');
-    labelSpan.style.cssText = 'font-weight:700;font-size:.9rem;color:#e8ecf6;';
-    labelSpan.innerHTML = '🏠 ' + room + ' <span style="color:#6f7c99;font-weight:500;font-size:.8rem;">(' + nbMat + ')</span>';
-    const arrowSpan = document.createElement('span');
-    arrowSpan.style.cssText = 'color:#6f7c99;font-size:.8rem;';
-    arrowSpan.textContent = roomOpen ? '▾' : '▸';
-    head.appendChild(labelSpan); head.appendChild(arrowSpan);
-    head.onclick = function(){ openRooms[room] = !openRooms[room]; chargerVerres(); };
-    section.appendChild(head);
-
-    if (roomOpen){
-      // Sous-groupes par TYPE (ordre du registre)
-      const typeKeys = Object.keys(types).filter(function(t){ return typeMap[t] && typeMap[t].length; });
-      // + types éventuels hors registre
-      Object.keys(typeMap).forEach(function(t){ if (typeKeys.indexOf(t) < 0) typeKeys.push(t); });
-
-      typeKeys.forEach(function(type){
-        const items = typeMap[type] || [];
-        if (!items.length) return;
-        const meta = types[type] || { label: type, controls: ['roughness','reflection'] };
-        const tk = room + '::' + type;
-        if (openTypes[tk] === undefined) openTypes[tk] = false;
-        const typeOpen = !!openTypes[tk];
-
-        const sub = document.createElement('div');
-        sub.style.cssText = 'border-top:1px solid #1c2740;';
-
-        const subHead = document.createElement('div');
-        subHead.style.cssText = 'padding:.5rem .8rem .5rem 1.4rem;cursor:pointer;background:#111a2b;'+
-          'display:flex;align-items:center;justify-content:space-between;user-select:none;';
-        const subLabel = document.createElement('span');
-        subLabel.style.cssText = 'font-weight:600;font-size:.8rem;color:#c7d0e4;';
-        subLabel.innerHTML = meta.label + ' <span style="color:#6f7c99;font-weight:500;">(' + items.length + ')</span>';
-        const subArrow = document.createElement('span');
-        subArrow.style.cssText = 'color:#6f7c99;font-size:.75rem;';
-        subArrow.textContent = typeOpen ? '▾' : '▸';
-        subHead.appendChild(subLabel); subHead.appendChild(subArrow);
-        subHead.onclick = function(){ openTypes[tk] = !openTypes[tk]; chargerVerres(); };
-        sub.appendChild(subHead);
-
-        if (typeOpen){
-          const bodyEl = document.createElement('div');
-          bodyEl.style.cssText = 'padding:.5rem .7rem .5rem 1.4rem;background:#0d1220;';
-          items.forEach(function(mat, idx){
-            const box = document.createElement('div');
-            box.style.cssText = 'padding:.5rem 0;' + (idx < items.length - 1 ? 'border-bottom:1px solid #1c2740;' : '');
-            let html = '<div style="font-size:.78rem;font-weight:600;color:#c7d0e4;margin-bottom:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + mat.name + '</div>';
-            (meta.controls || []).forEach(function(prop){
-              const cm = CTRL_META[prop];
-              if (!cm) return;
-              if (cm.type === 'color')      html += matColorRow(cm.label, mat.id, prop, mat[prop] || '#ffffff');
-              else if (cm.type === 'toggle') html += matToggleRow(cm.label, mat.id, prop, mat[prop]);
-              else                           html += matRow(cm.label, mat.id, prop, cm.min, cm.max, cm.step, mat[prop]);
-            });
-            box.innerHTML = html;
-            bodyEl.appendChild(box);
-          });
-          sub.appendChild(bodyEl);
-        }
-        section.appendChild(sub);
-      });
+  if (d.isPBR){
+    html += '<div style="border-top:1px solid #1c2740;margin:.6rem 0 .5rem;padding-top:.5rem;font-size:.72rem;color:#6f7c99;">PBR</div>';
+    html += insColor('Couleur (albedo)', id, 'albedoColor', d.albedoColor);
+    html += insSlider('Métallique', id, 'metallic', 0, 1, 0.01, d.metallic);
+    html += insSlider('Rugosité', id, 'roughness', 0, 1, 0.01, d.roughness);
+    html += insSlider('Intensité env. (reflets)', id, 'environmentIntensity', 0, 3, 0.05, d.environmentIntensity);
+    if (d.hasSubSurface){
+      html += '<div style="border-top:1px solid #1c2740;margin:.6rem 0 .5rem;padding-top:.5rem;font-size:.72rem;color:#6f7c99;">Transmission / Verre</div>';
+      html += insToggle('Réfraction activée', id, 'refractionEnabled', d.refractionEnabled);
+      html += insSlider('Intensité réfraction', id, 'refractionIntensity', 0, 1, 0.01, d.refractionIntensity);
+      html += insSlider('Indice réfraction (IOR)', id, 'indexOfRefraction', 1, 2.5, 0.01, d.indexOfRefraction);
+      html += insSlider('Épaisseur max', id, 'maximumThickness', 0, 5, 0.05, d.maximumThickness);
+      html += insColor('Teinte', id, 'tintColor', d.tintColor);
     }
-    cont.appendChild(section);
-  });
+  } else {
+    html += '<div style="border-top:1px solid #1c2740;margin:.6rem 0 .5rem;padding-top:.5rem;font-size:.72rem;color:#6f7c99;">Standard</div>';
+    html += insColor('Diffus', id, 'diffuseColor', d.diffuseColor);
+    html += insColor('Spéculaire', id, 'specularColor', d.specularColor);
+  }
+  html += '</div>';
+  box.innerHTML = html;
 }
 
-function matRow(label, matId, prop, min, max, step, val){
+function insSlider(label, id, key, min, max, step, val){
   if (typeof val !== 'number') val = 0;
-  const disp = (max === 1) ? Math.round(val * 100) + '%' : val.toFixed(2);
-  return '<div style="margin-bottom:.55rem;">' +
-    '<label style="display:flex;align-items:center;gap:.4rem;font-size:.76rem;color:#9fb4ce;">' +
-      '<span style="flex:0 0 78px;">' + label + '</span>' +
-      '<input type="range" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '" style="flex:1;" ' +
-        'oninput="setMatOne(' + matId + ',\'' + prop + '\',this.value,this.nextElementSibling,' + max + ')">' +
-      '<span style="flex:0 0 42px;font-size:.72rem;text-align:right;">' + disp + '</span>' +
-    '</label></div>';
+  const disp = (max === 1) ? Math.round(val*100)+'%' : val.toFixed(2);
+  return '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.45rem;">'+
+    '<label style="font-size:.72rem;color:#9fb4ce;flex:0 0 110px;">'+label+'</label>'+
+    '<input type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'" style="flex:1;" '+
+      'oninput="insSet('+id+',\''+key+'\',parseFloat(this.value),this.nextElementSibling,'+max+')">'+
+    '<span style="flex:0 0 40px;font-size:.7rem;text-align:right;color:#c7d0e4;">'+disp+'</span></div>';
 }
-
-function matColorRow(label, matId, prop, val){
-  return '<div style="margin-bottom:.55rem;">' +
-    '<label style="display:flex;align-items:center;gap:.4rem;font-size:.76rem;color:#9fb4ce;">' +
-      '<span style="flex:0 0 78px;">' + label + '</span>' +
-      '<input type="color" value="' + val + '" style="flex:1;height:30px;padding:2px;background:#0d1220;border:1px solid #263149;border-radius:6px;cursor:pointer;" ' +
-        'oninput="setMatColor(' + matId + ',\'' + prop + '\',this.value,this.nextElementSibling)">' +
-      '<span style="flex:0 0 62px;font-size:.68rem;text-align:right;font-family:ui-monospace,monospace;">' + val + '</span>' +
-    '</label></div>';
+function insColor(label, id, key, val){
+  return '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.45rem;">'+
+    '<label style="font-size:.72rem;color:#9fb4ce;flex:0 0 110px;">'+label+'</label>'+
+    '<input type="color" value="'+(val||'#000000')+'" style="flex:1;height:28px;padding:2px;background:#0d1220;border:1px solid #263149;border-radius:6px;cursor:pointer;" '+
+      'oninput="insSet('+id+',\''+key+'\',this.value)"></div>';
 }
-
-function setMatOne(matId, prop, value, labelEl, max){
-  const v = parseFloat(value);
-  if (labelEl) labelEl.textContent = (max === 1) ? Math.round(v * 100) + '%' : v.toFixed(2);
+function insToggle(label, id, key, val){
+  return '<label style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:#9fb4ce;margin-bottom:.45rem;cursor:pointer;">'+
+    '<input type="checkbox" '+(val?'checked':'')+' onchange="insSet('+id+',\''+key+'\',this.checked)"><span>'+label+'</span></label>';
+}
+function insTransparency(id, mode){
+  const opts = [['-1','(auto)'],['0','Opaque'],['1','Alpha test'],['2','Alpha blend'],['3','Alpha test+blend']];
+  let s = '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.45rem;">'+
+    '<label style="font-size:.72rem;color:#9fb4ce;flex:0 0 110px;">Transparence</label>'+
+    '<select style="flex:1;margin:0;" onchange="insSet('+id+',\'transparencyMode\',this.value)">';
+  opts.forEach(function(o){ s += '<option value="'+o[0]+'"'+(String(mode)===o[0]?' selected':'')+'>'+o[1]+'</option>'; });
+  s += '</select></div>';
+  return s;
+}
+function insSet(id, key, value, labelEl, max){
+  if (labelEl) labelEl.textContent = (max===1) ? Math.round(value*100)+'%' : (typeof value==='number'?value.toFixed(2):value);
   const w = vwWin();
-  if (w && w.setMaterialProps){
-    const props = {};
-    props[prop] = v;
-    w.setMaterialProps(matId, props);
-  }
+  if (w && w.inspectorSetMaterial) w.inspectorSetMaterial(id, key, value);
 }
 
-function setMatColor(matId, prop, value, labelEl){
-  if (labelEl) labelEl.textContent = value;
-  const w = vwWin();
-  if (w && w.setMaterialProps){
-    const props = {};
-    props[prop] = value;
-    w.setMaterialProps(matId, props);
-  }
-}
-
-function matToggleRow(label, matId, prop, val){
-  const checked = (val !== false) ? 'checked' : '';
-  return '<label style="display:flex;align-items:center;gap:.5rem;font-size:.76rem;color:#9fb4ce;margin-bottom:.55rem;cursor:pointer;">' +
-    '<input type="checkbox" ' + checked + ' onchange="setMatToggle(' + matId + ',\'' + prop + '\',this.checked)">' +
-    '<span>' + label + '</span></label>';
-}
-
-function setMatToggle(matId, prop, checked){
-  const w = vwWin();
-  if (w && w.setMaterialProps){
-    const props = {};
-    props[prop] = !!checked;
-    w.setMaterialProps(matId, props);
-  }
-  // Décocher « Réfraction » = verre plat → l'opacité α devient le vrai levier :
-  // on recharge la liste pour rafraîchir les valeurs affichées.
-  if (prop === 'refractionOn') setTimeout(chargerVerres, 60);
-}
 
 function diagnostiquerVerre(){
   const w = vwWin();
