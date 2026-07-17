@@ -1638,11 +1638,11 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — TRANSMISSION BABYLON DÉSACTIVÉE
+   VERRE — TRANSMISSION ATTÉNUÉE
    ============================================================================
-   KHR_materials_transmission refracte scene.environmentTexture (IBL) au lieu
-   de la scène réelle → décalage spatial + duplication POV. Solution : retirer
-   la transmission, utiliser alpha-blend classique pour la transparence.
+   KHR_materials_transmission refracte scene.environmentTexture → décalage.
+   Solution : garder transmission MAIS mettre refractionIntensity à 0
+   pour que le verre reste clair et transparent sans déformation IBL.
    ============================================================================ */
 function applyGlassTreatment(root) {
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
@@ -1661,16 +1661,11 @@ function applyGlassTreatment(root) {
       if (isGlass) {
         m.__isGlass = true;
         
-        // DÉSACTIVER TRANSMISSION : aucune réfraction IBL
+        // GARDER transmission MAIS tuer la réfraction IBL
         if (mat.subSurface) {
-          mat.subSurface.isRefractionEnabled = false;
-          // Assurer transparence par alpha, pas transmission
-          if (mat.alpha == null || mat.alpha > 0.99) {
-            mat.alpha = 0.9; // légèrement transparent mais CLAIR
-          }
+          mat.subSurface.isRefractionEnabled = true;  // transmission activée (physiquement correct)
+          mat.subSurface.refractionIntensity = 0;     // ZÉRO réfraction visuelle → verre clair
         }
-        // Mode de rendu transparent standard (pas transmission)
-        mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
         
         glassCount++;
       }
@@ -1678,7 +1673,7 @@ function applyGlassTreatment(root) {
   });
   
   if (glassCount > 0) {
-    console.log('🪟 Verre : ' + glassCount + ' mesh(es) — transmission DÉSACTIVÉE, alpha-blend activé (aucune réfraction IBL)');
+    console.log('🪟 Verre : ' + glassCount + ' mesh(es) — transmission gardée, refractionIntensity=0 (aucune déformation IBL)');
   }
   return glassCount;
 }
