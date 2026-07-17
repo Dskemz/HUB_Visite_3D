@@ -1821,7 +1821,7 @@ function applyGlassTreatment(root) {
    Extensible : ajouter une entrée dans MATERIAL_CATEGORIES suffit.
    ============================================================================ */
 window.MATERIAL_CATEGORIES = {
-  glass:        { label: 'Verre',        controls: ['tint', 'refraction', 'reflection', 'roughness', 'ior'] },
+  glass:        { label: 'Verre',        controls: ['refractionOn', 'thickness', 'alpha', 'tint', 'reflection', 'roughness', 'ior'] },
   architecture: { label: 'Architecture', controls: ['roughness', 'reflection'] },
   sol:          { label: 'Sol',          controls: ['roughness', 'reflection'] },
   plastique:    { label: 'Plastique',    controls: ['roughness', 'reflection'] },
@@ -1874,6 +1874,8 @@ window.getMaterialsByCategory = function() {
         reflection: ('environmentIntensity' in mat) ? mat.environmentIntensity : 1,
         refraction: (ss && typeof ss.refractionIntensity === 'number') ? ss.refractionIntensity : 1,
         ior: (ss && typeof ss.indexOfRefraction === 'number') ? ss.indexOfRefraction : 1.5,
+        refractionOn: ss ? (ss.isRefractionEnabled !== false) : true,
+        thickness: (ss && typeof ss.maximumThickness === 'number') ? ss.maximumThickness : 0,
         tint: tintHex
       };
       (groups[cat] = groups[cat] || []).push(entry);
@@ -1904,6 +1906,32 @@ window.setMaterialProps = function(matId, props) {
       }
       if (typeof props.ior !== 'undefined' && mat.subSurface) {
         mat.subSurface.indexOfRefraction = props.ior;
+      }
+      // Épaisseur du volume : plus c'est fin, moins la réfraction déforme.
+      if (typeof props.thickness !== 'undefined' && mat.subSurface) {
+        mat.subSurface.maximumThickness = props.thickness;
+      }
+      // VERRE PLAT : couper la réfraction sans perdre la transparence.
+      // On mémorise l'état d'origine une fois, pour un retour arrière exact.
+      if (typeof props.refractionOn !== 'undefined' && mat.subSurface) {
+        if (!mat.__glassOrig) {
+          mat.__glassOrig = {
+            refr:  mat.subSurface.isRefractionEnabled,
+            alpha: mat.alpha,
+            tmode: mat.transparencyMode
+          };
+        }
+        if (props.refractionOn) {
+          // Restaurer le verre réfractif d'origine
+          mat.subSurface.isRefractionEnabled = mat.__glassOrig.refr;
+          mat.alpha            = mat.__glassOrig.alpha;
+          mat.transparencyMode = mat.__glassOrig.tmode;
+        } else {
+          // Plat : aucune déformation. Transparence assurée par l'alpha (pas la réfraction).
+          mat.subSurface.isRefractionEnabled = false;
+          if (mat.alpha == null || mat.alpha >= 0.999) mat.alpha = 0.2;
+          mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND; // 2
+        }
       }
       if (typeof props.tint !== 'undefined' && mat.subSurface) {
         try {

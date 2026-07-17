@@ -1329,12 +1329,14 @@ function vwWin(){
 
 // Libellés + config d'affichage des contrôles par catégorie (côté éditeur)
 const CTRL_META = {
-  tint:       { label: 'Teinte',       type: 'color' },
-  refraction: { label: 'Transparence', min: 0, max: 1, step: 0.05 },
-  reflection: { label: 'Clarté',       min: 0, max: 3, step: 0.05 },
-  roughness:  { label: 'Rugosité',     min: 0, max: 1, step: 0.01 },
-  ior:        { label: 'Déformation',  min: 1, max: 2, step: 0.01 },
-  alpha:      { label: 'Transparence', min: 0, max: 1, step: 0.01 }
+  tint:         { label: 'Teinte',       type: 'color' },
+  refractionOn: { label: 'Réfraction (déformation)', type: 'toggle' },
+  thickness:    { label: 'Épaisseur',    min: 0, max: 2, step: 0.02 },
+  refraction:   { label: 'Transparence', min: 0, max: 1, step: 0.05 },
+  reflection:   { label: 'Clarté',       min: 0, max: 3, step: 0.05 },
+  roughness:    { label: 'Rugosité',     min: 0, max: 1, step: 0.01 },
+  ior:          { label: 'Déformation',  min: 1, max: 2, step: 0.01 },
+  alpha:        { label: 'Opacité α',    min: 0, max: 1, step: 0.01 }
 };
 
 let openCategories = { glass: true, architecture: true, sol: true, plastique: true, metal: true };  // état déplié/replié par catégorie
@@ -1440,6 +1442,8 @@ function chargerVerres(){
           if (!cm) return;
           if (cm.type === 'color'){
             html += matColorRow(cm.label, mat.id, prop, mat[prop] || '#ffffff');
+          } else if (cm.type === 'toggle'){
+            html += matToggleRow(cm.label, mat.id, prop, mat[prop]);
           } else {
             html += matRow(cm.label, mat.id, prop, cm.min, cm.max, cm.step, mat[prop]);
           }
@@ -1497,6 +1501,25 @@ function setMatColor(matId, prop, value, labelEl){
     props[prop] = value;
     w.setMaterialProps(matId, props);
   }
+}
+
+function matToggleRow(label, matId, prop, val){
+  const checked = (val !== false) ? 'checked' : '';
+  return '<label style="display:flex;align-items:center;gap:.5rem;font-size:.76rem;color:#9fb4ce;margin-bottom:.55rem;cursor:pointer;">' +
+    '<input type="checkbox" ' + checked + ' onchange="setMatToggle(' + matId + ',\'' + prop + '\',this.checked)">' +
+    '<span>' + label + '</span></label>';
+}
+
+function setMatToggle(matId, prop, checked){
+  const w = vwWin();
+  if (w && w.setMaterialProps){
+    const props = {};
+    props[prop] = !!checked;
+    w.setMaterialProps(matId, props);
+  }
+  // Décocher « Réfraction » = verre plat → l'opacité α devient le vrai levier :
+  // on recharge la liste pour rafraîchir les valeurs affichées.
+  if (prop === 'refractionOn') setTimeout(chargerVerres, 60);
 }
 </script>
 </body>
