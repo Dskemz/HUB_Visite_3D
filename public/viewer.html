@@ -2696,19 +2696,6 @@ function loadRoomsAsync() {
         roomState[r.id].enabled = !!CONFIG.roomsStartVisible;
 
         applyGlassTreatment(node); // vitres du mobilier/pièce : transparence claire
-
-        // ZÉRO LATENCE À L'AFFICHAGE : on pré-compile les shaders du mobilier
-        // pendant qu'il est encore masqué. Sans ça, la 1ʳᵉ frame où la pièce
-        // devient visible compile ses matériaux → micro-figement à chaque 1er
-        // affichage. On compile ici, en arrière-plan, une fois pour toutes.
-        try {
-          node.getChildMeshes(false).forEach(mesh => {
-            if (mesh.material && mesh.material.forceCompilationAsync) {
-              mesh.material.forceCompilationAsync(mesh);
-            }
-          });
-        } catch (_) {}
-
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
       } catch (err) {
         roomState[r.id].failed = true;
