@@ -1713,7 +1713,7 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — exclure du post-processing + réduire refractionIntensity à 0.5
+   VERRE — exclure du post-processing Babylon (DefaultRenderingPipeline + SSAO2)
    ============================================================================ */
 function applyGlassTreatment(root) {
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
@@ -1724,16 +1724,13 @@ function applyGlassTreatment(root) {
       : [];
     mats.forEach(mat => {
       if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-        // Tagger ce mesh comme verre
         m.__isGlass = true;
-        // Réduire la déformation à 50%
-        mat.subSurface.refractionIntensity = 0.5;
         glassCount++;
       }
     });
   });
   
-  // EXCLURE du pipeline DefaultRenderingPipeline (compositing)
+  // EXCLURE du pipeline DefaultRenderingPipeline
   if (window.compositingPipeline) {
     meshes.forEach(m => {
       if (m.__isGlass && window.compositingPipeline.excludedMeshes) {
@@ -1754,24 +1751,34 @@ function applyGlassTreatment(root) {
   }
   
   if (glassCount > 0) {
-    console.log('🪟 Verre : refractionIntensity 0.5, exclu pipelines (' + glassCount + ' mesh(es))');
+    console.log('🪟 Verre : ' + glassCount + ' mesh(es) exclus des pipelines');
   }
   return glassCount;
 }
 
-// Live tuning si besoin
-window.setGlassRefraction = function (v) {
-  scene.meshes.forEach(m => {
-    const mats = m.material
-      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
-      : [];
-    mats.forEach(mat => {
-      if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-        mat.subSurface.refractionIntensity = v;
-      }
-    });
+// API pour l'éditeur : modifier transparence, roughness, réflexion, réfraction
+window.setGlassProps = function(props) {
+  const meshes = scene.meshes;
+  meshes.forEach(m => {
+    if (m.__isGlass) {
+      const mats = m.material
+        ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+        : [];
+      mats.forEach(mat => {
+        if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
+          if (typeof props.alpha !== 'undefined') mat.alpha = props.alpha;
+          if (typeof props.roughness !== 'undefined') mat.roughness = props.roughness;
+          if (typeof props.reflection !== 'undefined' && 'environmentIntensity' in mat) {
+            mat.environmentIntensity = props.reflection;
+          }
+          if (typeof props.refraction !== 'undefined') {
+            mat.subSurface.refractionIntensity = props.refraction;
+          }
+        }
+      });
+    }
   });
-  console.log('🪟 refractionIntensity = ' + v);
+  console.log('🪟 Propriétés verre mises à jour:', props);
 };
 
 

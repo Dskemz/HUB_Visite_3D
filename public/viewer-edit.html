@@ -93,6 +93,7 @@
         <button class="tab on" id="t-pov" onclick="tab('pov')" style="flex:1;">POV</button>
         <button class="tab"    id="t-cot" onclick="tab('cot')" style="flex:1;">Cotations</button>
         <button class="tab"    id="t-piece" onclick="tab('piece')" style="flex:1;">Pièces</button>
+        <button class="tab"    id="t-verre" onclick="tab('verre')" style="flex:1;">Verre</button>
         <button class="tab"    id="t-amb" onclick="tab('amb')" style="flex:1;">Ambiance</button>
       </div>
       <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein ecran" style="flex:0 0 auto;">⛶</button>
@@ -175,6 +176,40 @@
           <button class="btn" id="b-addpiece" onclick="ajouterPiece()" style="flex:0 0 auto;">➕ Ajouter</button>
         </div>
         <div class="list" id="piece-list"></div>
+      </div>
+
+      <div id="p-verre" hidden>
+        <p class="hint"><b>Propriétés du verre.</b> Ajuste la transparence, rugosité, réflexions et réfraction en direct.</p>
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;">
+          <div style="margin-bottom:1rem;">
+            <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;margin-bottom:.3rem;">
+              <span style="flex:0 0 80px;">Transparence</span>
+              <input type="range" id="f-glass-alpha" min="0" max="1" step="0.01" value="1" style="flex:1;" oninput="updateGlass()">
+              <span id="v-glass-alpha" style="flex:0 0 40px;font-size:.76rem;text-align:right;">100%</span>
+            </label>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;margin-bottom:.3rem;">
+              <span style="flex:0 0 80px;">Rugosité</span>
+              <input type="range" id="f-glass-rough" min="0" max="1" step="0.01" value="0" style="flex:1;" oninput="updateGlass()">
+              <span id="v-glass-rough" style="flex:0 0 40px;font-size:.76rem;text-align:right;">0%</span>
+            </label>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;margin-bottom:.3rem;">
+              <span style="flex:0 0 80px;">Réflexions</span>
+              <input type="range" id="f-glass-reflect" min="0" max="3" step="0.05" value="1" style="flex:1;" oninput="updateGlass()">
+              <span id="v-glass-reflect" style="flex:0 0 40px;font-size:.76rem;text-align:right;">100%</span>
+            </label>
+          </div>
+          <div>
+            <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;margin-bottom:.3rem;">
+              <span style="flex:0 0 80px;">Réfraction</span>
+              <input type="range" id="f-glass-refract" min="0" max="1" step="0.05" value="1" style="flex:1;" oninput="updateGlass()">
+              <span id="v-glass-refract" style="flex:0 0 40px;font-size:.76rem;text-align:right;">100%</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div id="p-amb" hidden>
@@ -1222,6 +1257,29 @@ function download(){
   a.click();
   URL.revokeObjectURL(a.href);
   flash('💾 manifest.json téléchargé');
+}
+
+// Contrôles du verre
+function updateGlass(){
+  const alpha = parseFloat(document.getElementById('f-glass-alpha').value);
+  const rough = parseFloat(document.getElementById('f-glass-rough').value);
+  const reflect = parseFloat(document.getElementById('f-glass-reflect').value);
+  const refract = parseFloat(document.getElementById('f-glass-refract').value);
+  
+  document.getElementById('v-glass-alpha').textContent = Math.round(alpha * 100) + '%';
+  document.getElementById('v-glass-rough').textContent = Math.round(rough * 100) + '%';
+  document.getElementById('v-glass-reflect').textContent = Math.round(reflect * 100) + '%';
+  document.getElementById('v-glass-refract').textContent = Math.round(refract * 100) + '%';
+  
+  // Appeler le viewer pour mettre à jour le verre
+  if (window.vw && window.vw.contentWindow && window.vw.contentWindow.setGlassProps) {
+    window.vw.contentWindow.setGlassProps({
+      alpha: alpha,
+      roughness: rough,
+      reflection: reflect,
+      refraction: refract
+    });
+  }
 }
 </script>
 </body>
