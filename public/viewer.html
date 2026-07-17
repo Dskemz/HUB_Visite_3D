@@ -1713,75 +1713,25 @@ async function init() {
 }
 
 /* ============================================================================
-   VITRES — rendre la vraie scène au travers du verre (pas l'environnement)
+   VERRE — matériau de base du GLB PRÉSERVÉ (aucune modification)
    ----------------------------------------------------------------------------
-   Le verre du GLB est un Principled BSDF transmission=1 / IOR 1.01 → exporté en
-   glTF KHR_materials_transmission, que Babylon mappe sur `subSurface.isRefraction
-   Enabled`. PROBLÈME : la réfraction de Babylon échantillonne `scene.environment
-   Texture` (l'IBL/skybox), PAS la géométrie réelle derrière la vitre. Tant qu'il
-   n'y avait pas d'IBL, le verre paraissait clair ; dès que la passe réalisme a
-   ajouté l'environnement, le verre s'est mis à « réfracter » le ciel flouté
-   (roughness=1) → bandes grises/dédoublées. Prouvé au harnais : exclure le verre
-   du prepass SSAO2 ne change RIEN (ce n'était pas l'AO) ; l'IOR non plus.
-   CORRECTIF vérifié : on repasse le verre en TRANSPARENCE ALPHA simple (on coupe
-   la réfraction d'environnement) → il laisse voir la vraie scène derrière, comme
-   du verre clair. On ne touche QU'AUX matériaux réfractifs (le verre), rien
-   d'autre de la scène. Opacité réglable en direct : window.setGlassOpacity(v).
+   On laisse le matériau de verre EXACTEMENT tel qu'il est authoré dans Blender
+   (Principled BSDF : transmission=1, IOR 1.01, roughness 0, metalness 0) et
+   importé par Babylon via glTF KHR_materials_transmission
+   (→ subSurface.isRefractionEnabled). Aucune conversion en alpha, aucune coupure
+   de réfraction, aucun albédo forcé : le verre conserve toutes ses propriétés
+   natives (transmission, réflexions, réfraction légère de l'environnement).
+   applyGlassTreatment est volontairement neutre (no-op) — les appels existants
+   restent en place mais ne touchent plus au matériau.
    ============================================================================ */
-// VERRE RÉALISTE : on ne peut pas réfracter la vraie géométrie dans Babylon (la
-// réfraction ne lit que l'environnement flouté → « effet cristal » gris). Ce qui
-// « fait » le verre, ce n'est donc pas la réfraction mais la RÉFLEXION. On garde
-// donc la transparence alpha (on voit la scène derrière) et on rétablit les reflets :
-// surface lisse (roughness bas) + réflexions/spéculaires affichés PAR-DESSUS l'alpha
-// + albédo noir pour supprimer le voile diffus gris/blanc « fake ». Le Fresnel PBR
-// rend automatiquement les bords plus réfléchissants → aspect verre naturel.
-window.__GLASS_OPACITY   = 0.10;  // alpha : transparence (0 = invisible, 1 = opaque). Verre clair ≈ 0.06–0.15
-window.__GLASS_REFLECT   = 2.5;   // intensité des réflexions d'environnement (verre brillant ≈ 2–3 ; matte ≈ 1)
-window.__GLASS_ROUGHNESS = 0.0;   // netteté des réflexions (0 = miroir parfait ; plus haut = flou)
 function applyGlassTreatment(root, opacity) {
-  const val = (typeof opacity === 'number') ? opacity : window.__GLASS_OPACITY;
-  const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
-  const seen = new Set();
-  let n = 0;
-  meshes.forEach(m => {
-    const mats = m.material
-      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
-      : [];
-    mats.forEach(mat => {
-      if (!mat || seen.has(mat)) return;
-      const ss = mat.subSurface;
-      // Cible : uniquement le verre = matériau à réfraction/transmission activée.
-      if (ss && ss.isRefractionEnabled) {
-        // 1) Couper la réfraction d'environnement (source des bandes grises « cristal »).
-        ss.isRefractionEnabled = false;
-        // 2) Transparence alpha : laisse voir la vraie scène derrière.
-        if (BABYLON.PBRMaterial && 'transparencyMode' in mat) {
-          mat.transparencyMode = BABYLON.PBRMaterial.MATERIAL_ALPHABLEND;
-        }
-        mat.alpha = val;
-        // 3) Verre = diélectrique lisse : réflexions nettes de l'environnement, pas de métal.
-        if ('metallic'  in mat) mat.metallic  = 0;
-        if ('roughness' in mat) mat.roughness = window.__GLASS_ROUGHNESS;
-        // 4) Supprimer le voile diffus gris/blanc « fake » (sauf verre texturé/teinté) :
-        //    albédo noir → il ne reste que réflexion + spéculaire, comme du vrai verre clair.
-        if (mat.albedoColor && !mat.albedoTexture) mat.albedoColor = BABYLON.Color3.Black();
-        // 5) Faire ressortir réflexions + spéculaires PAR-DESSUS l'alpha (sinon la
-        //    transparence les atténue et le verre paraît plat).
-        if ('useRadianceOverAlpha' in mat) mat.useRadianceOverAlpha = true;
-        if ('useSpecularOverAlpha' in mat) mat.useSpecularOverAlpha = true;
-        // 6) Intensité des réflexions d'environnement propre au verre (Fresnel auto sur les bords).
-        if ('environmentIntensity' in mat) mat.environmentIntensity = window.__GLASS_REFLECT;
-        seen.add(mat); n++;
-      }
-    });
-  });
-  if (n) console.log('🪟 Verre réaliste : réfraction coupée, alpha ' + val + ', reflets ' + window.__GLASS_REFLECT + ', roughness ' + window.__GLASS_ROUGHNESS + ' (' + n + ' matériau(x))');
-  return n;
+  // No-op volontaire : le matériau de verre du GLB est conservé tel quel.
+  return 0;
 }
-// Réglages live (console) : doser transparence / reflets / netteté sans recompiler.
-window.setGlassOpacity   = function (v) { window.__GLASS_OPACITY   = v; return applyGlassTreatment(null); };
-window.setGlassReflect   = function (v) { window.__GLASS_REFLECT   = v; return applyGlassTreatment(null); };
-window.setGlassRoughness = function (v) { window.__GLASS_ROUGHNESS = v; return applyGlassTreatment(null); };
+// Stubs conservés pour compatibilité (ne modifient plus le matériau de base) :
+window.setGlassOpacity   = function () { return 0; };
+window.setGlassReflect   = function () { return 0; };
+window.setGlassRoughness = function () { return 0; };
 
 /* ============================================================================
    LOAD MODELS
