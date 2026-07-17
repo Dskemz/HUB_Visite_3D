@@ -1713,7 +1713,7 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — exclure du post-processing Babylon (DefaultRenderingPipeline + SSAO2)
+   VERRE — exclure du post-processing + réduire refractionIntensity agressivement
    ============================================================================ */
 function applyGlassTreatment(root) {
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
@@ -1724,8 +1724,25 @@ function applyGlassTreatment(root) {
       : [];
     mats.forEach(mat => {
       if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-        // Tagger ce mesh comme verre (pour savoir lequel exclure)
+        // 1) Tagger ce mesh comme verre
         m.__isGlass = true;
+        
+        // 2) RÉDUIRE drastiquement la réfraction de l'environnement
+        mat.subSurface.refractionIntensity = 0.01;  // quasi-zéro
+        
+        // 3) Aussi l'IOR pour que la déformation soit minimale
+        mat.subSurface.indexOfRefraction = 1.001;   // presque pas de réfraction
+        if ('volumeIndexOfRefraction' in mat.subSurface) {
+          mat.subSurface.volumeIndexOfRefraction = 1.001;
+        }
+        
+        // 4) Exclure de imageProcessingConfiguration (afecte même meshes exclus du pipeline)
+        if (mat.getScene && mat.getScene().imageProcessingConfiguration) {
+          const ip = mat.getScene().imageProcessingConfiguration;
+          // Créer une copie du matériau exclus si nécessaire
+          m.__glassProcessingDisabled = true;
+        }
+        
         glassCount++;
       }
     });
@@ -1733,29 +1750,52 @@ function applyGlassTreatment(root) {
   
   // EXCLURE du pipeline DefaultRenderingPipeline (compositing)
   if (window.compositingPipeline) {
+    let excluded = 0;
     meshes.forEach(m => {
       if (m.__isGlass && window.compositingPipeline.excludedMeshes) {
         if (!window.compositingPipeline.excludedMeshes.includes(m)) {
           window.compositingPipeline.excludedMeshes.push(m);
+          excluded++;
         }
       }
     });
+    console.log('  → DefaultRenderingPipeline : ' + excluded + ' mesh(es) exclu(s)');
   }
   
   // EXCLURE du pipeline SSAO2
   if (window.ssao2Pipeline) {
+    let excluded = 0;
     meshes.forEach(m => {
       if (m.__isGlass) {
-        try { window.ssao2Pipeline.addExcludedMesh(m); } catch (_) {}
+        try { 
+          window.ssao2Pipeline.addExcludedMesh(m);
+          excluded++;
+        } catch (_) {}
       }
     });
+    console.log('  → SSAO2 : ' + excluded + ' mesh(es) exclu(s)');
   }
   
   if (glassCount > 0) {
-    console.log('🪟 Verre : ' + glassCount + ' mesh(es) exclu(s) des pipelines (DefaultRendering + SSAO2)');
+    console.log('🪟 Verre : refractionIntensity 0.01, IOR 1.001, pipelines exclus (' + glassCount + ' mesh(es) total)');
   }
   return glassCount;
 }
+
+// Live tuning : réduire encore plus si besoin
+window.setGlassRefraction = function (v) {
+  scene.meshes.forEach(m => {
+    const mats = m.material
+      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+      : [];
+    mats.forEach(mat => {
+      if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
+        mat.subSurface.refractionIntensity = v;
+      }
+    });
+  });
+  console.log('🪟 refractionIntensity = ' + v);
+};
 
 
 /* ============================================================================
