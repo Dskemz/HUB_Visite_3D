@@ -1486,13 +1486,6 @@ async function init() {
 
   await loadManifest();
   await loadWalls();
-  
-  // Caméra principale rend tout SAUF le verre (layer 0 uniquement)
-  camera.layerMask = 1;  // layer 0
-  
-  // Caméra séparée pour le verre SANS post-processing
-  setupGlassCamera();
-  
   loadRoomsAsync();
 
   // HDRi et skybox gérées par createDefaultEnvironment()
@@ -1720,10 +1713,9 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — caméra séparée SANS pipeline (isole 100% du post-processing)
+   VERRE — exclure du post-processing Babylon (DefaultRenderingPipeline + SSAO2)
    ============================================================================ */
 function applyGlassTreatment(root) {
-  // Identifier et tagger tous les meshes de verre (pour la caméra séparée)
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
   let glassCount = 0;
   meshes.forEach(m => {
@@ -1732,42 +1724,38 @@ function applyGlassTreatment(root) {
       : [];
     mats.forEach(mat => {
       if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-        // Tagger ce mesh comme "verre" (layer 1) — sera rendu par la caméra de verre uniquement
-        m.layerMask = 2;  // layer 1 (bit 1)
+        // Tagger ce mesh comme verre (pour savoir lequel exclure)
+        m.__isGlass = true;
         glassCount++;
       }
     });
   });
+  
+  // EXCLURE du pipeline DefaultRenderingPipeline (compositing)
+  if (window.compositingPipeline) {
+    meshes.forEach(m => {
+      if (m.__isGlass && window.compositingPipeline.excludedMeshes) {
+        if (!window.compositingPipeline.excludedMeshes.includes(m)) {
+          window.compositingPipeline.excludedMeshes.push(m);
+        }
+      }
+    });
+  }
+  
+  // EXCLURE du pipeline SSAO2
+  if (window.ssao2Pipeline) {
+    meshes.forEach(m => {
+      if (m.__isGlass) {
+        try { window.ssao2Pipeline.addExcludedMesh(m); } catch (_) {}
+      }
+    });
+  }
+  
   if (glassCount > 0) {
-    console.log('🪟 Verre : ' + glassCount + ' mesh(es) taguées pour rendu isolé (layer 1)');
+    console.log('🪟 Verre : ' + glassCount + ' mesh(es) exclu(s) des pipelines (DefaultRendering + SSAO2)');
   }
   return glassCount;
 }
-// À appeler APRÈS que la caméra et la pipeline soient créées :
-window.setupGlassCamera = function() {
-  if (window.glassCamera) return;  // déjà créé
-  
-  // Caméra dédiée au verre : elle rend JUSTE le layer 1 (le verre)
-  const cam = new BABYLON.UniversalCamera('glassCamera', camera.position.clone());
-  cam.attachControl(canvas, true);
-  cam.layerMask = 2;  // rend JUSTE le layer 1 (verre)
-  cam.inertia = camera.inertia;
-  cam.angularSensibility = camera.angularSensibility;
-  cam.target = camera.target.clone();
-  
-  // Synchroniser cette caméra avec la principale en temps réel
-  // (elle doit voir la même chose, mais sans pipeline)
-  scene.registerBeforeRender(() => {
-    cam.position = camera.position.clone();
-    cam.target = camera.target.clone();
-  });
-  
-  // Cette caméra ne reçoit AUCUN pipeline (DefaultRenderingPipeline, SSAO2, etc.)
-  // Elle rend le verre tel quel, après le rendu principal
-  
-  window.glassCamera = cam;
-  console.log('🪟 Caméra de verre créée (rendergroup, aucune pipeline)');
-};
 
 
 /* ============================================================================
