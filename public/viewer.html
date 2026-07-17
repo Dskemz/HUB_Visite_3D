@@ -1713,19 +1713,16 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — réduire la réfraction au maximum (isRefractionEnabled=true + intensité 1%)
+   VERRE — matériau de base du GLB PRÉSERVÉ (SAUF refractionIntensity réduite)
    ----------------------------------------------------------------------------
-   Le matériau de verre du GLB (Principled BSDF transmission=1, IOR 1.01) est
-   conservé INTACT. On ne touche qu'à refractionIntensity (l'intensité de la
-   déformation du ciel vue à travers le verre) et la baisse à quasi-zéro (0.01 = 1%).
-   Résultat : transmission vraie + réflexions/Fresnel/roughness natives, mais la
-   déformation grise du ciel flouté devient quasi-imperceptible. Le verre garde
-   toutes ses propriétés PBR d'origine, on ne supprime RIEN.
+   Matériau complètement intact : transmission=1, IOR 1.01, roughness, réflexions,
+   Fresnel, tout. On touche À UNE SEULE CHOSE : refractionIntensity = 0.05
+   (réduire la puissance de la déformation du ciel) pour garder la transmission
+   vraie sans le gris trop fort. C'est tout.
    ============================================================================ */
 function applyGlassTreatment(root) {
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
   const seen = new Set();
-  let n = 0;
   meshes.forEach(m => {
     const mats = m.material
       ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
@@ -1733,37 +1730,26 @@ function applyGlassTreatment(root) {
     mats.forEach(mat => {
       if (!mat || seen.has(mat)) return;
       const ss = mat.subSurface;
-      // Cible : uniquement le verre = matériau à réfraction/transmission activée.
       if (ss && ss.isRefractionEnabled) {
-        // Garder la réfraction ACTIVE mais la réduire au maximum (quasi-invisible)
-        ss.refractionIntensity = 0.01;  // 1% de l'intensité max → transmission vraie, pas de gris
-        seen.add(mat); n++;
+        // UNIQUEMENT réduire la puissance de la réfraction, rien d'autre
+        ss.refractionIntensity = 0.05;  // bas mais pas zéro = transmission vraie, pas de gris fort
+        seen.add(mat);
       }
     });
   });
-  if (n) console.log('🪟 Verre : réfraction réduite à 1% (' + n + ' matériau(x))');
-  return n;
+  return 0;
 }
-// Réglage live (console) : ajuster l'intensité de la réfraction sans recompiler.
+// Réglage live : ajuster refractionIntensity sans recompiler
 window.setGlassRefraction = function (v) {
-  const meshes = scene.meshes;
-  const seen = new Set();
-  let n = 0;
-  meshes.forEach(m => {
-    const mats = m.material
-      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
-      : [];
+  scene.meshes.forEach(m => {
+    const mats = m.material ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material]) : [];
     mats.forEach(mat => {
-      if (!mat || seen.has(mat)) return;
-      const ss = mat.subSurface;
-      if (ss && ss.isRefractionEnabled) {
-        ss.refractionIntensity = v;
-        seen.add(mat); n++;
+      if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
+        mat.subSurface.refractionIntensity = v;
       }
     });
   });
-  if (n) console.log('🪟 refractionIntensity = ' + v + ' (' + n + ' matériau(x))');
-  return n;
+  console.log('🪟 refractionIntensity = ' + v);
 };
 
 /* ============================================================================
