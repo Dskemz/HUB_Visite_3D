@@ -211,6 +211,38 @@
           <p class="hint" style="margin:.5rem 0 0;font-size:.68rem;">Présence = luminosité minimale préservée dans les zones occluses (plus haut = AO plus discrète).</p>
         </div>
 
+        <div id="ssr-box" style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.4rem;">
+            <input type="checkbox" id="f-ssr-on" onchange="ambSetSSR()"> Reflets écran (SSR) — test verre
+          </label>
+          <p class="hint" style="margin:0 0 .6rem;font-size:.68rem;">⚠️ SSR + verre transparent + SSAO2 est réputé instable (conflit de profondeur). <b>Off par défaut → le rendu public reste intact.</b> Active-le ici pour juger sur ce GLB ; désactive pour revenir au rendu d'origine.</p>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Intensité</label>
+            <input type="range" id="f-ssr-strength" min="0" max="2" step="0.05" value="0.7" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-strength" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.70</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Netteté</label>
+            <input type="range" id="f-ssr-falloff" min="0.5" max="6" step="0.1" value="2.5" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-falloff" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">2.5</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Rugosité</label>
+            <input type="range" id="f-ssr-rough" min="0" max="1" step="0.02" value="0.2" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-rough" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.20</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Épaisseur</label>
+            <input type="range" id="f-ssr-thick" min="0.1" max="3" step="0.05" value="0.5" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-thick" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.50</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Flou reflets</label>
+            <input type="range" id="f-ssr-blur" min="0" max="0.2" step="0.005" value="0.03" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-blur" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.03</span>
+          </div>
+        </div>
+
         <p class="hint"><b>Lumières.</b> Ajoute des sources, puis clique « 📍 Placer » et
           clique sur le plan (vue de dessus) pour positionner. Point = ampoule,
           Spot = faisceau dirigé, Soleil = lumière directionnelle globale.</p>
@@ -597,6 +629,21 @@ const PONT = `
         }
       },
 
+      /* ===== SSR (reflets écran) — test verre ===== */
+      ssrParams: function(){
+        var s = window.__SSR_STATE__ || {};
+        return {
+          enabled:         !!s.enabled,
+          strength:        (s.strength        != null) ? s.strength        : 0.7,
+          falloff:         (s.falloff         != null) ? s.falloff         : 2.5,
+          roughnessFactor: (s.roughnessFactor != null) ? s.roughnessFactor : 0.2,
+          thickness:       (s.thickness       != null) ? s.thickness       : 0.5,
+          blur:            (s.blur            != null) ? s.blur            : 0.03,
+          supported:       (typeof window.setSSR === 'function')
+        };
+      },
+      setSSR: function(p){ if (typeof window.setSSR === 'function') window.setSSR(p); },
+
       /* ===== LUMIÈRES ÉDITABLES ===== */
       lights: function(){
         var s = window.__lightingState || {};
@@ -809,7 +856,47 @@ function refreshAmbiance(){
   document.getElementById('v-ao-strength').textContent = (+ao.strength).toFixed(2);
   document.getElementById('v-ao-radius').textContent = (+ao.radius).toFixed(1);
   document.getElementById('v-ao-base').textContent = (+ao.base).toFixed(2);
+  refreshSSR();
   refreshLightList();
+}
+
+function refreshSSR(){
+  if (!ed || !ed.ssrParams) return;
+  var s = ed.ssrParams();
+  var box = document.getElementById('ssr-box');
+  if (box && s.supported === false){
+    box.style.opacity = '.5';
+    box.title = 'SSR indisponible (WebGL1 ou pipeline non chargé).';
+  }
+  document.getElementById('f-ssr-on').checked      = s.enabled;
+  document.getElementById('f-ssr-strength').value  = s.strength;
+  document.getElementById('f-ssr-falloff').value   = s.falloff;
+  document.getElementById('f-ssr-rough').value     = s.roughnessFactor;
+  document.getElementById('f-ssr-thick').value     = s.thickness;
+  document.getElementById('f-ssr-blur').value      = s.blur;
+  document.getElementById('v-ssr-strength').textContent = (+s.strength).toFixed(2);
+  document.getElementById('v-ssr-falloff').textContent  = (+s.falloff).toFixed(1);
+  document.getElementById('v-ssr-rough').textContent    = (+s.roughnessFactor).toFixed(2);
+  document.getElementById('v-ssr-thick').textContent    = (+s.thickness).toFixed(2);
+  document.getElementById('v-ssr-blur').textContent     = (+s.blur).toFixed(3);
+}
+
+function ambSetSSR(){
+  if (!ed) return;
+  var enabled  = document.getElementById('f-ssr-on').checked;
+  var strength = parseFloat(document.getElementById('f-ssr-strength').value);
+  var falloff  = parseFloat(document.getElementById('f-ssr-falloff').value);
+  var rough    = parseFloat(document.getElementById('f-ssr-rough').value);
+  var thick    = parseFloat(document.getElementById('f-ssr-thick').value);
+  var blur     = parseFloat(document.getElementById('f-ssr-blur').value);
+  document.getElementById('v-ssr-strength').textContent = strength.toFixed(2);
+  document.getElementById('v-ssr-falloff').textContent  = falloff.toFixed(1);
+  document.getElementById('v-ssr-rough').textContent    = rough.toFixed(2);
+  document.getElementById('v-ssr-thick').textContent    = thick.toFixed(2);
+  document.getElementById('v-ssr-blur').textContent     = blur.toFixed(3);
+  ed.setSSR({ enabled:enabled, strength:strength, falloff:falloff, roughnessFactor:rough, thickness:thick, blur:blur });
+  if (enabled) flash('SSR activé — juge le rendu, désactive pour revenir à l’original');
+  else flash('SSR désactivé — rendu d’origine');
 }
 
 function ambSetAO(){

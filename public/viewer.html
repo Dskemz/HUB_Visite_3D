@@ -1623,6 +1623,56 @@ async function init() {
       };
       console.log('✅ SSAO2 (occlusion de contact) ' + (aoOn ? 'activé' : 'prêt (désactivé)'));
     }
+
+    // --- SSR (reflets écran) — TEST du verre, OFF par défaut ---------------
+    // Créé DÉTACHÉ (aucune caméra) : tant qu'il n'est pas activé, aucune passe
+    // n'est rendue → le rendu public reste STRICTEMENT identique à aujourd'hui.
+    // L'utilisateur l'active/règle en direct depuis l'éditeur (onglet Ambiance).
+    // NB : SSR + verre transparent + SSAO2 est un combo instable (conflit de
+    // depth-buffer) ; c'est précisément ce qu'on teste ici. 100 % réversible :
+    // détacher = revenir au rendu d'origine, sans rechargement.
+    if (BABYLON.SSRRenderingPipeline && engine.webGLVersion > 1) {
+      const ssr = new BABYLON.SSRRenderingPipeline('ssr', scene, [], false);
+      ssr.strength                          = 0.7;
+      ssr.reflectionSpecularFalloffExponent = 2.5;
+      ssr.roughnessFactor                   = 0.2;
+      ssr.thickness                         = 0.5;
+      ssr.selfCollisionNumSkip              = 2;
+      ssr.enableSmoothReflections           = true;
+      ssr.blurDispersionStrength            = 0.03;
+      ssr.attenuateScreenBorders            = true;
+      ssr.attenuateFacingCamera             = false;
+      ssr.clipToFrustum                     = true;
+      window.ssrPipeline  = ssr;
+      window.__SSR_STATE__ = { enabled:false, strength:0.7, falloff:2.5, roughnessFactor:0.2, thickness:0.5, blur:0.03 };
+      // Caméras candidates au (dé)rattachement : principale + POV si elle existe.
+      window.__ssrCams = function(){
+        const a = [];
+        if (typeof camera   !== 'undefined' && camera)   a.push(camera);
+        if (typeof fpCamera !== 'undefined' && fpCamera) a.push(fpCamera);
+        return a;
+      };
+      // API live pour l'éditeur : activer/désactiver + régler sans recharger.
+      window.setSSR = function(opts){
+        opts = opts || {};
+        const st = window.__SSR_STATE__, p = window.ssrPipeline;
+        if (!p) return;
+        if (opts.strength        != null){ st.strength=+opts.strength;               p.strength=st.strength; }
+        if (opts.falloff         != null){ st.falloff=+opts.falloff;                 p.reflectionSpecularFalloffExponent=st.falloff; }
+        if (opts.roughnessFactor != null){ st.roughnessFactor=+opts.roughnessFactor; p.roughnessFactor=st.roughnessFactor; }
+        if (opts.thickness       != null){ st.thickness=+opts.thickness;             p.thickness=st.thickness; }
+        if (opts.blur            != null){ st.blur=+opts.blur;                       p.blurDispersionStrength=st.blur; }
+        if (opts.enabled != null){
+          st.enabled = !!opts.enabled;
+          try {
+            const mgr = scene.postProcessRenderPipelineManager;
+            if (st.enabled) mgr.attachCamerasToRenderPipeline('ssr', window.__ssrCams());
+            else            mgr.detachCamerasFromRenderPipeline('ssr', window.__ssrCams());
+          } catch(_){}
+        }
+      };
+      console.log('✅ SSR prêt (détaché — activable depuis l’éditeur)');
+    }
   } catch (e) {
     console.warn('⚠️ Compositing non activé, rendu standard :', e.message);
     // Repli minimal pour ne jamais casser le rendu
@@ -2162,6 +2212,8 @@ function resetView() {
   camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
   // Réactiver l'AO (neutralisée en vue de dessus ortho de l'éditeur)
   try { if (window.ssao2Pipeline && window.__AO_STRENGTH__ != null) window.ssao2Pipeline.totalStrength = window.__AO_STRENGTH__; } catch (_) {}
+  // Ré-attacher le SSR s'il était activé (détaché en vue de dessus ortho).
+  try { if (window.ssrPipeline && window.__SSR_STATE__ && window.__SSR_STATE__.enabled && scene.postProcessRenderPipelineManager) scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline('ssr', camera); } catch (_) {}
 
   // Libérer temporairement les limites de zoom pour permettre l'éloignement
   // (en 1ère personne, lower=upper=radius bloquerait l'animation)
@@ -2582,6 +2634,17 @@ function enterPanoramaCamera(eyePos, lookAt) {
       }
     } catch (e) {
       console.warn('⚠️ SSAO2 non rattaché à la fpCamera :', e.message);
+    }
+
+    // SSR en POV : seulement s'il est activé (sinon on ne touche à rien).
+    try {
+      if (window.ssrPipeline && window.__SSR_STATE__ && window.__SSR_STATE__.enabled
+          && scene.postProcessRenderPipelineManager) {
+        scene.postProcessRenderPipelineManager
+          .attachCamerasToRenderPipeline('ssr', fpCamera);
+      }
+    } catch (e) {
+      console.warn('⚠️ SSR non rattaché à la fpCamera :', e.message);
     }
   }
   fpCamera.position.copyFrom(eyePos);
@@ -4217,6 +4280,8 @@ function switchToOrthographic() {
   // SSAO2 est calibré pour la perspective (profondeur réelle) → léger halo en ortho.
   // On le neutralise en vue de dessus éditeur, réactivé au retour perspective.
   try { if (window.ssao2Pipeline) window.ssao2Pipeline.totalStrength = 0; } catch (_) {}
+  // Le SSR n'a pas de sens en vue de dessus ortho → on le détache (ré-attaché au retour).
+  try { if (window.ssrPipeline && scene.postProcessRenderPipelineManager) scene.postProcessRenderPipelineManager.detachCamerasFromRenderPipeline('ssr', camera); } catch (_) {}
 
   camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
 
