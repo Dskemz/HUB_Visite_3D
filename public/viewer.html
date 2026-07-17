@@ -1515,8 +1515,8 @@ async function init() {
 
   // --- AO (SSAO2) : créé détaché, attaché seulement quand activé --------------
   window.ssao2Pipeline   = null;
-  window.__AO_STATE__    = { enabled:false, strength:1.0, radius:1.2, base:0.2 };
-  window.__AO_STRENGTH__ = 0;
+  window.__AO_STATE__    = { enabled:true, strength:1.0, radius:1.2, base:0.2 };
+  window.__AO_STRENGTH__ = 1.0;
   if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
     try {
       var ssao2 = new BABYLON.SSAO2RenderingPipeline('ssao2', scene, { ssaoRatio:0.5, blurRatio:0.5 }, []);
@@ -1528,9 +1528,9 @@ async function init() {
       ssao2.minZAspect    = 0.5;
       ssao2.expensiveBlur = false;
       window.ssao2Pipeline = ssao2;
-      // Détaché au départ : rendu STRICTEMENT identique au Sandbox (verre intact).
-      // Activable dans Post-process quand l'utilisateur le souhaite.
-      console.log('✅ AO (SSAO2) prêt — détaché (rendu verre intact)');
+      // Activé par défaut : attaché à la caméra principale au lancement.
+      try { scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline('ssao2', [camera]); } catch(_){}
+      console.log('✅ AO (SSAO2) activé par défaut');
     } catch (e) { console.warn('⚠️ SSAO2 non créé :', e.message); }
   }
   // API AO pour l'éditeur : attache/détache + règle en direct.
@@ -1632,7 +1632,7 @@ async function init() {
       return {
         id: l.name, kind: kind, className: cls,
         intensity: (l.intensity != null ? l.intensity : 1),
-        enabled: l.isEnabled(),
+        enabled: (l.intensity == null || l.intensity > 0) && l.isEnabled(),
         color: col, position: pos, direction: dir,
         range: (l.range != null && l.range < 100000 ? l.range : null)
       };
@@ -1640,8 +1640,19 @@ async function init() {
   };
   window.setLightProp = function(id, patch){
     var l = scene.getLightByName(id); if (!l) return;
-    if (patch.intensity != null) l.intensity = parseFloat(patch.intensity);
-    if (patch.enabled   != null) l.setEnabled(!!patch.enabled);
+    if (patch.intensity != null) { l.intensity = parseFloat(patch.intensity); l.__savedIntensity = l.intensity; }
+    if (patch.enabled != null) {
+      // NE PAS utiliser setEnabled() : changer le NOMBRE de lumières actives force
+      // Babylon à recompiler le shader de TOUS les matériaux (define de comptage) →
+      // figement de plusieurs secondes + artefacts. On éteint via l'intensité (0),
+      // ce qui garde la lumière dans le shader : aucune recompilation, bascule instantanée.
+      if (!patch.enabled) {
+        if (l.intensity > 0) l.__savedIntensity = l.intensity;
+        l.intensity = 0;
+      } else {
+        l.intensity = (l.__savedIntensity != null && l.__savedIntensity > 0) ? l.__savedIntensity : 1;
+      }
+    }
     if (patch.color) { if (l.diffuse) l.diffuse = new BABYLON.Color3(patch.color[0], patch.color[1], patch.color[2]); }
     if (patch.range != null && 'range' in l) l.range = parseFloat(patch.range);
     if (patch.position && l.position) l.position = new BABYLON.Vector3(patch.position[0], patch.position[1], patch.position[2]);
@@ -2271,10 +2282,14 @@ async function importGlbResilient(base, filename, scene, opts) {
   let buffer = null;
   try {
     // Par défaut : cache navigateur normal (chargement instantané des meubles).
-    // noCache:true (walls uniquement) → revalidation serveur pour reprendre un GLB
-    // ré-exporté avec de nouveaux noms de matériaux sans purge manuelle.
-    const fetchOpts = opts.noCache ? { cache: 'no-cache' } : {};
-    const resp = await fetch(base + filename, fetchOpts);
+    // noCache:true (walls uniquement) → revalidation serveur + param de version
+    // horodaté pour vaincre AUSSI le cache CDN (Vercel) : un GLB ré-exporté est
+    // repris sans purge manuelle. On ajoute ?v=<timestamp> qui change à chaque
+    // chargement de page, ce qui force une URL neuve côté CDN.
+    var url = base + filename;
+    var fetchOpts = {};
+    if (opts.noCache) { url += (url.indexOf('?') < 0 ? '?' : '&') + 'v=' + Date.now(); fetchOpts = { cache: 'no-cache' }; }
+    const resp = await fetch(url, fetchOpts);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     buffer = await resp.arrayBuffer();
   } catch (e) {
@@ -2681,6 +2696,19 @@ function loadRoomsAsync() {
         roomState[r.id].enabled = !!CONFIG.roomsStartVisible;
 
         applyGlassTreatment(node); // vitres du mobilier/pièce : transparence claire
+
+        // ZÉRO LATENCE À L'AFFICHAGE : on pré-compile les shaders du mobilier
+        // pendant qu'il est encore masqué. Sans ça, la 1ʳᵉ frame où la pièce
+        // devient visible compile ses matériaux → micro-figement à chaque 1er
+        // affichage. On compile ici, en arrière-plan, une fois pour toutes.
+        try {
+          node.getChildMeshes(false).forEach(mesh => {
+            if (mesh.material && mesh.material.forceCompilationAsync) {
+              mesh.material.forceCompilationAsync(mesh);
+            }
+          });
+        } catch (_) {}
+
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
       } catch (err) {
         roomState[r.id].failed = true;
@@ -3562,7 +3590,20 @@ const _poiTouchMQL = (typeof window !== 'undefined' && window.matchMedia)
 function poiMarkerScreenSize() {
   return POI_MARKER_SCREEN_SIZE * ((_poiTouchMQL && _poiTouchMQL.matches) ? POI_MARKER_TOUCH_BOOST : 1);
 }
-const POI_MARKER_COLOR = (window.__BRAND__ && window.__BRAND__.navy) || '#0B1B3F';    // couleur du marqueur POV = bleu du header (mets '#0046FE' pour le bleu accent, plus vif)
+let POI_MARKER_COLOR = (window.__BRAND__ && window.__BRAND__.navy) || '#0B1B3F';    // couleur du marqueur POV
+window.__povColor = function(){ return POI_MARKER_COLOR; };
+// Change la couleur de TOUS les POV (marqueurs définitifs + marqueur de placement).
+window.setPovColor = function(hex){
+  if (!hex) return;
+  POI_MARKER_COLOR = hex;
+  try { createPoiMarkers(); } catch(_){}          // reconstruit les marqueurs à la nouvelle couleur
+  // Reconstruit aussi le marqueur de placement à la nouvelle couleur
+  try {
+    if (window.__pov3DMarker){ window.__pov3DMarker.dispose(); window.__pov3DMarker = null; }
+    ensurePov3DMarker();
+    afficherMarqueurPov(povEnAttenteX != null);
+  } catch(_){}
+};
 
 function createPoiMarkers() {
   if (!propertyData || !propertyData.poi) return;

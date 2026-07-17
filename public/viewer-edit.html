@@ -132,6 +132,10 @@
           <button class="btn" id="b-voir" onclick="voirPov()" style="flex:1;display:none;">👁️ Voir (orienter)</button>
           <button class="btn" id="b-valider" onclick="validerPov()" style="flex:1;display:none;">💾 Valider</button>
         </div>
+        <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.7rem;background:#0d1220;padding:.5rem .7rem;border-radius:8px;">
+          <label style="font-size:.74rem;color:#9fb4ce;flex:1;">🎨 Couleur de tous les POV</label>
+          <input type="color" id="f-pov-color" value="#0B1B3F" style="flex:0 0 auto;width:44px;height:28px;padding:0;border:none;background:none;cursor:pointer;" oninput="setPovColor(this.value)">
+        </div>
         <div class="list" id="pov-list" style="margin-top:.9rem;"></div>
       </div>
 
@@ -755,6 +759,10 @@ const PONT = `
         return JSON.stringify(out, null, 2);
       },
 
+      /* ===== COULEUR DES POV ===== */
+      povColor:    function(){ return (typeof window.__povColor==='function') ? window.__povColor() : '#0B1B3F'; },
+      setPovColor: function(hex){ if (typeof window.setPovColor==='function') window.setPovColor(hex); },
+
       /* ===== POV ===== */
       /* Arme/désarme le mode placement POV : clic DIRECT dans la vue 3D du viewer.
          Le viewer raycaste le décor et rappelle setCiblePov avec le point monde. */
@@ -763,9 +771,10 @@ const PONT = `
         if (m === 'pov' && typeof window.armPickPlacement === 'function') {
           window.armPickPlacement('pov', function(w){
             povEnAttenteX = w.x; povEnAttenteZ = w.z;
-            window.__povFloorY = (w.y != null ? w.y : (modelBounds ? modelBounds.min.y : 0));
-            povEnAttenteY = window.__povFloorY;   // au SOL (hauteur 0) — l'utilisateur monte ensuite
-            // Remet le slider hauteur à 0 côté éditeur
+            // TOUJOURS au sol : on ignore la hauteur du point cliqué (mur, meuble…)
+            // et on ancre sur le niveau du sol réel du modèle. L'utilisateur monte ensuite.
+            window.__povFloorY = (modelBounds ? modelBounds.min.y : 0);
+            povEnAttenteY = window.__povFloorY;
             try { var fh = parent.document.getElementById('f-height'); if (fh){ fh.value = 0; var lab = parent.document.getElementById('h-height-val'); if (lab) lab.textContent = '0 m'; } } catch(_){}
             afficherMarqueurPov(true);
             parent.__edEvent('pov','placee');
@@ -825,6 +834,8 @@ window.__edPret = function(){
   warn('');
   refresh();
   ed.editerCotations(mode === 'cot');
+  // Synchronise le sélecteur de couleur POV avec la couleur courante du viewer
+  try { var pc = document.getElementById('f-pov-color'); if (pc && ed.povColor) pc.value = ed.povColor(); } catch(_){}
 };
 window.__edEvent = function(kind, what){
   if (kind === 'pov'){ flash('📍 POV placé sur le plan'); refresh(); return; }
@@ -1192,10 +1203,17 @@ function capture(){
 
 let povEnCours = false;  // true si un POV est en cours de placement/édition
 
+function setPovColor(hex){
+  if (ed && ed.setPovColor) ed.setPovColor(hex);
+}
+
 function placerPov(){
   if (!ed) return;
   povEnCours = true;
   tab('pov');
+  // Réinitialise la hauteur à 0 (sol) AVANT de placer
+  var fh = document.getElementById('f-height'); if (fh) fh.value = 0;
+  var lab = document.getElementById('h-height-val'); if (lab) lab.textContent = '0 m';
   ed.setMode('pov');
   document.getElementById('b-place-pov').style.display = 'none';
   document.getElementById('b-cancel-pov').style.display = 'block';
