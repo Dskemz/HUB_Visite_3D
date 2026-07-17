@@ -1713,11 +1713,9 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — matériau de base du GLB PRÉSERVÉ (exclure du post-processing)
+   VERRE — shader de base intact, réduire UNIQUEMENT refractionIntensity + IOR
    ============================================================================ */
 function applyGlassTreatment(root) {
-  // Exclure le verre du post-processing (DefaultRenderingPipeline + SSAO2) pour que
-  // le shader transmission=1 soit préservé intact, comme avant le post-processing.
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
   let glassCount = 0;
   meshes.forEach(m => {
@@ -1727,18 +1725,24 @@ function applyGlassTreatment(root) {
     let hasGlass = false;
     mats.forEach(mat => {
       if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
+        // Réduire drastiquement la réfraction de l'environnement (0.02 = quasi-invisible)
+        mat.subSurface.refractionIntensity = 0.02;
+        // Forcer l'IOR correct depuis Blender (transmission ne l'importe pas toujours)
+        mat.subSurface.indexOfRefraction = 1.01;
+        if ('volumeIndexOfRefraction' in mat.subSurface) {
+          mat.subSurface.volumeIndexOfRefraction = 1.01;
+        }
         hasGlass = true;
       }
     });
     if (hasGlass) {
-      // Exclure ce mesh du DefaultRenderingPipeline
+      // Exclure ce mesh du post-processing (AO, bloom, grading, etc.)
       if (scene.postProcessRenderPipelineManager && scene.postProcessRenderPipelineManager._renderPipelines.compositing) {
         const pipe = scene.postProcessRenderPipelineManager._renderPipelines.compositing;
         if (pipe.excludedMeshes && !pipe.excludedMeshes.includes(m)) {
           pipe.excludedMeshes.push(m);
         }
       }
-      // Exclure aussi du SSAO2
       if (window.ssao2Pipeline) {
         try { window.ssao2Pipeline.addExcludedMesh(m); } catch (_) {}
       }
@@ -1746,10 +1750,22 @@ function applyGlassTreatment(root) {
     }
   });
   if (glassCount > 0) {
-    console.log('🪟 Verre exclu du post-processing (' + glassCount + ' mesh(es))');
+    console.log('🪟 Verre : refractionIntensity 0.02, IOR 1.01, exclu post-processing (' + glassCount + ' mesh(es))');
   }
   return glassCount;
 }
+// Live tuning si besoin (refractionIntensity seulement)
+window.setGlassRefraction = function (v) {
+  scene.meshes.forEach(m => {
+    const mats = m.material ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material]) : [];
+    mats.forEach(mat => {
+      if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
+        mat.subSurface.refractionIntensity = v;
+      }
+    });
+  });
+  console.log('🪟 refractionIntensity = ' + v);
+};
 
 /* ============================================================================
    LOAD MODELS
