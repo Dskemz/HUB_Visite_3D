@@ -1713,7 +1713,7 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — exclure du post-processing + réduire refractionIntensity à quasi-zéro
+   VERRE — exclure du post-processing + réduire refractionIntensity à 0.5
    ============================================================================ */
 function applyGlassTreatment(root) {
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
@@ -1726,8 +1726,8 @@ function applyGlassTreatment(root) {
       if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
         // Tagger ce mesh comme verre
         m.__isGlass = true;
-        // RÉDUIRE drastiquement la déformation : refractionIntensity = 0.01 (1% de déformation)
-        mat.subSurface.refractionIntensity = 0.01;
+        // Réduire la déformation à 50%
+        mat.subSurface.refractionIntensity = 0.5;
         glassCount++;
       }
     });
@@ -1754,12 +1754,12 @@ function applyGlassTreatment(root) {
   }
   
   if (glassCount > 0) {
-    console.log('🪟 Verre : refractionIntensity 0.01 (décalage réduit à 99%), exclus pipelines (' + glassCount + ' mesh(es))');
+    console.log('🪟 Verre : refractionIntensity 0.5, exclu pipelines (' + glassCount + ' mesh(es))');
   }
   return glassCount;
 }
 
-// Live tuning si besoin de réduire encore plus
+// Live tuning si besoin
 window.setGlassRefraction = function (v) {
   scene.meshes.forEach(m => {
     const mats = m.material
