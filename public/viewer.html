@@ -1728,7 +1728,16 @@ async function init() {
    du verre clair. On ne touche QU'AUX matériaux réfractifs (le verre), rien
    d'autre de la scène. Opacité réglable en direct : window.setGlassOpacity(v).
    ============================================================================ */
-window.__GLASS_OPACITY = 0.15;   // 0 = invisible, 1 = opaque ; verre clair ≈ 0.12–0.20
+// VERRE RÉALISTE : on ne peut pas réfracter la vraie géométrie dans Babylon (la
+// réfraction ne lit que l'environnement flouté → « effet cristal » gris). Ce qui
+// « fait » le verre, ce n'est donc pas la réfraction mais la RÉFLEXION. On garde
+// donc la transparence alpha (on voit la scène derrière) et on rétablit les reflets :
+// surface lisse (roughness bas) + réflexions/spéculaires affichés PAR-DESSUS l'alpha
+// + albédo noir pour supprimer le voile diffus gris/blanc « fake ». Le Fresnel PBR
+// rend automatiquement les bords plus réfléchissants → aspect verre naturel.
+window.__GLASS_OPACITY   = 0.10;  // alpha : transparence (0 = invisible, 1 = opaque). Verre clair ≈ 0.06–0.15
+window.__GLASS_REFLECT   = 1.0;   // intensité des réflexions d'environnement sur le verre
+window.__GLASS_ROUGHNESS = 0.04;  // netteté des réflexions (0 = miroir parfait ; plus haut = flou)
 function applyGlassTreatment(root, opacity) {
   const val = (typeof opacity === 'number') ? opacity : window.__GLASS_OPACITY;
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
@@ -1743,20 +1752,36 @@ function applyGlassTreatment(root, opacity) {
       const ss = mat.subSurface;
       // Cible : uniquement le verre = matériau à réfraction/transmission activée.
       if (ss && ss.isRefractionEnabled) {
-        ss.isRefractionEnabled = false;                                 // ne plus réfracter l'IBL
+        // 1) Couper la réfraction d'environnement (source des bandes grises « cristal »).
+        ss.isRefractionEnabled = false;
+        // 2) Transparence alpha : laisse voir la vraie scène derrière.
         if (BABYLON.PBRMaterial && 'transparencyMode' in mat) {
           mat.transparencyMode = BABYLON.PBRMaterial.MATERIAL_ALPHABLEND;
         }
-        mat.alpha = val;                                                // verre clair (voit la scène)
+        mat.alpha = val;
+        // 3) Verre = diélectrique lisse : réflexions nettes de l'environnement, pas de métal.
+        if ('metallic'  in mat) mat.metallic  = 0;
+        if ('roughness' in mat) mat.roughness = window.__GLASS_ROUGHNESS;
+        // 4) Supprimer le voile diffus gris/blanc « fake » (sauf verre texturé/teinté) :
+        //    albédo noir → il ne reste que réflexion + spéculaire, comme du vrai verre clair.
+        if (mat.albedoColor && !mat.albedoTexture) mat.albedoColor = BABYLON.Color3.Black();
+        // 5) Faire ressortir réflexions + spéculaires PAR-DESSUS l'alpha (sinon la
+        //    transparence les atténue et le verre paraît plat).
+        if ('useRadianceOverAlpha' in mat) mat.useRadianceOverAlpha = true;
+        if ('useSpecularOverAlpha' in mat) mat.useSpecularOverAlpha = true;
+        // 6) Intensité des réflexions d'environnement propre au verre (Fresnel auto sur les bords).
+        if ('environmentIntensity' in mat) mat.environmentIntensity = window.__GLASS_REFLECT;
         seen.add(mat); n++;
       }
     });
   });
-  if (n) console.log('🪟 Verre : réfraction d\'environnement coupée, transparence alpha ' + val + ' (' + n + ' matériau(x))');
+  if (n) console.log('🪟 Verre réaliste : réfraction coupée, alpha ' + val + ', reflets ' + window.__GLASS_REFLECT + ', roughness ' + window.__GLASS_ROUGHNESS + ' (' + n + ' matériau(x))');
   return n;
 }
-// Réglage live (console) : window.setGlassOpacity(0.1) … 0.25 pour doser le verre.
-window.setGlassOpacity = function (v) { window.__GLASS_OPACITY = v; return applyGlassTreatment(null, v); };
+// Réglages live (console) : doser transparence / reflets / netteté sans recompiler.
+window.setGlassOpacity   = function (v) { window.__GLASS_OPACITY   = v; return applyGlassTreatment(null); };
+window.setGlassReflect   = function (v) { window.__GLASS_REFLECT   = v; return applyGlassTreatment(null); };
+window.setGlassRoughness = function (v) { window.__GLASS_ROUGHNESS = v; return applyGlassTreatment(null); };
 
 /* ============================================================================
    LOAD MODELS
