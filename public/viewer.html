@@ -1771,7 +1771,9 @@ function applyGlassTreatment(root) {
    Extensible : ajouter une entrée dans MATERIAL_CATEGORIES suffit.
    ============================================================================ */
 window.MATERIAL_CATEGORIES = {
-  glass: { label: 'Verre', controls: ['alpha', 'roughness', 'reflection', 'refraction'] }
+  glass:        { label: 'Verre',        controls: ['alpha', 'roughness', 'reflection', 'refraction'] },
+  architecture: { label: 'Architecture', controls: ['roughness', 'reflection'] },
+  sol:          { label: 'Sol',          controls: ['roughness', 'reflection'] }
   // À étendre plus tard : wood, crepis, metal, fabric, stone...
 };
 
@@ -1796,13 +1798,19 @@ window.getMaterialsByCategory = function() {
       : [];
     mats.forEach(mat => {
       if (!mat || seen.has(mat.uniqueId)) return;
-      const cat = materialCategory(mat.name);
+      let cat = materialCategory(mat.name);
+      
+      // FALLBACK : si pas de nom M_glass_*, détecte le verre par isRefractionEnabled
+      if (!cat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
+        cat = 'glass';
+      }
+      
       if (!cat || !window.MATERIAL_CATEGORIES[cat]) return;  // catégorie non gérée → ignorée
       seen.add(mat.uniqueId);
       const ss = mat.subSurface;
       const entry = {
         id: mat.uniqueId,
-        name: mat.name,
+        name: mat.name || ('Matériau ' + mat.uniqueId),
         category: cat,
         alpha: (typeof mat.alpha === 'number') ? mat.alpha : 1,
         roughness: (typeof mat.roughness === 'number') ? mat.roughness : 0,
@@ -1812,6 +1820,10 @@ window.getMaterialsByCategory = function() {
       (groups[cat] = groups[cat] || []).push(entry);
     });
   });
+  
+  // Log de debug
+  console.log('🔍 getMaterialsByCategory résultat:', { categories: Object.keys(groups), count: Object.values(groups).reduce((s,a)=>s+a.length,0) });
+  
   return { categories: window.MATERIAL_CATEGORIES, groups: groups };
 };
 

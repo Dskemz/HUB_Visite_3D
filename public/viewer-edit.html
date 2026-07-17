@@ -179,7 +179,9 @@
       </div>
 
       <div id="p-verre" hidden>
-        <p class="hint"><b>Matériaux de la scène.</b> Regroupés par catégorie (nomenclature <code style="color:#9fb4ce;">M_&lt;cat&gt;_&lt;détail&gt;</code>). Clique une catégorie pour la déplier, puis ajuste chaque matériau en direct.</p>
+        <p class="hint"><b>Matériaux de la scène.</b> Regroupés par catégorie :<br>
+          <code>M_glass_*</code> · <code>M_architecture_*</code> · <code>M_sol_*</code><br>
+          Clique une catégorie pour la déplier, puis ajuste chaque matériau en direct.</p>
         <button class="btn sec" onclick="chargerVerres()" style="margin-bottom:.8rem;">🔄 Recharger la liste</button>
         <div id="glass-list"></div>
       </div>
@@ -1246,61 +1248,115 @@ const CTRL_META = {
   refraction: { label: 'Réfraction',   min: 0, max: 1, step: 0.05 }
 };
 
-let openCategories = { glass: true };  // état déplié/replié par catégorie
+let openCategories = { glass: true, architecture: true, sol: true };  // état déplié/replié par catégorie
 
 function chargerVerres(){
   const w = vwWin();
   const cont = document.getElementById('glass-list');
   if (!cont) return;
-  if (!w || !w.getMaterialsByCategory){
-    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">Viewer pas encore prêt. Réessaie dans un instant.</p>';
+  
+  if (!w){
+    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ Viewer iframe introuvable.</p>';
     return;
   }
-  const data = w.getMaterialsByCategory();
+  
+  if (!w.getMaterialsByCategory){
+    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">⏳ Viewer pas encore prêt. Réessaie dans un instant.</p>';
+    return;
+  }
+  
+  let data;
+  try {
+    data = w.getMaterialsByCategory();
+  } catch(err){
+    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ Erreur viewer : ' + err.message + '</p>';
+    console.error('getMaterialsByCategory error:', err);
+    return;
+  }
+  
   const cats = data.categories || {};
   const groups = data.groups || {};
-  const catKeys = Object.keys(groups);
+  const catKeys = Object.keys(cats);
+  
   if (!catKeys.length){
-    cont.innerHTML = '<p class="hint">Aucun matériau reconnu (nomenclature <code>M_&lt;cat&gt;_*</code> attendue).</p>';
+    cont.innerHTML = '<p class="hint">Aucune catégorie définie dans le viewer.</p>';
     return;
   }
+  
+  const hasAny = Object.values(groups).some(arr => arr.length > 0);
+  if (!hasAny){
+    cont.innerHTML = '<p class="hint">❌ Aucun matériau trouvé.<br><br>' +
+      '<b>Tes catégories :</b><br>' +
+      '· <code>M_glass_*</code> → Verre<br>' +
+      '· <code>M_architecture_*</code> → Murs, plinthes, etc.<br>' +
+      '· <code>M_sol_*</code> → Sols<br><br>' +
+      'Clique « 🔄 Recharger » après modification.</p>';
+    return;
+  }
+  
   cont.innerHTML = '';
+  
   catKeys.forEach(function(cat){
     const meta = cats[cat] || { label: cat, controls: [] };
-    const items = groups[cat];
+    const items = groups[cat] || [];
     const open = !!openCategories[cat];
+    
+    if (!items.length) return;  // catégorie vide, la sauter
 
     const section = document.createElement('div');
-    section.style.cssText = 'margin-bottom:.8rem;border:1px solid #263149;border-radius:8px;overflow:hidden;';
+    section.style.cssText = 'margin-bottom:.6rem;border:1px solid #263149;border-radius:8px;overflow:hidden;';
 
-    // En-tête repliable
-    const head = document.createElement('button');
-    head.style.cssText = 'width:100%;text-align:left;background:#141c2e;border:none;color:#e8ecf6;' +
-      'padding:.6rem .8rem;font:inherit;font-weight:700;font-size:.85rem;cursor:pointer;' +
-      'display:flex;align-items:center;justify-content:space-between;';
-    head.innerHTML = '<span>' + meta.label + ' <span style="color:#6f7c99;font-weight:500;">(' + items.length + ')</span></span>' +
-                     '<span style="color:#6f7c99;">' + (open ? '▾' : '▸') + '</span>';
-    head.onclick = function(){ openCategories[cat] = !openCategories[cat]; chargerVerres(); };
+    // En-tête repliable (CLICKABLE)
+    const head = document.createElement('div');
+    head.style.cssText = 'width:100%;text-align:left;background:#141c2e;' +
+      'padding:.6rem .8rem;cursor:pointer;' +
+      'display:flex;align-items:center;justify-content:space-between;' +
+      'user-select:none;transition:background .15s;';
+    head.onmouseenter = function(){ head.style.background = '#1a2438'; };
+    head.onmouseleave = function(){ head.style.background = open ? '#1a2438' : '#141c2e'; };
+    if (open) head.style.background = '#1a2438';
+    
+    const labelSpan = document.createElement('span');
+    labelSpan.style.cssText = 'font:inherit;font-weight:700;font-size:.85rem;color:#e8ecf6;';
+    labelSpan.innerHTML = meta.label + ' <span style="color:#6f7c99;font-weight:500;">(' + items.length + ')</span>';
+    
+    const arrowSpan = document.createElement('span');
+    arrowSpan.style.cssText = 'color:#6f7c99;font-size:.8rem;';
+    arrowSpan.textContent = open ? '▾' : '▸';
+    
+    head.appendChild(labelSpan);
+    head.appendChild(arrowSpan);
+    head.onclick = function(){ 
+      openCategories[cat] = !openCategories[cat]; 
+      chargerVerres(); 
+    };
     section.appendChild(head);
 
     // Corps (matériaux)
     if (open){
       const bodyEl = document.createElement('div');
       bodyEl.style.cssText = 'padding:.6rem .7rem;background:#0d1220;';
-      items.forEach(function(mat){
+      
+      items.forEach(function(mat, idx){
         const box = document.createElement('div');
-        box.style.cssText = 'padding:.5rem 0;border-bottom:1px solid #1c2740;';
-        let html = '<div style="font-size:.8rem;font-weight:600;color:#c7d0e4;margin-bottom:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + mat.name + '</div>';
+        box.style.cssText = 'padding:.5rem 0;' + (idx < items.length - 1 ? 'border-bottom:1px solid #1c2740;' : '');
+        
+        let html = '<div style="font-size:.8rem;font-weight:600;color:#c7d0e4;margin-bottom:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + 
+                   mat.name + '</div>';
+        
         (meta.controls || []).forEach(function(prop){
           const cm = CTRL_META[prop];
           if (!cm) return;
           html += matRow(cm.label, mat.id, prop, cm.min, cm.max, cm.step, mat[prop]);
         });
+        
         box.innerHTML = html;
         bodyEl.appendChild(box);
       });
+      
       section.appendChild(bodyEl);
     }
+    
     cont.appendChild(section);
   });
 }
