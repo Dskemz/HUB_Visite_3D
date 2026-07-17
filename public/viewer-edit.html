@@ -186,13 +186,10 @@
       </div>
 
       <div id="p-verre" hidden>
-        <p class="hint"><b>Inspecteur matériaux</b> (façon Babylon Sandbox). Choisis un matériau
-          dans la liste pour voir et régler ses propriétés en direct.</p>
-        <button class="btn sec" onclick="inspectorRefresh()" style="margin-bottom:.6rem;">🔄 Recharger la liste</button>
-        <select id="mat-select" onchange="inspectorSelect()" style="margin-bottom:.7rem;">
-          <option value="">— choisir un matériau —</option>
-        </select>
-        <div id="mat-props"></div>
+        <p class="hint"><b>Matériaux par pièce.</b> Chaque pièce est un dossier, chaque type
+          un sous-dossier. Clique pour déplier et ajuster les propriétés en direct.</p>
+        <button class="btn sec" onclick="inspectorRefresh()" style="margin-bottom:.7rem;">🔄 Recharger</button>
+        <div id="mat-tree"></div>
         <details style="margin-top:.8rem;">
           <summary style="cursor:pointer;font-size:.72rem;color:#6f7c99;">🔍 Diagnostic (noms bruts)</summary>
           <div style="margin-top:.5rem;"><button class="btn sec" onclick="diagnostiquerVerre()" style="margin-bottom:.6rem;">Lister les noms vus par le viewer</button><div id="glass-diag"></div></div>
@@ -277,11 +274,8 @@
         </div>
 
         <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">💡 Lumières déjà dans la scène</div>
-        <p class="hint" style="font-size:.68rem;margin-top:0;">Sélectionne une lumière pour l'ajuster ou la supprimer (y compris celles créées au chargement).</p>
-        <select id="scene-light-select" onchange="onSceneLightSelect()" style="margin-bottom:.6rem;">
-          <option value="">— choisir une lumière —</option>
-        </select>
-        <div id="scene-light-ctrl" style="margin-bottom:1rem;"></div>
+        <p class="hint" style="font-size:.68rem;margin-top:0;">Clique une lumière pour la déplier, l'ajuster ou la supprimer.</p>
+        <div id="scene-light-tree" style="margin-bottom:1rem;"></div>
 
         <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;border-top:1px solid #263149;padding-top:.7rem;">➕ Ajouter une lumière éditable</div>
         <p class="hint" style="font-size:.68rem;margin-top:0;">Ajoute, clique « 📍 Placer » puis clique <b>dans la vue 3D</b>. Coche 👁 pour l'afficher et manipuler ses axes (déplacement + rotation).</p>
@@ -978,59 +972,55 @@ function importHdri(input){
   setTimeout(refreshHdri, 400);
 }
 
+let sceneLightOpen = {}; // id -> déplié
 function refreshSceneLights(){
   if (!ed || !ed.allLights) return;
-  var sel = document.getElementById('scene-light-select');
-  if (!sel) return;
+  var cont = document.getElementById('scene-light-tree');
+  if (!cont) return;
   var lights = ed.allLights();
-  var cur = sel.value;
-  sel.innerHTML = '<option value="">— choisir une lumière (' + lights.length + ') —</option>';
+  if (!lights.length){ cont.innerHTML = '<p class="hint" style="font-size:.7rem;">Aucune lumière détectée.</p>'; return; }
+  cont.innerHTML = '';
   lights.forEach(function(l){
-    var opt = document.createElement('option');
-    opt.value = l.id;
-    opt.textContent = l.id + '  (' + l.kind + (l.enabled ? '' : ' · éteinte') + ')';
-    sel.appendChild(opt);
-  });
-  if (cur && lights.some(function(l){ return l.id===cur; })) sel.value = cur;
-  else document.getElementById('scene-light-ctrl').innerHTML = '';
-}
+    if (sceneLightOpen[l.id] === undefined) sceneLightOpen[l.id] = false;
+    var open = sceneLightOpen[l.id];
+    var card = document.createElement('div');
+    card.style.cssText = 'border:1px solid #263149;border-radius:8px;margin-bottom:.4rem;overflow:hidden;';
 
-function onSceneLightSelect(){
-  var sel = document.getElementById('scene-light-select');
-  var box = document.getElementById('scene-light-ctrl');
-  var id = sel.value;
-  if (!id){ box.innerHTML = ''; return; }
-  var l = (ed.allLights() || []).find(function(x){ return x.id===id; });
-  if (!l){ box.innerHTML = ''; return; }
-  var col = l.color ? rgbToHex(l.color) : '#ffffff';
-  box.innerHTML =
-    '<div style="background:#0d1220;padding:.6rem;border-radius:8px;">'+
-      '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem;">'+
-        '<label style="display:flex;align-items:center;gap:.3rem;flex:1;cursor:pointer;font-size:.74rem;color:#c7d0e4;">'+
-          '<input type="checkbox" '+(l.enabled?'checked':'')+' onchange="sceneLightToggle(\''+l.id+'\',this.checked)"> Allumée'+
-        '</label>'+
-        '<button class="btn sec" style="width:auto;flex:0 0 auto;padding:.3rem .6rem;font-size:.74rem;" onclick="sceneLightRemove(\''+l.id+'\')">✕ Supprimer</button>'+
-      '</div>'+
-      '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
-        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Intensité</label>'+
-        '<input type="range" min="0" max="5" step="0.1" value="'+l.intensity+'" style="flex:1;" oninput="sceneLightSet(\''+l.id+'\',{intensity:parseFloat(this.value)})">'+
-      '</div>'+
-      '<div style="display:flex;gap:.4rem;align-items:center;">'+
-        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Couleur</label>'+
-        '<input type="color" value="'+col+'" style="flex:0 0 auto;width:40px;height:26px;padding:0;border:none;background:none;cursor:pointer;" oninput="sceneLightSet(\''+l.id+'\',{color:hexToRgb(this.value)})">'+
-      '</div>'+
-    '</div>';
+    var head = document.createElement('button');
+    head.className = 'tab';
+    head.style.cssText = 'width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;font-size:.74rem;border-radius:0;border:none;'+(open?'background:#26325a;color:#fff;':'');
+    head.innerHTML = '<span>💡 '+l.id+' <span style="opacity:.55;font-weight:500;">'+l.kind+(l.enabled?'':' · éteinte')+'</span></span><span style="opacity:.7;">'+(open?'▾':'▸')+'</span>';
+    head.onclick = function(){ sceneLightOpen[l.id] = !sceneLightOpen[l.id]; refreshSceneLights(); };
+    card.appendChild(head);
+
+    if (open){
+      var col = l.color ? rgbToHex(l.color) : '#ffffff';
+      var body = document.createElement('div');
+      body.style.cssText = 'padding:.6rem;background:#0d1220;';
+      body.innerHTML =
+        '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem;">'+
+          '<label style="display:flex;align-items:center;gap:.3rem;flex:1;cursor:pointer;font-size:.72rem;color:#c7d0e4;">'+
+            '<input type="checkbox" '+(l.enabled?'checked':'')+' onchange="sceneLightToggle(\''+l.id+'\',this.checked)"> Allumée'+
+          '</label>'+
+          '<button class="btn sec" style="width:auto;flex:0 0 auto;padding:.3rem .6rem;font-size:.72rem;" onclick="sceneLightRemove(\''+l.id+'\')">✕ Supprimer</button>'+
+        '</div>'+
+        '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
+          '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Intensité</label>'+
+          '<input type="range" min="0" max="5" step="0.1" value="'+l.intensity+'" style="flex:1;" oninput="sceneLightSet(\''+l.id+'\',{intensity:parseFloat(this.value)})">'+
+        '</div>'+
+        '<div style="display:flex;gap:.4rem;align-items:center;">'+
+          '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Couleur</label>'+
+          '<input type="color" value="'+col+'" style="flex:0 0 auto;width:40px;height:26px;padding:0;border:none;background:none;cursor:pointer;" oninput="sceneLightSet(\''+l.id+'\',{color:hexToRgb(this.value)})">'+
+        '</div>';
+      card.appendChild(body);
+    }
+    cont.appendChild(card);
+  });
 }
 function sceneLightToggle(id, on){ if (ed) ed.setSceneLight(id, { enabled: on }); refreshSceneLights(); }
 function sceneLightSet(id, patch){ if (ed) ed.setSceneLight(id, patch); }
 function sceneLightRemove(id){
-  if (ed){
-    ed.removeSceneLight(id);
-    document.getElementById('scene-light-select').value = '';
-    document.getElementById('scene-light-ctrl').innerHTML = '';
-    refreshSceneLights();
-    flash('Lumière « '+id+' » supprimée (cette session)');
-  }
+  if (ed){ ed.removeSceneLight(id); refreshSceneLights(); flash('Lumière « '+id+' » supprimée (session)'); }
 }
 
 function refreshSSR(){
@@ -1525,95 +1515,156 @@ const CTRL_META = {
 };
 
 /* ============================================================================
-   INSPECTEUR MATÉRIAUX — style Babylon Sandbox
-   Dropdown de tous les matériaux → propriétés PBR réelles, éditables en direct.
+   MATÉRIAUX — dossiers PIÈCE › sous-dossiers TYPE (style boutons de l'éditeur)
+   Regroupe via getMaterialsByRoom (viewer) ; propriétés complètes via inspector*.
    ============================================================================ */
+let matOpenRoom = {};   // "pièce" -> bool
+let matOpenType = {};   // "pièce::type" -> bool
+let matOpenMat  = {};   // matId -> bool (propriétés dépliées)
+
+const MAT_TYPE_LABEL = { glass:'Verre', wood:'Bois', plastic:'Plastique', metal:'Métal', ceramic:'Céramique' };
+
 function inspectorRefresh(){
   const w = vwWin();
-  const sel = document.getElementById('mat-select');
-  if (!sel) return;
-  if (!w || !w.inspectorListMaterials){
-    sel.innerHTML = '<option value="">⏳ Viewer pas prêt…</option>';
+  const cont = document.getElementById('mat-tree');
+  if (!cont) return;
+  if (!w || !w.getMaterialsByRoom){
+    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">⏳ Viewer pas prêt.</p>';
     return;
   }
-  let mats = [];
-  try { mats = w.inspectorListMaterials(); } catch(e){ console.error(e); }
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">— choisir un matériau (' + mats.length + ') —</option>';
-  mats.forEach(function(m){
-    const o = document.createElement('option');
-    o.value = m.id;
-    o.textContent = m.name;
-    sel.appendChild(o);
+  let data;
+  try { data = w.getMaterialsByRoom(); }
+  catch(e){ cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ '+e.message+'</p>'; return; }
+  const rooms = data.rooms || {};
+  let roomKeys = Object.keys(rooms);
+  if (!roomKeys.length){
+    cont.innerHTML = '<p class="hint">Aucun matériau trouvé.</p>';
+    return;
+  }
+  roomKeys.sort(function(a,b){ if(a==='Non classé')return 1; if(b==='Non classé')return -1; return a.localeCompare(b); });
+
+  cont.innerHTML = '';
+  roomKeys.forEach(function(room){
+    const typeMap = rooms[room] || {};
+    const nb = Object.values(typeMap).reduce(function(s,a){return s+a.length;},0);
+    if (!nb) return;
+    if (matOpenRoom[room] === undefined) matOpenRoom[room] = false;
+    const rOpen = matOpenRoom[room];
+
+    const roomBtn = document.createElement('button');
+    roomBtn.className = 'tab';
+    roomBtn.style.cssText = 'width:100%;text-align:left;margin-bottom:.4rem;display:flex;justify-content:space-between;align-items:center;'+(rOpen?'background:#4a6cff;border-color:#4a6cff;color:#fff;':'');
+    roomBtn.innerHTML = '<span>🏠 '+room+' <span style="opacity:.6;font-weight:500;">('+nb+')</span></span><span style="opacity:.7;">'+(rOpen?'▾':'▸')+'</span>';
+    roomBtn.onclick = function(){ matOpenRoom[room] = !matOpenRoom[room]; inspectorRefresh(); };
+    cont.appendChild(roomBtn);
+
+    if (!rOpen) return;
+    const typeKeys = Object.keys(MAT_TYPE_LABEL).filter(function(t){ return typeMap[t] && typeMap[t].length; });
+    Object.keys(typeMap).forEach(function(t){ if (typeKeys.indexOf(t)<0) typeKeys.push(t); });
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin:0 0 .5rem .8rem;';
+    typeKeys.forEach(function(type){
+      const items = typeMap[type] || [];
+      if (!items.length) return;
+      const tk = room+'::'+type;
+      if (matOpenType[tk] === undefined) matOpenType[tk] = false;
+      const tOpen = matOpenType[tk];
+
+      const typeBtn = document.createElement('button');
+      typeBtn.className = 'tab';
+      typeBtn.style.cssText = 'width:100%;text-align:left;margin-bottom:.35rem;font-size:.72rem;display:flex;justify-content:space-between;align-items:center;'+(tOpen?'background:#26325a;border-color:#3a4a7a;color:#fff;':'');
+      typeBtn.innerHTML = '<span>'+(MAT_TYPE_LABEL[type]||type)+' <span style="opacity:.6;font-weight:500;">('+items.length+')</span></span><span style="opacity:.7;">'+(tOpen?'▾':'▸')+'</span>';
+      typeBtn.onclick = function(){ matOpenType[tk] = !matOpenType[tk]; inspectorRefresh(); };
+      wrap.appendChild(typeBtn);
+
+      if (!tOpen) return;
+      const inner = document.createElement('div');
+      inner.style.cssText = 'margin:0 0 .5rem .8rem;';
+      items.forEach(function(mat){
+        inner.appendChild(buildMatCard(mat.id, mat.name));
+      });
+      wrap.appendChild(inner);
+    });
+    cont.appendChild(wrap);
   });
-  if (cur && mats.some(function(m){ return String(m.id)===String(cur); })) { sel.value = cur; inspectorSelect(); }
-  else document.getElementById('mat-props').innerHTML = '';
 }
 
-function inspectorSelect(){
+/* Une carte matériau : en-tête cliquable (nom) + propriétés dépliables. */
+function buildMatCard(matId, matName){
   const w = vwWin();
-  const sel = document.getElementById('mat-select');
-  const box = document.getElementById('mat-props');
-  if (!w || !w.inspectorGetMaterial || !sel.value){ box.innerHTML=''; return; }
-  const d = w.inspectorGetMaterial(parseInt(sel.value));
-  if (!d){ box.innerHTML = '<p class="hint">Matériau introuvable.</p>'; return; }
-  const id = d.id;
-  let html = '<div style="background:#0d1220;padding:.7rem;border-radius:8px;">';
-  html += '<div style="font-size:.72rem;color:#6f7c99;margin-bottom:.6rem;">'+d.className+'</div>';
+  const card = document.createElement('div');
+  card.style.cssText = 'border:1px solid #263149;border-radius:8px;margin-bottom:.4rem;overflow:hidden;';
+  if (matOpenMat[matId] === undefined) matOpenMat[matId] = false;
+  const open = matOpenMat[matId];
 
-  // Commun
+  const head = document.createElement('div');
+  head.style.cssText = 'padding:.5rem .7rem;cursor:pointer;background:#111a2b;display:flex;justify-content:space-between;align-items:center;user-select:none;';
+  head.innerHTML = '<span style="font-size:.75rem;color:#c7d0e4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+matName+'</span><span style="color:#6f7c99;font-size:.72rem;">'+(open?'▾':'▸')+'</span>';
+  head.onclick = function(){ matOpenMat[matId] = !matOpenMat[matId]; inspectorRefresh(); };
+  card.appendChild(head);
+
+  if (open && w && w.inspectorGetMaterial){
+    const d = w.inspectorGetMaterial(matId);
+    const body = document.createElement('div');
+    body.style.cssText = 'padding:.6rem .7rem;background:#0d1220;';
+    if (d) body.innerHTML = matPropsHtml(d);
+    else body.innerHTML = '<p class="hint">Introuvable.</p>';
+    card.appendChild(body);
+  }
+  return card;
+}
+
+function matPropsHtml(d){
+  const id = d.id;
+  let html = '';
   html += insSlider('Opacité (alpha)', id, 'alpha', 0, 1, 0.01, d.alpha);
   html += insColor('Émissif', id, 'emissiveColor', d.emissiveColor);
-  html += insToggle('Faces arrière (culling)', id, 'backFaceCulling', d.backFaceCulling);
-  html += insToggle('Fil de fer', id, 'wireframe', d.wireframe);
+  html += insToggle('Faces arrière', id, 'backFaceCulling', d.backFaceCulling);
   html += insTransparency(id, d.transparencyMode);
-
   if (d.isPBR){
-    html += '<div style="border-top:1px solid #1c2740;margin:.6rem 0 .5rem;padding-top:.5rem;font-size:.72rem;color:#6f7c99;">PBR</div>';
-    html += insColor('Couleur (albedo)', id, 'albedoColor', d.albedoColor);
+    html += insColor('Albedo', id, 'albedoColor', d.albedoColor);
     html += insSlider('Métallique', id, 'metallic', 0, 1, 0.01, d.metallic);
     html += insSlider('Rugosité', id, 'roughness', 0, 1, 0.01, d.roughness);
-    html += insSlider('Intensité env. (reflets)', id, 'environmentIntensity', 0, 3, 0.05, d.environmentIntensity);
+    html += insSlider('Reflets env.', id, 'environmentIntensity', 0, 3, 0.05, d.environmentIntensity);
     if (d.hasSubSurface){
-      html += '<div style="border-top:1px solid #1c2740;margin:.6rem 0 .5rem;padding-top:.5rem;font-size:.72rem;color:#6f7c99;">Transmission / Verre</div>';
-      html += insToggle('Réfraction activée', id, 'refractionEnabled', d.refractionEnabled);
-      html += insSlider('Intensité réfraction', id, 'refractionIntensity', 0, 1, 0.01, d.refractionIntensity);
-      html += insSlider('Indice réfraction (IOR)', id, 'indexOfRefraction', 1, 2.5, 0.01, d.indexOfRefraction);
-      html += insSlider('Épaisseur max', id, 'maximumThickness', 0, 5, 0.05, d.maximumThickness);
+      html += '<div style="border-top:1px solid #1c2740;margin:.5rem 0;padding-top:.4rem;font-size:.68rem;color:#6f7c99;">Transmission</div>';
+      html += insToggle('Réfraction', id, 'refractionEnabled', d.refractionEnabled);
+      html += insSlider('Intensité réfr.', id, 'refractionIntensity', 0, 1, 0.01, d.refractionIntensity);
+      html += insSlider('IOR', id, 'indexOfRefraction', 1, 2.5, 0.01, d.indexOfRefraction);
+      html += insSlider('Épaisseur', id, 'maximumThickness', 0, 5, 0.05, d.maximumThickness);
       html += insColor('Teinte', id, 'tintColor', d.tintColor);
     }
   } else {
-    html += '<div style="border-top:1px solid #1c2740;margin:.6rem 0 .5rem;padding-top:.5rem;font-size:.72rem;color:#6f7c99;">Standard</div>';
     html += insColor('Diffus', id, 'diffuseColor', d.diffuseColor);
     html += insColor('Spéculaire', id, 'specularColor', d.specularColor);
   }
-  html += '</div>';
-  box.innerHTML = html;
+  return html;
 }
 
 function insSlider(label, id, key, min, max, step, val){
   if (typeof val !== 'number') val = 0;
   const disp = (max === 1) ? Math.round(val*100)+'%' : val.toFixed(2);
-  return '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.45rem;">'+
-    '<label style="font-size:.72rem;color:#9fb4ce;flex:0 0 110px;">'+label+'</label>'+
+  return '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
+    '<label style="font-size:.7rem;color:#9fb4ce;flex:0 0 96px;">'+label+'</label>'+
     '<input type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'" style="flex:1;" '+
       'oninput="insSet('+id+',\''+key+'\',parseFloat(this.value),this.nextElementSibling,'+max+')">'+
-    '<span style="flex:0 0 40px;font-size:.7rem;text-align:right;color:#c7d0e4;">'+disp+'</span></div>';
+    '<span style="flex:0 0 38px;font-size:.68rem;text-align:right;color:#c7d0e4;">'+disp+'</span></div>';
 }
 function insColor(label, id, key, val){
-  return '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.45rem;">'+
-    '<label style="font-size:.72rem;color:#9fb4ce;flex:0 0 110px;">'+label+'</label>'+
-    '<input type="color" value="'+(val||'#000000')+'" style="flex:1;height:28px;padding:2px;background:#0d1220;border:1px solid #263149;border-radius:6px;cursor:pointer;" '+
+  return '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
+    '<label style="font-size:.7rem;color:#9fb4ce;flex:0 0 96px;">'+label+'</label>'+
+    '<input type="color" value="'+(val||'#000000')+'" style="flex:1;height:26px;padding:2px;background:#0d1220;border:1px solid #263149;border-radius:6px;cursor:pointer;" '+
       'oninput="insSet('+id+',\''+key+'\',this.value)"></div>';
 }
 function insToggle(label, id, key, val){
-  return '<label style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:#9fb4ce;margin-bottom:.45rem;cursor:pointer;">'+
+  return '<label style="display:flex;align-items:center;gap:.5rem;font-size:.7rem;color:#9fb4ce;margin-bottom:.4rem;cursor:pointer;">'+
     '<input type="checkbox" '+(val?'checked':'')+' onchange="insSet('+id+',\''+key+'\',this.checked)"><span>'+label+'</span></label>';
 }
 function insTransparency(id, mode){
-  const opts = [['-1','(auto)'],['0','Opaque'],['1','Alpha test'],['2','Alpha blend'],['3','Alpha test+blend']];
-  let s = '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.45rem;">'+
-    '<label style="font-size:.72rem;color:#9fb4ce;flex:0 0 110px;">Transparence</label>'+
+  const opts = [['-1','(auto)'],['0','Opaque'],['1','Alpha test'],['2','Alpha blend'],['3','Test+blend']];
+  let s = '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
+    '<label style="font-size:.7rem;color:#9fb4ce;flex:0 0 96px;">Transparence</label>'+
     '<select style="flex:1;margin:0;" onchange="insSet('+id+',\'transparencyMode\',this.value)">';
   opts.forEach(function(o){ s += '<option value="'+o[0]+'"'+(String(mode)===o[0]?' selected':'')+'>'+o[1]+'</option>'; });
   s += '</select></div>';
@@ -1624,7 +1675,6 @@ function insSet(id, key, value, labelEl, max){
   const w = vwWin();
   if (w && w.inspectorSetMaterial) w.inspectorSetMaterial(id, key, value);
 }
-
 
 function diagnostiquerVerre(){
   const w = vwWin();
