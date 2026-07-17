@@ -1768,9 +1768,8 @@ async function init() {
 
   // Détecter les clics sur les marqueurs POI
   window.addEventListener('click', (event) => {
-    // En mode placement, on navigue librement : pas de déclenchement POV.
-    // (placementMode n'existe que dans l'éditeur ; dans le viewer public il est absent
-    //  → on teste son existence pour ne pas lever de ReferenceError qui tuerait le clic.)
+    // En mode placement (POV/lumière), le clic sert à poser, pas à naviguer.
+    if (window.__pickPlaceMode) return;
     if (typeof placementMode !== 'undefined' && placementMode) return;
     // Ne pas déclencher si on clique sur un bouton ou un élément UI
     if (event.target.closest('button') || event.target.closest('.poi-panel') ||
@@ -4527,31 +4526,46 @@ function afficherMarqueurPov(show){
   }
 }
 
-/* Crée (une fois) un marqueur 3D pour la position POV en cours de placement :
-   une sphère lumineuse + un mât vertical jusqu'au sol, toujours rendus par-dessus. */
+/* Crée (une fois) un marqueur 3D pour la position POV en cours de placement,
+   AU MÊME VISUEL que les vrais POV : anneau + point central, en billboard. */
 function ensurePov3DMarker(){
   if (window.__pov3DMarker || typeof scene === 'undefined' || !scene) return;
   try {
-    var sphere = BABYLON.MeshBuilder.CreateSphere('__povMarkerSphere', { diameter: 0.28, segments: 12 }, scene);
+    // Texture anneau + point (identique aux marqueurs POV définitifs)
+    var tex = new BABYLON.DynamicTexture('__povPlaceRing', 256, scene, true);
+    tex.hasAlpha = true;
+    var ctx = tex.getContext();
+    ctx.clearRect(0, 0, 256, 256);
+    var col = (typeof POI_MARKER_COLOR !== 'undefined') ? POI_MARKER_COLOR : '#0046FE';
+    var m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(col);
+    var rgb = m ? ('rgb('+parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16)+')') : 'blue';
+    ctx.lineWidth = 26; ctx.strokeStyle = rgb;
+    ctx.beginPath(); ctx.arc(128,128,92,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle = rgb;
+    ctx.beginPath(); ctx.arc(128,128,20,0,Math.PI*2); ctx.fill();
+    tex.update();
+
+    var plane = BABYLON.MeshBuilder.CreatePlane('__povMarkerPlane', { size: 1, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
     var mat = new BABYLON.StandardMaterial('__povMarkerMat', scene);
-    mat.emissiveColor = new BABYLON.Color3(0.15, 0.55, 1.0);
-    mat.diffuseColor  = new BABYLON.Color3(0.1, 0.4, 0.9);
+    mat.diffuseTexture = tex;
+    mat.emissiveTexture = tex;
+    mat.useAlphaFromDiffuseTexture = true;
+    mat.emissiveColor = new BABYLON.Color3(1,1,1);
     mat.disableLighting = true;
-    sphere.material = mat;
-    sphere.isPickable = false;
-    sphere.renderingGroupId = 3;           // rendu par-dessus le décor
-    // mât vertical (repère visuel de la verticale)
-    var stem = BABYLON.MeshBuilder.CreateCylinder('__povMarkerStem', { height: 3, diameter: 0.03 }, scene);
-    var smat = new BABYLON.StandardMaterial('__povMarkerStemMat', scene);
-    smat.emissiveColor = new BABYLON.Color3(0.15, 0.55, 1.0);
-    smat.disableLighting = true;
-    stem.material = smat;
-    stem.isPickable = false;
-    stem.renderingGroupId = 3;
-    stem.position.y = -1.5;                 // descend vers le sol depuis la sphère
-    stem.parent = sphere;
-    sphere.setEnabled(false);
-    window.__pov3DMarker = sphere;
+    mat.backFaceCulling = false;
+    plane.material = mat;
+    plane.isPickable = false;
+    plane.renderingGroupId = 1;
+    // Taille écran ~constante (comme les vrais marqueurs)
+    scene.registerBeforeRender(function(){
+      if (!camera || !plane.isEnabled()) return;
+      var d = BABYLON.Vector3.Distance(camera.position, plane.position);
+      var s = Math.max(0.35, d * 0.06);
+      plane.scaling.set(s, s, s);
+    });
+    plane.setEnabled(false);
+    window.__pov3DMarker = plane;
   } catch(e){ console.warn('⚠️ Marqueur POV 3D non créé :', e.message); }
 }
 

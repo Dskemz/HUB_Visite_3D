@@ -916,6 +916,7 @@ function tab(m){
   if (ed){
     ed.editerCotations(m==='cot');
     ed.editerPieces(m==='piece');
+    if (m !== 'pov' && ed.setMode) ed.setMode(null);   // désarme le placement POV en quittant l'onglet
     if (m==='piece') refresh();
     if (m==='amb') refreshPostProcess();
     if (m==='light') refreshLighting();
