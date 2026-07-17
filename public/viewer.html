@@ -1713,7 +1713,7 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — exclure du post-processing Babylon (DefaultRenderingPipeline + SSAO2)
+   VERRE — exclure du post-processing (détecté par nom M_glass_*)
    ============================================================================ */
 function applyGlassTreatment(root) {
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
@@ -1722,12 +1722,18 @@ function applyGlassTreatment(root) {
     const mats = m.material
       ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
       : [];
+    let isGlass = false;
     mats.forEach(mat => {
-      if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-        m.__isGlass = true;
-        glassCount++;
+      // Détection par nomenclature M_glass_* (fallback : isRefractionEnabled)
+      if (mat && (materialCategory(mat.name) === 'glass' ||
+                  (mat.subSurface && mat.subSurface.isRefractionEnabled))) {
+        isGlass = true;
       }
     });
+    if (isGlass) {
+      m.__isGlass = true;
+      glassCount++;
+    }
   });
   
   // EXCLURE du pipeline DefaultRenderingPipeline
@@ -1756,29 +1762,77 @@ function applyGlassTreatment(root) {
   return glassCount;
 }
 
-// API pour l'éditeur : modifier transparence, roughness, réflexion, réfraction
-window.setGlassProps = function(props) {
-  const meshes = scene.meshes;
-  meshes.forEach(m => {
-    if (m.__isGlass) {
-      const mats = m.material
-        ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
-        : [];
-      mats.forEach(mat => {
-        if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-          if (typeof props.alpha !== 'undefined') mat.alpha = props.alpha;
-          if (typeof props.roughness !== 'undefined') mat.roughness = props.roughness;
-          if (typeof props.reflection !== 'undefined' && 'environmentIntensity' in mat) {
-            mat.environmentIntensity = props.reflection;
-          }
-          if (typeof props.refraction !== 'undefined') {
-            mat.subSurface.refractionIntensity = props.refraction;
-          }
-        }
-      });
-    }
+/* ============================================================================
+   MATÉRIAUX — moteur de catégories par nomenclature M_<catégorie>_<détail>
+   ----------------------------------------------------------------------------
+   Convention : chaque matériau Blender est nommé M_glass_*, M_wood_*, etc.
+   La catégorie = 2e segment du nom (insensible à la casse). On répertorie tous
+   les matériaux par catégorie et on donne la main dessus dans l'éditeur.
+   Extensible : ajouter une entrée dans MATERIAL_CATEGORIES suffit.
+   ============================================================================ */
+window.MATERIAL_CATEGORIES = {
+  glass: { label: 'Verre', controls: ['alpha', 'roughness', 'reflection', 'refraction'] }
+  // À étendre plus tard : wood, crepis, metal, fabric, stone...
+};
+
+// Extraire la catégorie d'un nom de matériau : "M_glass_transparent" → "glass"
+function materialCategory(name) {
+  if (!name) return null;
+  const parts = String(name).split('_');
+  // Format attendu : M_<categorie>_<detail...>
+  if (parts.length >= 2 && parts[0].toLowerCase() === 'm') {
+    return parts[1].toLowerCase();
+  }
+  return null;
+}
+
+// Parcourt la scène, renvoie les matériaux uniques groupés par catégorie connue.
+window.getMaterialsByCategory = function() {
+  const seen = new Set();
+  const groups = {};
+  scene.meshes.forEach(m => {
+    const mats = m.material
+      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+      : [];
+    mats.forEach(mat => {
+      if (!mat || seen.has(mat.uniqueId)) return;
+      const cat = materialCategory(mat.name);
+      if (!cat || !window.MATERIAL_CATEGORIES[cat]) return;  // catégorie non gérée → ignorée
+      seen.add(mat.uniqueId);
+      const ss = mat.subSurface;
+      const entry = {
+        id: mat.uniqueId,
+        name: mat.name,
+        category: cat,
+        alpha: (typeof mat.alpha === 'number') ? mat.alpha : 1,
+        roughness: (typeof mat.roughness === 'number') ? mat.roughness : 0,
+        reflection: ('environmentIntensity' in mat) ? mat.environmentIntensity : 1,
+        refraction: (ss && typeof ss.refractionIntensity === 'number') ? ss.refractionIntensity : 1
+      };
+      (groups[cat] = groups[cat] || []).push(entry);
+    });
   });
-  console.log('🪟 Propriétés verre mises à jour:', props);
+  return { categories: window.MATERIAL_CATEGORIES, groups: groups };
+};
+
+// Modifier UN matériau précis (par uniqueId) — un ou plusieurs paramètres.
+window.setMaterialProps = function(matId, props) {
+  scene.meshes.forEach(m => {
+    const mats = m.material
+      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+      : [];
+    mats.forEach(mat => {
+      if (!mat || mat.uniqueId !== matId) return;
+      if (typeof props.alpha !== 'undefined') mat.alpha = props.alpha;
+      if (typeof props.roughness !== 'undefined') mat.roughness = props.roughness;
+      if (typeof props.reflection !== 'undefined' && 'environmentIntensity' in mat) {
+        mat.environmentIntensity = props.reflection;
+      }
+      if (typeof props.refraction !== 'undefined' && mat.subSurface) {
+        mat.subSurface.refractionIntensity = props.refraction;
+      }
+    });
+  });
 };
 
 

@@ -93,7 +93,7 @@
         <button class="tab on" id="t-pov" onclick="tab('pov')" style="flex:1;">POV</button>
         <button class="tab"    id="t-cot" onclick="tab('cot')" style="flex:1;">Cotations</button>
         <button class="tab"    id="t-piece" onclick="tab('piece')" style="flex:1;">Pièces</button>
-        <button class="tab"    id="t-verre" onclick="tab('verre')" style="flex:1;">Verre</button>
+        <button class="tab"    id="t-verre" onclick="tab('verre')" style="flex:1;">Matériaux</button>
         <button class="tab"    id="t-amb" onclick="tab('amb')" style="flex:1;">Ambiance</button>
       </div>
       <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein ecran" style="flex:0 0 auto;">⛶</button>
@@ -179,37 +179,9 @@
       </div>
 
       <div id="p-verre" hidden>
-        <p class="hint"><b>Propriétés du verre.</b> Ajuste la transparence, rugosité, réflexions et réfraction en direct.</p>
-        <div style="background:#0d1220;padding:.7rem;border-radius:8px;">
-          <div style="margin-bottom:1rem;">
-            <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;margin-bottom:.3rem;">
-              <span style="flex:0 0 80px;">Transparence</span>
-              <input type="range" id="f-glass-alpha" min="0" max="1" step="0.01" value="1" style="flex:1;" oninput="updateGlass()">
-              <span id="v-glass-alpha" style="flex:0 0 40px;font-size:.76rem;text-align:right;">100%</span>
-            </label>
-          </div>
-          <div style="margin-bottom:1rem;">
-            <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;margin-bottom:.3rem;">
-              <span style="flex:0 0 80px;">Rugosité</span>
-              <input type="range" id="f-glass-rough" min="0" max="1" step="0.01" value="0" style="flex:1;" oninput="updateGlass()">
-              <span id="v-glass-rough" style="flex:0 0 40px;font-size:.76rem;text-align:right;">0%</span>
-            </label>
-          </div>
-          <div style="margin-bottom:1rem;">
-            <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;margin-bottom:.3rem;">
-              <span style="flex:0 0 80px;">Réflexions</span>
-              <input type="range" id="f-glass-reflect" min="0" max="3" step="0.05" value="1" style="flex:1;" oninput="updateGlass()">
-              <span id="v-glass-reflect" style="flex:0 0 40px;font-size:.76rem;text-align:right;">100%</span>
-            </label>
-          </div>
-          <div>
-            <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;margin-bottom:.3rem;">
-              <span style="flex:0 0 80px;">Réfraction</span>
-              <input type="range" id="f-glass-refract" min="0" max="1" step="0.05" value="1" style="flex:1;" oninput="updateGlass()">
-              <span id="v-glass-refract" style="flex:0 0 40px;font-size:.76rem;text-align:right;">100%</span>
-            </label>
-          </div>
-        </div>
+        <p class="hint"><b>Matériaux de la scène.</b> Regroupés par catégorie (nomenclature <code style="color:#9fb4ce;">M_&lt;cat&gt;_&lt;détail&gt;</code>). Clique une catégorie pour la déplier, puis ajuste chaque matériau en direct.</p>
+        <button class="btn sec" onclick="chargerVerres()" style="margin-bottom:.8rem;">🔄 Recharger la liste</button>
+        <div id="glass-list"></div>
       </div>
 
       <div id="p-amb" hidden>
@@ -807,7 +779,7 @@ document.addEventListener('keydown', function(e){
 /* -------- UI ------------------------------------------------------------- */
 function tab(m){
   mode = m;
-  ['pov','cot','piece','amb'].forEach(function(k){
+  ['pov','cot','piece','verre','amb'].forEach(function(k){
     var tb = document.getElementById('t-'+k);
     var pb = document.getElementById('p-'+k);
     if (tb) tb.classList.toggle('on', m===k);
@@ -819,6 +791,7 @@ function tab(m){
     if (m==='piece') refresh();
     if (m==='amb') refreshAmbiance();
   }
+  if (m==='verre') chargerVerres();
 }
 
 /* -------- AMBIANCE : AO + LUMIÈRES -------------------------------------- */
@@ -1259,26 +1232,99 @@ function download(){
   flash('💾 manifest.json téléchargé');
 }
 
-// Contrôles du verre
-function updateGlass(){
-  const alpha = parseFloat(document.getElementById('f-glass-alpha').value);
-  const rough = parseFloat(document.getElementById('f-glass-rough').value);
-  const reflect = parseFloat(document.getElementById('f-glass-reflect').value);
-  const refract = parseFloat(document.getElementById('f-glass-refract').value);
-  
-  document.getElementById('v-glass-alpha').textContent = Math.round(alpha * 100) + '%';
-  document.getElementById('v-glass-rough').textContent = Math.round(rough * 100) + '%';
-  document.getElementById('v-glass-reflect').textContent = Math.round(reflect * 100) + '%';
-  document.getElementById('v-glass-refract').textContent = Math.round(refract * 100) + '%';
-  
-  // Appeler le viewer pour mettre à jour le verre
-  if (window.vw && window.vw.contentWindow && window.vw.contentWindow.setGlassProps) {
-    window.vw.contentWindow.setGlassProps({
-      alpha: alpha,
-      roughness: rough,
-      reflection: reflect,
-      refraction: refract
-    });
+// Contrôles matériaux — liste dynamique groupée par catégorie (sections repliables)
+function vwWin(){
+  const f = document.getElementById('vw');
+  return f && f.contentWindow ? f.contentWindow : null;
+}
+
+// Libellés + config d'affichage des contrôles par catégorie (côté éditeur)
+const CTRL_META = {
+  alpha:      { label: 'Transparence', min: 0, max: 1, step: 0.01 },
+  roughness:  { label: 'Rugosité',     min: 0, max: 1, step: 0.01 },
+  reflection: { label: 'Réflexions',   min: 0, max: 3, step: 0.05 },
+  refraction: { label: 'Réfraction',   min: 0, max: 1, step: 0.05 }
+};
+
+let openCategories = { glass: true };  // état déplié/replié par catégorie
+
+function chargerVerres(){
+  const w = vwWin();
+  const cont = document.getElementById('glass-list');
+  if (!cont) return;
+  if (!w || !w.getMaterialsByCategory){
+    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">Viewer pas encore prêt. Réessaie dans un instant.</p>';
+    return;
+  }
+  const data = w.getMaterialsByCategory();
+  const cats = data.categories || {};
+  const groups = data.groups || {};
+  const catKeys = Object.keys(groups);
+  if (!catKeys.length){
+    cont.innerHTML = '<p class="hint">Aucun matériau reconnu (nomenclature <code>M_&lt;cat&gt;_*</code> attendue).</p>';
+    return;
+  }
+  cont.innerHTML = '';
+  catKeys.forEach(function(cat){
+    const meta = cats[cat] || { label: cat, controls: [] };
+    const items = groups[cat];
+    const open = !!openCategories[cat];
+
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-bottom:.8rem;border:1px solid #263149;border-radius:8px;overflow:hidden;';
+
+    // En-tête repliable
+    const head = document.createElement('button');
+    head.style.cssText = 'width:100%;text-align:left;background:#141c2e;border:none;color:#e8ecf6;' +
+      'padding:.6rem .8rem;font:inherit;font-weight:700;font-size:.85rem;cursor:pointer;' +
+      'display:flex;align-items:center;justify-content:space-between;';
+    head.innerHTML = '<span>' + meta.label + ' <span style="color:#6f7c99;font-weight:500;">(' + items.length + ')</span></span>' +
+                     '<span style="color:#6f7c99;">' + (open ? '▾' : '▸') + '</span>';
+    head.onclick = function(){ openCategories[cat] = !openCategories[cat]; chargerVerres(); };
+    section.appendChild(head);
+
+    // Corps (matériaux)
+    if (open){
+      const bodyEl = document.createElement('div');
+      bodyEl.style.cssText = 'padding:.6rem .7rem;background:#0d1220;';
+      items.forEach(function(mat){
+        const box = document.createElement('div');
+        box.style.cssText = 'padding:.5rem 0;border-bottom:1px solid #1c2740;';
+        let html = '<div style="font-size:.8rem;font-weight:600;color:#c7d0e4;margin-bottom:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + mat.name + '</div>';
+        (meta.controls || []).forEach(function(prop){
+          const cm = CTRL_META[prop];
+          if (!cm) return;
+          html += matRow(cm.label, mat.id, prop, cm.min, cm.max, cm.step, mat[prop]);
+        });
+        box.innerHTML = html;
+        bodyEl.appendChild(box);
+      });
+      section.appendChild(bodyEl);
+    }
+    cont.appendChild(section);
+  });
+}
+
+function matRow(label, matId, prop, min, max, step, val){
+  if (typeof val !== 'number') val = 0;
+  const disp = (max === 1) ? Math.round(val * 100) + '%' : val.toFixed(2);
+  return '<div style="margin-bottom:.55rem;">' +
+    '<label style="display:flex;align-items:center;gap:.4rem;font-size:.76rem;color:#9fb4ce;">' +
+      '<span style="flex:0 0 78px;">' + label + '</span>' +
+      '<input type="range" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '" style="flex:1;" ' +
+        'oninput="setMatOne(' + matId + ',\'' + prop + '\',this.value,this.nextElementSibling,' + max + ')">' +
+      '<span style="flex:0 0 42px;font-size:.72rem;text-align:right;">' + disp + '</span>' +
+    '</label></div>';
+}
+
+function setMatOne(matId, prop, value, labelEl, max){
+  const v = parseFloat(value);
+  if (labelEl) labelEl.textContent = (max === 1) ? Math.round(v * 100) + '%' : v.toFixed(2);
+  const w = vwWin();
+  if (w && w.setMaterialProps){
+    const props = {};
+    props[prop] = v;
+    w.setMaterialProps(matId, props);
   }
 }
 </script>
