@@ -1123,6 +1123,18 @@ async function init() {
   scene = new BABYLON.Scene(engine);
   scene.clearColor = (function(){var b=(window.__BRAND__&&window.__BRAND__.navyRgb)?window.__BRAND__.navyRgb.split(",").map(Number):[11,27,63];return new BABYLON.Color4(b[0]*0.9/255,b[1]*0.74/255,b[2]*0.6/255,1);})();
 
+  // ========== TRANSMISSION VERRE CORRECTE (screen-space) ==========
+  // KHR_materials_transmission (verre du GLB) refracte la VRAIE scène et non
+  // l'IBL uniquement si le PrePassRenderer est actif. Sans lui, Babylon retombe
+  // sur scene.environmentTexture → décalage spatial + duplication des POV.
+  // Le Sandbox Babylon l'active automatiquement ; on fait pareil ici.
+  try {
+    scene.enablePrePassRenderer();
+    console.log('✅ PrePassRenderer activé — transmission verre en screen-space (refracte la vraie scène)');
+  } catch (e) {
+    console.warn('⚠️ PrePassRenderer non activé :', e.message);
+  }
+
   // ========== RÉCUPÉRATION APRÈS PERTE DE CONTEXTE WebGL ==========
   // Sous forte charge GPU (transition POV → vue de dessus, ombres…), le navigateur
   // peut réinitialiser le contexte WebGL : écran noir + rechargement progressif des
@@ -1638,13 +1650,14 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — TRANSMISSION ATTÉNUÉE
+   VERRE — INTACT (comme Babylon Sandbox)
    ============================================================================
-   KHR_materials_transmission refracte scene.environmentTexture → décalage.
-   Solution : garder transmission MAIS mettre refractionIntensity à 0
-   pour que le verre reste clair et transparent sans déformation IBL.
+   Le shader du GLB est laissé STRICTEMENT tel quel. La transmission correcte
+   (screen-space, refracte la vraie scène) est assurée par le PrePassRenderer
+   activé à la création de la scène — exactement comme le fait le Sandbox.
    ============================================================================ */
 function applyGlassTreatment(root) {
+  // Marquage diagnostic uniquement — AUCUNE modification du matériau.
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
   let glassCount = 0;
   meshes.forEach(m => {
@@ -1653,27 +1666,15 @@ function applyGlassTreatment(root) {
       : [];
     mats.forEach(mat => {
       if (!mat) return;
-      
-      // Détection verre
-      const isGlass = materialCategory(mat.name) === 'glass' ||
-                      (mat.subSurface && mat.subSurface.isRefractionEnabled);
-      
-      if (isGlass) {
+      if (materialCategory(mat.name) === 'glass' ||
+          (mat.subSurface && mat.subSurface.isRefractionEnabled)) {
         m.__isGlass = true;
-        
-        // GARDER transmission MAIS tuer la réfraction IBL
-        if (mat.subSurface) {
-          mat.subSurface.isRefractionEnabled = true;  // transmission activée (physiquement correct)
-          mat.subSurface.refractionIntensity = 0;     // ZÉRO réfraction visuelle → verre clair
-        }
-        
         glassCount++;
       }
     });
   });
-  
   if (glassCount > 0) {
-    console.log('🪟 Verre : ' + glassCount + ' mesh(es) — transmission gardée, refractionIntensity=0 (aucune déformation IBL)');
+    console.log('🪟 Verre : ' + glassCount + ' mesh(es) — shader intact (transmission via prepass)');
   }
   return glassCount;
 }
