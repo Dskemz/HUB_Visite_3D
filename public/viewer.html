@@ -1123,18 +1123,6 @@ async function init() {
   scene = new BABYLON.Scene(engine);
   scene.clearColor = (function(){var b=(window.__BRAND__&&window.__BRAND__.navyRgb)?window.__BRAND__.navyRgb.split(",").map(Number):[11,27,63];return new BABYLON.Color4(b[0]*0.9/255,b[1]*0.74/255,b[2]*0.6/255,1);})();
 
-  // ========== TRANSMISSION VERRE CORRECTE (screen-space) ==========
-  // KHR_materials_transmission (verre du GLB) refracte la VRAIE scène et non
-  // l'IBL uniquement si le PrePassRenderer est actif. Sans lui, Babylon retombe
-  // sur scene.environmentTexture → décalage spatial + duplication des POV.
-  // Le Sandbox Babylon l'active automatiquement ; on fait pareil ici.
-  try {
-    scene.enablePrePassRenderer();
-    console.log('✅ PrePassRenderer activé — transmission verre en screen-space (refracte la vraie scène)');
-  } catch (e) {
-    console.warn('⚠️ PrePassRenderer non activé :', e.message);
-  }
-
   // ========== RÉCUPÉRATION APRÈS PERTE DE CONTEXTE WebGL ==========
   // Sous forte charge GPU (transition POV → vue de dessus, ombres…), le navigateur
   // peut réinitialiser le contexte WebGL : écran noir + rechargement progressif des
@@ -1283,7 +1271,7 @@ async function init() {
     const hdrTexture = new BABYLON.HDRCubeTexture(hdriUrl, scene, 512);
     hdrTexture.onLoadObservable.add(() => {
       scene.environmentTexture = hdrTexture;
-      scene.environmentIntensity = 1.25;  // intensité réflexions/IBL (légèrement relevée pour le réalisme)
+      scene.environmentIntensity = 1.0;  // défaut Sandbox (aucune amplification)
       // La HDRi remplace la réflexion de repli : on libère la sonde devenue inutile.
       if (window.__envFallbackProbe) { try { window.__envFallbackProbe.dispose(); } catch (_) {} window.__envFallbackProbe = null; }
 
@@ -1507,66 +1495,20 @@ async function init() {
   setTimeout(() => { flashExploreHint(); }, 700);
 
   // ========================================================================
-  //  COMPOSITING RETIRÉ (juillet 2026)
-  //  DefaultRenderingPipeline + tone mapping ACES + color grading étaient
-  //  la source de la déformation du verre réfractif.
-  //  Approche : verre seul d'abord, puis rajouter compositing goutte à goutte.
+  //  SCÈNE RÉINITIALISÉE — RENDU BABYLON NU (comme le Sandbox)
+  //  Aucun post-processing : ni compositing, ni tone mapping custom, ni SSAO2,
+  //  ni SSR, ni prepass. Les shaders du GLB sont rendus TELS QUELS.
+  //  L'AO et le SSR seront réintroduits proprement plus tard, à la demande.
+  //  On garde les stubs d'API pour que l'éditeur ne plante pas s'il les appelle.
   // ========================================================================
   window.compositingPipeline = null;
-  window.ssao2Pipeline = null;
-  window.__AO_STRENGTH__ = 0;
-  window.setAO = function(opts) { /* Compositing retiré temporairement */ };
-  console.log('⚠️ Compositing retiré — verre en mode brut (IBL seul)');
-
-    // --- SSR (reflets écran) — TEST du verre, OFF par défaut ---------------
-    // Créé DÉTACHÉ (aucune caméra) : tant qu'il n'est pas activé, aucune passe
-    // n'est rendue → le rendu public reste STRICTEMENT identique à aujourd'hui.
-    // L'utilisateur l'active/règle en direct depuis l'éditeur (onglet Ambiance).
-    // NB : SSR + verre transparent + SSAO2 est un combo instable (conflit de
-    // depth-buffer) ; c'est précisément ce qu'on teste ici. 100 % réversible :
-    // détacher = revenir au rendu d'origine, sans rechargement.
-    if (BABYLON.SSRRenderingPipeline && engine.webGLVersion > 1) {
-      const ssr = new BABYLON.SSRRenderingPipeline('ssr', scene, [], false);
-      ssr.strength                          = 0.7;
-      ssr.reflectionSpecularFalloffExponent = 2.5;
-      ssr.roughnessFactor                   = 0.2;
-      ssr.thickness                         = 0.5;
-      ssr.selfCollisionNumSkip              = 2;
-      ssr.enableSmoothReflections           = true;
-      ssr.blurDispersionStrength            = 0.03;
-      ssr.attenuateScreenBorders            = true;
-      ssr.attenuateFacingCamera             = false;
-      ssr.clipToFrustum                     = true;
-      window.ssrPipeline  = ssr;
-      window.__SSR_STATE__ = { enabled:false, strength:0.7, falloff:2.5, roughnessFactor:0.2, thickness:0.5, blur:0.03 };
-      // Caméras candidates au (dé)rattachement : principale + POV si elle existe.
-      window.__ssrCams = function(){
-        const a = [];
-        if (typeof camera   !== 'undefined' && camera)   a.push(camera);
-        if (typeof fpCamera !== 'undefined' && fpCamera) a.push(fpCamera);
-        return a;
-      };
-      // API live pour l'éditeur : activer/désactiver + régler sans recharger.
-      window.setSSR = function(opts){
-        opts = opts || {};
-        const st = window.__SSR_STATE__, p = window.ssrPipeline;
-        if (!p) return;
-        if (opts.strength        != null){ st.strength=+opts.strength;               p.strength=st.strength; }
-        if (opts.falloff         != null){ st.falloff=+opts.falloff;                 p.reflectionSpecularFalloffExponent=st.falloff; }
-        if (opts.roughnessFactor != null){ st.roughnessFactor=+opts.roughnessFactor; p.roughnessFactor=st.roughnessFactor; }
-        if (opts.thickness       != null){ st.thickness=+opts.thickness;             p.thickness=st.thickness; }
-        if (opts.blur            != null){ st.blur=+opts.blur;                       p.blurDispersionStrength=st.blur; }
-        if (opts.enabled != null){
-          st.enabled = !!opts.enabled;
-          try {
-            const mgr = scene.postProcessRenderPipelineManager;
-            if (st.enabled) mgr.attachCamerasToRenderPipeline('ssr', window.__ssrCams());
-            else            mgr.detachCamerasFromRenderPipeline('ssr', window.__ssrCams());
-          } catch(_){}
-        }
-      };
-      console.log('✅ SSR prêt (détaché — activable depuis l’éditeur)');
-    }
+  window.ssao2Pipeline       = null;
+  window.ssrPipeline         = null;
+  window.__AO_STRENGTH__     = 0;
+  window.__SSR_STATE__       = { enabled:false };
+  window.setAO  = function(){ /* réintroduction ultérieure */ };
+  window.setSSR = function(){ /* réintroduction ultérieure */ };
+  console.log('✅ Scène en rendu Babylon nu (aucun traitement — shaders bruts, comme le Sandbox)');
 
   // Afficher axes de coordonnées (debug)
   // createAxesHelper();
@@ -1652,9 +1594,8 @@ async function init() {
 /* ============================================================================
    VERRE — INTACT (comme Babylon Sandbox)
    ============================================================================
-   Le shader du GLB est laissé STRICTEMENT tel quel. La transmission correcte
-   (screen-space, refracte la vraie scène) est assurée par le PrePassRenderer
-   activé à la création de la scène — exactement comme le fait le Sandbox.
+   Le shader du GLB est laissé STRICTEMENT tel quel : aucune modification du
+   matériau, aucune exclusion de pipeline. Rendu Babylon nu, sans post-process.
    ============================================================================ */
 function applyGlassTreatment(root) {
   // Marquage diagnostic uniquement — AUCUNE modification du matériau.
@@ -2141,8 +2082,6 @@ function resetView() {
 
   // Repasser en perspective
   camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
-  // Ré-attacher le SSR s'il était activé (détaché en vue de dessus ortho).
-  try { if (window.ssrPipeline && window.__SSR_STATE__ && window.__SSR_STATE__.enabled && scene.postProcessRenderPipelineManager) scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline('ssr', camera); } catch (_) {}
 
   // Libérer temporairement les limites de zoom pour permettre l'éloignement
   // (en 1ère personne, lower=upper=radius bloquerait l'animation)
@@ -2532,17 +2471,6 @@ function enterPanoramaCamera(eyePos, lookAt) {
     // Souris : seulement le clic gauche pour pivoter, aucune translation
     if (fpCamera.inputs && fpCamera.inputs.attached && fpCamera.inputs.attached.mouse) {
       fpCamera.inputs.attached.mouse.buttons = [0];
-    }
-
-    // SSR en POV : seulement s'il est activé (sinon on ne touche à rien).
-    try {
-      if (window.ssrPipeline && window.__SSR_STATE__ && window.__SSR_STATE__.enabled
-          && scene.postProcessRenderPipelineManager) {
-        scene.postProcessRenderPipelineManager
-          .attachCamerasToRenderPipeline('ssr', fpCamera);
-      }
-    } catch (e) {
-      console.warn('⚠️ SSR non rattaché à la fpCamera :', e.message);
     }
   }
   fpCamera.position.copyFrom(eyePos);
@@ -4174,9 +4102,6 @@ function afficherMarqueurPov(show){
 /* Passer en mode orthographique avec cadrage sur le modèle */
 function switchToOrthographic() {
   if (!modelBounds) return;
-
-  // Le SSR n'a pas de sens en vue de dessus ortho → on le détache (ré-attaché au retour).
-  try { if (window.ssrPipeline && scene.postProcessRenderPipelineManager) scene.postProcessRenderPipelineManager.detachCamerasFromRenderPipeline('ssr', camera); } catch (_) {}
 
   camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
 
