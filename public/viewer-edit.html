@@ -1242,11 +1242,12 @@ function vwWin(){
 
 // Libellés + config d'affichage des contrôles par catégorie (côté éditeur)
 const CTRL_META = {
-  alpha:      { label: 'Transparence', min: 0, max: 1, step: 0.01 },
+  tint:       { label: 'Teinte',       type: 'color' },
+  refraction: { label: 'Transparence', min: 0, max: 1, step: 0.05 },
+  reflection: { label: 'Clarté',       min: 0, max: 3, step: 0.05 },
   roughness:  { label: 'Rugosité',     min: 0, max: 1, step: 0.01 },
-  reflection: { label: 'Réflexions',   min: 0, max: 3, step: 0.05 },
-  refraction: { label: 'Réfraction',   min: 0, max: 1, step: 0.05 },
-  ior:        { label: 'IOR',          min: 1, max: 2, step: 0.05 }
+  ior:        { label: 'Déformation',  min: 1, max: 2, step: 0.01 },
+  alpha:      { label: 'Transparence', min: 0, max: 1, step: 0.01 }
 };
 
 let openCategories = { glass: true, architecture: true, sol: true, plastique: true, metal: true };  // état déplié/replié par catégorie
@@ -1350,7 +1351,11 @@ function chargerVerres(){
         (meta.controls || []).forEach(function(prop){
           const cm = CTRL_META[prop];
           if (!cm) return;
-          html += matRow(cm.label, mat.id, prop, cm.min, cm.max, cm.step, mat[prop]);
+          if (cm.type === 'color'){
+            html += matColorRow(cm.label, mat.id, prop, mat[prop] || '#ffffff');
+          } else {
+            html += matRow(cm.label, mat.id, prop, cm.min, cm.max, cm.step, mat[prop]);
+          }
         });
         
         box.innerHTML = html;
@@ -1376,6 +1381,16 @@ function matRow(label, matId, prop, min, max, step, val){
     '</label></div>';
 }
 
+function matColorRow(label, matId, prop, val){
+  return '<div style="margin-bottom:.55rem;">' +
+    '<label style="display:flex;align-items:center;gap:.4rem;font-size:.76rem;color:#9fb4ce;">' +
+      '<span style="flex:0 0 78px;">' + label + '</span>' +
+      '<input type="color" value="' + val + '" style="flex:1;height:30px;padding:2px;background:#0d1220;border:1px solid #263149;border-radius:6px;cursor:pointer;" ' +
+        'oninput="setMatColor(' + matId + ',\'' + prop + '\',this.value,this.nextElementSibling)">' +
+      '<span style="flex:0 0 62px;font-size:.68rem;text-align:right;font-family:ui-monospace,monospace;">' + val + '</span>' +
+    '</label></div>';
+}
+
 function setMatOne(matId, prop, value, labelEl, max){
   const v = parseFloat(value);
   if (labelEl) labelEl.textContent = (max === 1) ? Math.round(v * 100) + '%' : v.toFixed(2);
@@ -1383,6 +1398,16 @@ function setMatOne(matId, prop, value, labelEl, max){
   if (w && w.setMaterialProps){
     const props = {};
     props[prop] = v;
+    w.setMaterialProps(matId, props);
+  }
+}
+
+function setMatColor(matId, prop, value, labelEl){
+  if (labelEl) labelEl.textContent = value;
+  const w = vwWin();
+  if (w && w.setMaterialProps){
+    const props = {};
+    props[prop] = value;
     w.setMaterialProps(matId, props);
   }
 }

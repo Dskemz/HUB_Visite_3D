@@ -1771,7 +1771,7 @@ function applyGlassTreatment(root) {
    Extensible : ajouter une entrée dans MATERIAL_CATEGORIES suffit.
    ============================================================================ */
 window.MATERIAL_CATEGORIES = {
-  glass:        { label: 'Verre',        controls: ['alpha', 'roughness', 'reflection', 'refraction', 'ior'] },
+  glass:        { label: 'Verre',        controls: ['tint', 'refraction', 'reflection', 'roughness', 'ior'] },
   architecture: { label: 'Architecture', controls: ['roughness', 'reflection'] },
   sol:          { label: 'Sol',          controls: ['roughness', 'reflection'] },
   plastique:    { label: 'Plastique',    controls: ['roughness', 'reflection'] },
@@ -1810,6 +1810,11 @@ window.getMaterialsByCategory = function() {
       if (!cat || !window.MATERIAL_CATEGORIES[cat]) return;  // catégorie non gérée → ignorée
       seen.add(mat.uniqueId);
       const ss = mat.subSurface;
+      let tintHex = '#ffffff';
+      if (ss && ss.tintColor && ss.tintColor.toHexString) {
+        tintHex = ss.tintColor.toHexString();
+        if (tintHex.length > 7) tintHex = tintHex.slice(0, 7);  // strip alpha éventuel
+      }
       const entry = {
         id: mat.uniqueId,
         name: mat.name || ('Matériau ' + mat.uniqueId),
@@ -1818,7 +1823,8 @@ window.getMaterialsByCategory = function() {
         roughness: (typeof mat.roughness === 'number') ? mat.roughness : 0,
         reflection: ('environmentIntensity' in mat) ? mat.environmentIntensity : 1,
         refraction: (ss && typeof ss.refractionIntensity === 'number') ? ss.refractionIntensity : 1,
-        ior: (ss && typeof ss.indexOfRefraction === 'number') ? ss.indexOfRefraction : 1.5
+        ior: (ss && typeof ss.indexOfRefraction === 'number') ? ss.indexOfRefraction : 1.5,
+        tint: tintHex
       };
       (groups[cat] = groups[cat] || []).push(entry);
     });
@@ -1848,6 +1854,15 @@ window.setMaterialProps = function(matId, props) {
       }
       if (typeof props.ior !== 'undefined' && mat.subSurface) {
         mat.subSurface.indexOfRefraction = props.ior;
+      }
+      if (typeof props.tint !== 'undefined' && mat.subSurface) {
+        try {
+          mat.subSurface.tintColor = BABYLON.Color3.FromHexString(props.tint);
+          // S'assurer que la teinte est visible (distance de teinte raisonnable)
+          if (!mat.subSurface.tintColorAtDistance || mat.subSurface.tintColorAtDistance <= 0) {
+            mat.subSurface.tintColorAtDistance = 1;
+          }
+        } catch (_) {}
       }
     });
   });
