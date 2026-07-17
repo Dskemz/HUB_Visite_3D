@@ -1713,7 +1713,7 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — exclure du post-processing Babylon (DefaultRenderingPipeline + SSAO2)
+   VERRE — exclure du post-processing + réduire refractionIntensity à quasi-zéro
    ============================================================================ */
 function applyGlassTreatment(root) {
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
@@ -1724,8 +1724,10 @@ function applyGlassTreatment(root) {
       : [];
     mats.forEach(mat => {
       if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-        // Tagger ce mesh comme verre (pour savoir lequel exclure)
+        // Tagger ce mesh comme verre
         m.__isGlass = true;
+        // RÉDUIRE drastiquement la déformation : refractionIntensity = 0.01 (1% de déformation)
+        mat.subSurface.refractionIntensity = 0.01;
         glassCount++;
       }
     });
@@ -1752,10 +1754,25 @@ function applyGlassTreatment(root) {
   }
   
   if (glassCount > 0) {
-    console.log('🪟 Verre : ' + glassCount + ' mesh(es) exclu(s) des pipelines (DefaultRendering + SSAO2)');
+    console.log('🪟 Verre : refractionIntensity 0.01 (décalage réduit à 99%), exclus pipelines (' + glassCount + ' mesh(es))');
   }
   return glassCount;
 }
+
+// Live tuning si besoin de réduire encore plus
+window.setGlassRefraction = function (v) {
+  scene.meshes.forEach(m => {
+    const mats = m.material
+      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+      : [];
+    mats.forEach(mat => {
+      if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
+        mat.subSurface.refractionIntensity = v;
+      }
+    });
+  });
+  console.log('🪟 refractionIntensity = ' + v);
+};
 
 
 /* ============================================================================
