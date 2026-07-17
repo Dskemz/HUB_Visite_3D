@@ -172,9 +172,9 @@
         <p class="hint">Passe le viewer en <b>vue de dessus</b>.
           Renomme, change la couleur ou la taille — l'effet est immédiat sur le plan.<br><br>
           <b>Placer</b> : clique le bouton, puis clique sur le plan à l'endroit voulu.</p>
-        <div style="display:flex;gap:.4rem;margin-bottom:.8rem;align-items:stretch;">
-          <input id="f-newpiece" placeholder="Nom de la pièce (ex: Bureau)" style="flex:1;margin:0;padding:0.6rem 0.7rem;font-size:1rem;height:auto;">
-          <button class="btn" id="b-addpiece" onclick="ajouterPiece()" style="flex:0 0 auto;padding:0.4rem 0.6rem;font-size:0.85rem;">➕</button>
+        <div style="display:flex;gap:.5rem;margin-bottom:.8rem;align-items:stretch;">
+          <input id="f-newpiece" placeholder="Nom de la pièce (ex: Bureau)" style="flex:1;width:auto;margin:0;padding:0.7rem 0.8rem;font-size:1.05rem;height:auto;">
+          <button class="btn" id="b-addpiece" onclick="ajouterPiece()" style="width:auto;flex:0 0 auto;padding:0.5rem 0.9rem;font-size:0.9rem;white-space:nowrap;">➕ Ajouter</button>
         </div>
         <div class="list" id="piece-list"></div>
       </div>
@@ -248,9 +248,30 @@
       </div>
 
       <div id="p-light" hidden>
-        <p class="hint"><b>Lumières.</b> Ajoute une source, clique « 📍 Placer » puis
-          clique <b>directement dans la vue 3D</b> à l'endroit voulu. Point = ampoule,
-          Spot = faisceau dirigé, Soleil = lumière directionnelle globale.</p>
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">🌅 HDRI (environnement)</div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Intensité</label>
+            <input type="range" id="f-hdri-int" min="0" max="4" step="0.05" value="1" style="flex:1;" oninput="setHdri()">
+            <span id="v-hdri-int" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">1.00</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.6rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Orientation</label>
+            <input type="range" id="f-hdri-rot" min="0" max="6.283" step="0.02" value="0" style="flex:1;" oninput="setHdri()">
+            <span id="v-hdri-rot" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0°</span>
+          </div>
+          <label class="btn sec" style="display:block;text-align:center;cursor:pointer;margin:0;">
+            📁 Changer de HDRI (.hdr / .env)
+            <input type="file" accept=".hdr,.env" style="display:none;" onchange="importHdri(this)">
+          </label>
+        </div>
+
+        <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">💡 Toutes les lumières de la scène</div>
+        <p class="hint" style="font-size:.68rem;margin-top:0;">Inclut les lumières créées au chargement. Décoche pour éteindre, ✕ pour supprimer définitivement.</p>
+        <div class="list" id="scene-light-list" style="margin-bottom:1rem;"></div>
+
+        <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;border-top:1px solid #263149;padding-top:.7rem;">➕ Ajouter une lumière éditable</div>
+        <p class="hint" style="font-size:.68rem;margin-top:0;">Ajoute, clique « 📍 Placer » puis clique <b>dans la vue 3D</b>. Coche 👁 pour l'afficher et manipuler ses axes (déplacement + rotation).</p>
         <div style="display:flex;gap:.35rem;margin-bottom:.8rem;">
           <button class="btn" onclick="ambAddLight('point')" style="flex:1;">➕ Point</button>
           <button class="btn" onclick="ambAddLight('spot')" style="flex:1;">➕ Spot</button>
@@ -706,6 +727,18 @@ const PONT = `
           });
         }
       },
+
+      /* ===== TOUTES LES LUMIÈRES DE LA SCÈNE ===== */
+      allLights:       function(){ return (typeof window.listAllLights==='function') ? window.listAllLights() : []; },
+      setSceneLight:   function(id, patch){ if (typeof window.setLightProp==='function') window.setLightProp(id, patch); },
+      removeSceneLight:function(id){ return (typeof window.removeSceneLight==='function') ? window.removeSceneLight(id) : false; },
+      attachGizmo:     function(id){ if (typeof window.attachLightGizmo==='function') window.attachLightGizmo(id); },
+      detachGizmo:     function(){ if (typeof window.detachLightGizmo==='function') window.detachLightGizmo(); },
+
+      /* ===== HDRI ===== */
+      hdriParams:  function(){ return (typeof window.getHdriParams==='function') ? window.getHdriParams() : {hasHdri:false,intensity:1,rotationY:0}; },
+      setHdri:     function(p){ if (typeof window.setHdriParams==='function') window.setHdriParams(p); },
+      replaceHdri: function(url, isEnv){ return (typeof window.replaceHdri==='function') ? window.replaceHdri(url, isEnv) : false; },
       /* Export du lighting-config.json (AO + lumières + base héritée du fichier chargé) */
       lightingConfigJSON: function(){
         var s = window.__lightingState || {};
@@ -721,13 +754,20 @@ const PONT = `
       setMode: function(m){
         onPov = (m === 'pov');
         if (m === 'pov' && typeof window.armPickPlacement === 'function') {
-          window.armPickPlacement('pov', function(w){ povEnAttenteX=w.x; povEnAttenteZ=w.z; povEnAttenteY=(w.y!=null?w.y:(modelBounds?modelBounds.max.y:0)); afficherMarqueurPov(true); parent.__edEvent('pov','placee'); });
+          window.armPickPlacement('pov', function(w){
+            povEnAttenteX = w.x; povEnAttenteZ = w.z;
+            window.__povFloorY = (w.y != null ? w.y : (modelBounds ? modelBounds.min.y : 0));
+            var h = parseFloat((parent.document.getElementById('f-height')||{}).value) || 0;
+            povEnAttenteY = window.__povFloorY + h;
+            afficherMarqueurPov(true);
+            parent.__edEvent('pov','placee');
+          });
         } else if (typeof window.disarmPickPlacement === 'function') {
           window.disarmPickPlacement();
         }
       },
-      setCiblePov: function(x,z){ povEnAttenteX=x; povEnAttenteZ=z; povEnAttenteY=modelBounds?modelBounds.max.y:0; afficherMarqueurPov(true); parent.__edEvent('pov','placee'); },
-      setHauteurPov: function(h){ povEnAttenteY=Math.max(0,Math.min(2,parseFloat(h)||0)); if(hudVisible)hudUpdate(); },
+      setCiblePov: function(x,z){ povEnAttenteX=x; povEnAttenteZ=z; window.__povFloorY=(modelBounds?modelBounds.min.y:0); povEnAttenteY=window.__povFloorY; afficherMarqueurPov(true); parent.__edEvent('pov','placee'); },
+      setHauteurPov: function(h){ var floor=(window.__povFloorY!=null?window.__povFloorY:(modelBounds?modelBounds.min.y:0)); povEnAttenteY=floor+Math.max(0,Math.min(2,parseFloat(h)||0)); afficherMarqueurPov(true); if(hudVisible)hudUpdate(); },
       voirPov: function(){ if(povEnAttenteX==null)return; camera.position=new BABYLON.Vector3(povEnAttenteX,povEnAttenteY,povEnAttenteZ); camera.target=camera.position.clone().addInPlace(new BABYLON.Vector3(0,0,1)); camera.mode=BABYLON.Camera.PERSPECTIVE_CAMERA; setHudVisible(false); camera.attachControl(canvas,true); },
       validerPov: function(id,label,room,photos){ if(povEnAttenteX==null)return null; const pos=camera.position,tgt=camera.target,r2=v=>Math.round(v*100)/100; const pov={id:id||('pov-'+(propertyData.poi.length+1)),label:label||id,camPos:[r2(pos.x),r2(pos.y),r2(pos.z)],camTarget:[r2(tgt.x),r2(tgt.y),r2(tgt.z)]}; if(room)pov.roomId=room; if(photos&&photos.length)pov.photos=photos; propertyData.poi=propertyData.poi||[]; const i=propertyData.poi.findIndex(p=>p.id===pov.id); if(i>=0)propertyData.poi[i]=pov;else propertyData.poi.push(pov); createPoiMarkers();rebuildPoiList(); povEnAttenteX=povEnAttenteY=povEnAttenteZ=null; afficherMarqueurPov(false); return pov.label; },
       annulerPov: function(){ povEnAttenteX=povEnAttenteY=povEnAttenteZ=null; afficherMarqueurPov(false); },
@@ -892,8 +932,71 @@ function refreshPostProcess(){
 }
 
 function refreshLighting(){
+  refreshHdri();
+  refreshSceneLights();
   refreshLightList();
 }
+
+function refreshHdri(){
+  if (!ed || !ed.hdriParams) return;
+  var h = ed.hdriParams();
+  var fi = document.getElementById('f-hdri-int'), fr = document.getElementById('f-hdri-rot');
+  if (fi){ fi.value = h.intensity; document.getElementById('v-hdri-int').textContent = (+h.intensity).toFixed(2); }
+  if (fr){ fr.value = h.rotationY; document.getElementById('v-hdri-rot').textContent = Math.round(h.rotationY*180/Math.PI) + '°'; }
+}
+
+function setHdri(){
+  if (!ed || !ed.setHdri) return;
+  var intensity = parseFloat(document.getElementById('f-hdri-int').value);
+  var rotationY = parseFloat(document.getElementById('f-hdri-rot').value);
+  document.getElementById('v-hdri-int').textContent = intensity.toFixed(2);
+  document.getElementById('v-hdri-rot').textContent = Math.round(rotationY*180/Math.PI) + '°';
+  ed.setHdri({ intensity: intensity, rotationY: rotationY });
+}
+
+function importHdri(input){
+  var file = input.files && input.files[0];
+  if (!file || !ed || !ed.replaceHdri) return;
+  var isEnv = /\.env$/i.test(file.name);
+  var url = URL.createObjectURL(file);
+  ed.replaceHdri(url, isEnv);
+  flash('HDRI « ' + file.name + ' » importée');
+  setTimeout(refreshHdri, 400);
+}
+
+function refreshSceneLights(){
+  if (!ed || !ed.allLights) return;
+  var list = document.getElementById('scene-light-list');
+  var lights = ed.allLights();
+  if (!lights.length){ list.innerHTML = '<p class="hint" style="font-size:.7rem;">Aucune lumière détectée.</p>'; return; }
+  list.innerHTML = '';
+  lights.forEach(function(l){
+    var col = l.color ? rgbToHex(l.color) : '#ffffff';
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#0d1220;padding:.55rem;border-radius:8px;margin-bottom:.5rem;';
+    card.innerHTML =
+      '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem;">'+
+        '<label style="display:flex;align-items:center;gap:.3rem;flex:1;cursor:pointer;">'+
+          '<input type="checkbox" '+(l.enabled?'checked':'')+' onchange="sceneLightToggle(\''+l.id+'\',this.checked)">'+
+          '<b style="font-size:.74rem;color:#c7d0e4;">'+l.id+'</b>'+
+          '<span style="font-size:.64rem;color:#6f7c99;">'+l.kind+'</span>'+
+        '</label>'+
+        '<button class="btn sec" style="width:auto;flex:0 0 auto;padding:.25rem .5rem;font-size:.72rem;" onclick="sceneLightRemove(\''+l.id+'\')">✕</button>'+
+      '</div>'+
+      '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.3rem;">'+
+        '<label style="font-size:.68rem;color:#6f7c99;flex:0 0 58px;">Intensité</label>'+
+        '<input type="range" min="0" max="5" step="0.1" value="'+l.intensity+'" style="flex:1;" oninput="sceneLightSet(\''+l.id+'\',{intensity:parseFloat(this.value)})">'+
+      '</div>'+
+      '<div style="display:flex;gap:.4rem;align-items:center;">'+
+        '<label style="font-size:.68rem;color:#6f7c99;flex:0 0 58px;">Couleur</label>'+
+        '<input type="color" value="'+col+'" style="flex:0 0 auto;width:38px;height:24px;padding:0;border:none;background:none;cursor:pointer;" oninput="sceneLightSet(\''+l.id+'\',{color:hexToRgb(this.value)})">'+
+      '</div>';
+    list.appendChild(card);
+  });
+}
+function sceneLightToggle(id, on){ if (ed) ed.setSceneLight(id, { enabled: on }); }
+function sceneLightSet(id, patch){ if (ed) ed.setSceneLight(id, patch); }
+function sceneLightRemove(id){ if (ed){ ed.removeSceneLight(id); refreshSceneLights(); flash('Lumière « '+id+' » supprimée'); } }
 
 function refreshSSR(){
   if (!ed || !ed.ssrParams) return;
@@ -967,8 +1070,11 @@ function refreshLightList(){
     card.innerHTML =
       '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem;">'+
         '<b style="font-size:.76rem;color:#c7d0e4;flex:1;">'+l.id+'</b>'+
-        (hasPos ? '<button class="btn" style="flex:0 0 auto;padding:.3rem .5rem;" onclick="ambPlaceLight(\''+l.id+'\')">📍 Placer</button>' : '')+
-        '<button class="btn sec" style="flex:0 0 auto;padding:.3rem .5rem;" onclick="ambRemoveLight(\''+l.id+'\')">✕</button>'+
+        '<label style="display:flex;align-items:center;gap:.25rem;font-size:.68rem;color:#9fb4ce;cursor:pointer;flex:0 0 auto;" title="Afficher et manipuler (axes déplacement + rotation)">'+
+          '<input type="checkbox" onchange="ambToggleGizmo(\''+l.id+'\',this.checked)"> 👁 axes'+
+        '</label>'+
+        (hasPos ? '<button class="btn" style="width:auto;flex:0 0 auto;padding:.3rem .5rem;" onclick="ambPlaceLight(\''+l.id+'\')">📍 Placer</button>' : '')+
+        '<button class="btn sec" style="width:auto;flex:0 0 auto;padding:.3rem .5rem;" onclick="ambRemoveLight(\''+l.id+'\')">✕</button>'+
       '</div>'+
       '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.35rem;">'+
         '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Intensité</label>'+
@@ -987,7 +1093,20 @@ function refreshLightList(){
 }
 
 function ambUpdateLight(id, patch){ if (ed) ed.updateLight(id, patch); }
-function ambRemoveLight(id){ if (ed){ ed.removeLight(id); refreshLightList(); flash('Lumière supprimée'); } }
+function ambRemoveLight(id){ if (ed){ ed.detachGizmo && ed.detachGizmo(); ed.removeLight(id); refreshLightList(); flash('Lumière supprimée'); } }
+function ambToggleGizmo(id, on){
+  if (!ed) return;
+  if (on){
+    // Un seul gizmo à la fois : décoche visuellement les autres cases
+    document.querySelectorAll('#light-list input[type=checkbox]').forEach(function(cb){
+      if (cb.getAttribute('onchange') && cb.getAttribute('onchange').indexOf(id) < 0) cb.checked = false;
+    });
+    ed.attachGizmo(id);
+    flash('Axes actifs — déplace/oriente la lumière dans la vue 3D');
+  } else {
+    ed.detachGizmo();
+  }
+}
 function ambPlaceLight(id){
   lightPlaceId = id;
   if (ed && ed.armLightPlacement) ed.armLightPlacement(id);
@@ -1362,7 +1481,6 @@ function vwWin(){
 // Libellés + config d'affichage des contrôles par catégorie (côté éditeur)
 const CTRL_META = {
   tint:         { label: 'Teinte',       type: 'color' },
-  refractionOn: { label: 'Réfraction (déformation)', type: 'toggle' },
   thickness:    { label: 'Épaisseur',    min: 0, max: 2, step: 0.02 },
   refraction:   { label: 'Transparence', min: 0, max: 1, step: 0.05 },
   reflection:   { label: 'Clarté',       min: 0, max: 3, step: 0.05 },
@@ -1565,23 +1683,36 @@ function diagnostiquerVerre(){
   const w = vwWin();
   const box = document.getElementById('glass-diag');
   if (!box) return;
-  if (!w || !w.diagnoseGlass){
+  if (!w){
     box.innerHTML = '<p class="hint" style="color:#e8cfa4;">⏳ Viewer pas prêt.</p>';
     return;
   }
+  // 1) TOUS les noms de matériaux vus par le viewer (vérif nomenclature)
+  var allHtml = '';
+  if (w.listAllMaterialNames){
+    var names = [];
+    try { names = w.listAllMaterialNames(); } catch(e){}
+    allHtml = '<div style="background:#0d1220;border:1px solid #263149;border-radius:8px;'+
+      'padding:.5rem .6rem;margin-bottom:.8rem;font-size:.7rem;font-family:ui-monospace,monospace;color:#c7d0e4;">'+
+      '<div style="color:#6f7c99;margin-bottom:.4rem;">📋 '+names.length+' matériau(x) vus par le viewer :</div>'+
+      names.map(function(n){
+        var ok = /^m_[^_]+_(glass|wood|plastic|metal|ceramic|verre|bois|plastique|métal|céramique|ceramique)_/i.test(n);
+        return '<div style="color:'+(ok?'#7dd3fc':'#e8cfa4')+';">'+(ok?'✓ ':'⚠ ')+n+'</div>';
+      }).join('')+
+      '<div style="color:#6f7c99;margin-top:.4rem;font-family:inherit;">✓ = suit <code>M_&lt;pièce&gt;_&lt;type&gt;_*</code> · ⚠ = hors convention (→ « Non classé »)</div>'+
+      '</div>';
+  }
+  if (!w.diagnoseGlass){ box.innerHTML = allHtml; return; }
   let rows;
   try { rows = w.diagnoseGlass(); }
-  catch(e){ box.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ '+e.message+'</p>'; return; }
+  catch(e){ box.innerHTML = allHtml + '<p class="hint" style="color:#e8cfa4;">❌ '+e.message+'</p>'; return; }
   if (!rows || !rows.length){
-    box.innerHTML = '<div style="background:#2a1f12;border:1px solid #5a4526;color:#e8cfa4;'+
-      'padding:.7rem;border-radius:8px;font-size:.74rem;line-height:1.5;margin-bottom:.8rem;">'+
-      '⚠️ <b>Aucun mesh de verre détecté.</b> Le matériau du verre n\'est ni nommé '+
-      '<code>M_glass_*</code>, ni marqué en réfraction. C\'est sans doute pour ça que couper '+
-      'la réfraction n\'a rien changé : la case ne tombait sur rien. La déformation vient '+
-      'd\'un autre matériau — envoie-moi une capture + le nom exact du matériau du verre.</div>';
+    box.innerHTML = allHtml + '<div style="background:#2a1f12;border:1px solid #5a4526;color:#e8cfa4;'+
+      'padding:.7rem;border-radius:8px;font-size:.74rem;line-height:1.5;">'+
+      '⚠️ Aucun mesh de verre détecté par réfraction.</div>';
     return;
   }
-  let html = '<div style="background:#0d1220;border:1px solid #263149;border-radius:8px;'+
+  let html = allHtml + '<div style="background:#0d1220;border:1px solid #263149;border-radius:8px;'+
     'padding:.5rem .6rem;margin-bottom:.8rem;font-size:.7rem;font-family:ui-monospace,monospace;'+
     'color:#c7d0e4;overflow-x:auto;">'+
     '<div style="color:#6f7c99;margin-bottom:.4rem;">'+rows.length+' mesh(es) verre détecté(s) :</div>';
@@ -1590,12 +1721,11 @@ function diagnostiquerVerre(){
       '<div style="color:#e8ecf6;font-weight:600;">'+r.material+' <span style="color:#6f7c99;">('+r.mesh+' · '+r.type+')</span></div>'+
       '<div>réfraction: <b style="color:'+(r.refractionEnabled?'#7dd3fc':'#8b96ad')+'">'+r.refractionEnabled+'</b>'+
       ' · int: '+r.refractionIntensity+' · IOR: '+r.ior+' · épais.: '+r.maxThickness+'</div>'+
-      '<div>alpha: '+r.alpha+' · tMode: '+r.transparencyMode+' · normalMap: '+(r.hasBump?'oui':'non')+' · exclu: '+(r.markedGlass?'oui':'non')+'</div>'+
       '</div>';
   });
   html += '</div>';
   box.innerHTML = html;
-  flash('🔍 ' + rows.length + ' mesh(es) verre — voir le détail');
+  flash('🔍 '+rows.length+' verre · '+(w.listAllMaterialNames?w.listAllMaterialNames().length:'?')+' matériaux');
 }
 </script>
 </body>

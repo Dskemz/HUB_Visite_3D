@@ -1609,10 +1609,121 @@ async function init() {
     }
   });
 
+  // ========================================================================
+  //  API LUMIÈRES DE SCÈNE (toutes) + HDRI + GIZMOS — pour l'éditeur
+  //  Permet de lister/ajuster/supprimer TOUTES les lumières (y compris celles
+  //  créées au chargement), de piloter la HDRI (orientation, intensité, remplacement)
+  //  et d'attacher des gizmos position/rotation à une lumière pour la déplacer.
+  // ========================================================================
+
+  // --- Liste de toutes les lumières de la scène ---
+  window.listAllLights = function(){
+    return (scene.lights || []).map(function(l){
+      var cls = l.getClassName ? l.getClassName() : 'Light';
+      var kind = cls.replace('Light','').toLowerCase(); // spot / directional / point / hemispheric
+      var col = l.diffuse ? [l.diffuse.r, l.diffuse.g, l.diffuse.b] : [1,1,1];
+      var pos = l.position ? [r2(l.position.x), r2(l.position.y), r2(l.position.z)] : null;
+      var dir = l.direction ? [r2(l.direction.x), r2(l.direction.y), r2(l.direction.z)] : null;
+      return {
+        id: l.name, kind: kind, className: cls,
+        intensity: (l.intensity != null ? l.intensity : 1),
+        enabled: l.isEnabled(),
+        color: col, position: pos, direction: dir,
+        range: (l.range != null && l.range < 100000 ? l.range : null)
+      };
+    });
+  };
+  window.setLightProp = function(id, patch){
+    var l = scene.getLightByName(id); if (!l) return;
+    if (patch.intensity != null) l.intensity = parseFloat(patch.intensity);
+    if (patch.enabled   != null) l.setEnabled(!!patch.enabled);
+    if (patch.color) { if (l.diffuse) l.diffuse = new BABYLON.Color3(patch.color[0], patch.color[1], patch.color[2]); }
+    if (patch.range != null && 'range' in l) l.range = parseFloat(patch.range);
+    if (patch.position && l.position) l.position = new BABYLON.Vector3(patch.position[0], patch.position[1], patch.position[2]);
+    if (patch.direction && l.direction) l.direction = new BABYLON.Vector3(patch.direction[0], patch.direction[1], patch.direction[2]);
+  };
+  window.removeSceneLight = function(id){
+    var l = scene.getLightByName(id); if (!l) return false;
+    detachLightGizmo();
+    l.dispose();
+    return true;
+  };
+
+  // --- HDRI : orientation, intensité, remplacement ---
+  window.getHdriParams = function(){
+    var t = scene.environmentTexture;
+    return {
+      hasHdri: !!t,
+      intensity: (scene.environmentIntensity != null ? scene.environmentIntensity : 1),
+      rotationY: (t && t.rotationY != null ? t.rotationY : 0)
+    };
+  };
+  window.setHdriParams = function(p){
+    if (p.intensity != null) scene.environmentIntensity = parseFloat(p.intensity);
+    if (p.rotationY != null && scene.environmentTexture) {
+      scene.environmentTexture.rotationY = parseFloat(p.rotationY);
+    }
+  };
+  // Remplacer la HDRI par une URL/dataURL (.hdr ou .env)
+  window.replaceHdri = function(url, isEnv){
+    try {
+      var tex = isEnv
+        ? new BABYLON.CubeTexture(url, scene)
+        : new BABYLON.HDRCubeTexture(url, scene, 512);
+      var apply = function(){ scene.environmentTexture = tex; console.log('✅ HDRI remplacée'); };
+      if (tex.onLoadObservable) tex.onLoadObservable.addOnce(apply); else apply();
+      return true;
+    } catch(e){ console.warn('⚠️ Remplacement HDRI échoué :', e.message); return false; }
+  };
+
+  // --- Gizmos position + rotation pour une lumière ---
+  window.__lightGizmoMgr = null;
+  window.__lightGizmoMesh = null;
+  window.__lightGizmoId = null;
+  function detachLightGizmo(){
+    if (window.__lightGizmoMgr){ try { window.__lightGizmoMgr.dispose(); } catch(_){} window.__lightGizmoMgr = null; }
+    if (window.__lightGizmoMesh){ try { window.__lightGizmoMesh.dispose(); } catch(_){} window.__lightGizmoMesh = null; }
+    window.__lightGizmoId = null;
+  }
+  window.detachLightGizmo = detachLightGizmo;
+  // Affiche un petit repère 3D à l'emplacement de la lumière + gizmos déplacement/rotation.
+  window.attachLightGizmo = function(id){
+    var l = scene.getLightByName(id); if (!l) { detachLightGizmo(); return; }
+    detachLightGizmo();
+    // Mesh proxy : sphère à la position de la lumière (ou au centre si directionnelle)
+    var proxy = BABYLON.MeshBuilder.CreateSphere('__lightGizmoProxy', { diameter: 0.4, segments: 10 }, scene);
+    var gm = new BABYLON.StandardMaterial('__lightGizmoMat', scene);
+    gm.emissiveColor = new BABYLON.Color3(1.0, 0.85, 0.2);
+    gm.disableLighting = true;
+    proxy.material = gm; proxy.renderingGroupId = 3; proxy.isPickable = true;
+    if (l.position) proxy.position.copyFrom(l.position);
+    else proxy.position = (modelBounds ? new BABYLON.Vector3(modelBounds.center.x, modelBounds.max.y, modelBounds.center.z) : BABYLON.Vector3.Zero());
+    if (l.direction) { // orienter le proxy selon la direction de la lumière
+      var d = l.direction.clone().normalize();
+      proxy.rotation = new BABYLON.Vector3(Math.asin(-d.y), Math.atan2(d.x, d.z), 0);
+    }
+    var mgr = new BABYLON.GizmoManager(scene);
+    mgr.positionGizmoEnabled = true;
+    mgr.rotationGizmoEnabled = true;
+    mgr.usePointerToAttachGizmos = false;
+    mgr.attachToMesh(proxy);
+    // Sync live : proxy → lumière
+    proxy.onAfterWorldMatrixUpdateObservable.add(function(){
+      if (l.position) l.position.copyFrom(proxy.position);
+      if (l.direction) {
+        var m = BABYLON.Matrix.RotationYawPitchRoll(proxy.rotation.y, proxy.rotation.x, proxy.rotation.z);
+        var fwd = BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(0,0,1), m);
+        l.direction = fwd.normalize();
+      }
+    });
+    window.__lightGizmoMgr = mgr;
+    window.__lightGizmoMesh = proxy;
+    window.__lightGizmoId = id;
+  };
+
   // Afficher axes de coordonnées (debug)
   // createAxesHelper();
 
-  // Charger le plafond (masqué par défaut)
   await loadCeiling();
 
   // Icône initiale du bouton (vue de dessus)
@@ -1728,7 +1839,7 @@ function applyGlassTreatment(root) {
    Extensible : ajouter une entrée dans MATERIAL_CATEGORIES suffit.
    ============================================================================ */
 window.MATERIAL_CATEGORIES = {
-  glass:        { label: 'Verre',        controls: ['refractionOn', 'thickness', 'alpha', 'tint', 'reflection', 'roughness', 'ior'] },
+  glass:        { label: 'Verre',        controls: ['thickness', 'alpha', 'tint', 'reflection', 'roughness', 'ior'] },
   wood:         { label: 'Bois',         controls: ['roughness', 'reflection'] },
   plastic:      { label: 'Plastique',    controls: ['roughness', 'reflection'] },
   metal:        { label: 'Métal',        controls: ['roughness', 'reflection'] },
@@ -1742,7 +1853,7 @@ window.MATERIAL_CATEGORIES = {
 
 // Types reconnus pour le regroupement par pièce (ordre d'affichage)
 window.MATERIAL_TYPES = {
-  glass:   { label: 'Verre',     controls: ['refractionOn', 'thickness', 'alpha', 'tint', 'reflection', 'roughness', 'ior'] },
+  glass:   { label: 'Verre',     controls: ['thickness', 'alpha', 'tint', 'reflection', 'roughness', 'ior'] },
   wood:    { label: 'Bois',      controls: ['roughness', 'reflection'] },
   plastic: { label: 'Plastique', controls: ['roughness', 'reflection'] },
   metal:   { label: 'Métal',     controls: ['roughness', 'reflection'] },
@@ -1921,28 +2032,6 @@ window.setMaterialProps = function(matId, props) {
       if (typeof props.thickness !== 'undefined' && mat.subSurface) {
         mat.subSurface.maximumThickness = props.thickness;
       }
-      // VERRE PLAT : couper la réfraction sans perdre la transparence.
-      // On mémorise l'état d'origine une fois, pour un retour arrière exact.
-      if (typeof props.refractionOn !== 'undefined' && mat.subSurface) {
-        if (!mat.__glassOrig) {
-          mat.__glassOrig = {
-            refr:  mat.subSurface.isRefractionEnabled,
-            alpha: mat.alpha,
-            tmode: mat.transparencyMode
-          };
-        }
-        if (props.refractionOn) {
-          // Restaurer le verre réfractif d'origine
-          mat.subSurface.isRefractionEnabled = mat.__glassOrig.refr;
-          mat.alpha            = mat.__glassOrig.alpha;
-          mat.transparencyMode = mat.__glassOrig.tmode;
-        } else {
-          // Plat : aucune déformation. Transparence assurée par l'alpha (pas la réfraction).
-          mat.subSurface.isRefractionEnabled = false;
-          if (mat.alpha == null || mat.alpha >= 0.999) mat.alpha = 0.2;
-          mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND; // 2
-        }
-      }
       if (typeof props.tint !== 'undefined' && mat.subSurface) {
         try {
           mat.subSurface.tintColor = BABYLON.Color3.FromHexString(props.tint);
@@ -1961,6 +2050,27 @@ window.setMaterialProps = function(matId, props) {
    Sert à vérifier ce qu'on manipule vraiment (nom, réfraction, IOR, alpha,
    exclusion post-process) avant tout refactor. N'altère rien.
    ============================================================================ */
+/* Liste TOUS les noms de matériaux vus par le viewer (pour vérifier la nomenclature).
+   Utile quand le regroupement par pièce échoue : on voit si le GLB chargé porte
+   bien les nouveaux noms M_<pièce>_<type>_* ou encore les anciens. */
+window.listAllMaterialNames = function() {
+  const seen = new Set();
+  const names = [];
+  scene.meshes.forEach(m => {
+    const mats = m.material
+      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+      : [];
+    mats.forEach(mat => {
+      if (!mat || seen.has(mat.uniqueId)) return;
+      seen.add(mat.uniqueId);
+      names.push(mat.name || ('#' + mat.uniqueId));
+    });
+  });
+  names.sort();
+  console.log('📋 Matériaux dans la scène (' + names.length + ') :', names);
+  return names;
+};
+
 window.diagnoseGlass = function() {
   const out = [];
   scene.meshes.forEach(m => {
@@ -2062,7 +2172,9 @@ function groupUnder(meshes, name) {
 async function importGlbResilient(base, filename, scene) {
   let buffer = null;
   try {
-    const resp = await fetch(base + filename);
+    // cache:'no-cache' → revalidation serveur (ETag) : un GLB ré-exporté avec de
+    // nouveaux noms de matériaux est repris immédiatement, pas la version en cache.
+    const resp = await fetch(base + filename, { cache: 'no-cache' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     buffer = await resp.arrayBuffer();
   } catch (e) {
@@ -4282,6 +4394,20 @@ function getHudOffsets(){
 function afficherMarqueurPov(show){
   const circ = document.getElementById('pov-marker-circle');
   const dot  = document.getElementById('pov-marker-dot');
+
+  // --- Marqueur 3D dans la scène (visible en perspective ET en POV) ---
+  ensurePov3DMarker();
+  if (window.__pov3DMarker){
+    if (!show || povEnAttenteX == null){
+      window.__pov3DMarker.setEnabled(false);
+    } else {
+      var y = (povEnAttenteY != null ? povEnAttenteY : (modelBounds ? modelBounds.max.y : 0));
+      window.__pov3DMarker.position.set(povEnAttenteX, y, povEnAttenteZ);
+      window.__pov3DMarker.setEnabled(true);
+    }
+  }
+
+  // --- Marqueur 2D sur le plan (vue de dessus) ---
   if (!show || povEnAttenteX == null || !modelBounds){
     if (circ) circ.style.display = 'none';
     if (dot)  dot.style.display = 'none';
@@ -4298,6 +4424,34 @@ function afficherMarqueurPov(show){
     dot.setAttribute('cy', p.y);
     dot.style.display = 'block';
   }
+}
+
+/* Crée (une fois) un marqueur 3D pour la position POV en cours de placement :
+   une sphère lumineuse + un mât vertical jusqu'au sol, toujours rendus par-dessus. */
+function ensurePov3DMarker(){
+  if (window.__pov3DMarker || typeof scene === 'undefined' || !scene) return;
+  try {
+    var sphere = BABYLON.MeshBuilder.CreateSphere('__povMarkerSphere', { diameter: 0.28, segments: 12 }, scene);
+    var mat = new BABYLON.StandardMaterial('__povMarkerMat', scene);
+    mat.emissiveColor = new BABYLON.Color3(0.15, 0.55, 1.0);
+    mat.diffuseColor  = new BABYLON.Color3(0.1, 0.4, 0.9);
+    mat.disableLighting = true;
+    sphere.material = mat;
+    sphere.isPickable = false;
+    sphere.renderingGroupId = 3;           // rendu par-dessus le décor
+    // mât vertical (repère visuel de la verticale)
+    var stem = BABYLON.MeshBuilder.CreateCylinder('__povMarkerStem', { height: 3, diameter: 0.03 }, scene);
+    var smat = new BABYLON.StandardMaterial('__povMarkerStemMat', scene);
+    smat.emissiveColor = new BABYLON.Color3(0.15, 0.55, 1.0);
+    smat.disableLighting = true;
+    stem.material = smat;
+    stem.isPickable = false;
+    stem.renderingGroupId = 3;
+    stem.position.y = -1.5;                 // descend vers le sol depuis la sphère
+    stem.parent = sphere;
+    sphere.setEnabled(false);
+    window.__pov3DMarker = sphere;
+  } catch(e){ console.warn('⚠️ Marqueur POV 3D non créé :', e.message); }
 }
 
 /* Passer en mode orthographique avec cadrage sur le modèle */
