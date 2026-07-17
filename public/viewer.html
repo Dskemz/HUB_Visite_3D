@@ -1742,50 +1742,29 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — exclure du post-processing (détecté par nom M_glass_*)
+   VERRE — INERTE. Charger tel quel du GLB, aucune modification.
    ============================================================================ */
 function applyGlassTreatment(root) {
+  // Détection et marquage pour debug/diagnostic (applyGlassTreatment.diagnose()),
+  // mais AUCUNE modification ni exclusion du post-process.
+  // Le verre se comporte exactement comme Blender l'a exporté.
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
-  let glassCount = 0, fallbackCount = 0;
+  let glassCount = 0;
   meshes.forEach(m => {
     const mats = m.material
       ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
       : [];
-    let isGlass = false;
     mats.forEach(mat => {
       if (!mat) return;
-      // PRIORITÉ 1 : nomenclature M_glass_* (stricte, exclut plastique/etc.)
+      // Marquage pour diagnostic SEULEMENT
       if (materialCategory(mat.name) === 'glass') {
-        isGlass = true;
-      }
-      // FALLBACK 2 : isRefractionEnabled SEULEMENT si pas de M_* (capture vrais verres non-nommés)
-      else if (mat.subSurface && mat.subSurface.isRefractionEnabled &&
-               !String(mat.name).startsWith('M_')) {
-        isGlass = true;
-        fallbackCount++;
+        m.__isGlass = true;
+        glassCount++;
       }
     });
-    if (isGlass) {
-      m.__isGlass = true;
-      glassCount++;
-    }
   });
-  
-  // EXCLURE du pipeline DefaultRenderingPipeline
-  if (window.compositingPipeline) {
-    meshes.forEach(m => {
-      if (m.__isGlass && window.compositingPipeline.excludedMeshes) {
-        if (!window.compositingPipeline.excludedMeshes.includes(m)) {
-          window.compositingPipeline.excludedMeshes.push(m);
-        }
-      }
-    });
-  }
-  
   if (glassCount > 0) {
-    let msg = '🪟 Verre : ' + glassCount + ' mesh(es) exclus des pipelines';
-    if (fallbackCount > 0) msg += ' (' + fallbackCount + ' par isRefractionEnabled, non-nommés M_glass_* — à renommer dans Blender)';
-    console.log(msg);
+    console.log('🪟 Verre (inerte) : ' + glassCount + ' mesh(es) — aucune modification, chargement Blender brut');
   }
   return glassCount;
 }
