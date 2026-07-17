@@ -1736,8 +1736,8 @@ async function init() {
 // + albédo noir pour supprimer le voile diffus gris/blanc « fake ». Le Fresnel PBR
 // rend automatiquement les bords plus réfléchissants → aspect verre naturel.
 window.__GLASS_OPACITY   = 0.10;  // alpha : transparence (0 = invisible, 1 = opaque). Verre clair ≈ 0.06–0.15
-window.__GLASS_REFLECT   = 1.0;   // intensité des réflexions d'environnement sur le verre
-window.__GLASS_ROUGHNESS = 0.04;  // netteté des réflexions (0 = miroir parfait ; plus haut = flou)
+window.__GLASS_REFLECT   = 2.5;   // intensité des réflexions d'environnement (verre brillant ≈ 2–3 ; matte ≈ 1)
+window.__GLASS_ROUGHNESS = 0.0;   // netteté des réflexions (0 = miroir parfait ; plus haut = flou)
 function applyGlassTreatment(root, opacity) {
   const val = (typeof opacity === 'number') ? opacity : window.__GLASS_OPACITY;
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
