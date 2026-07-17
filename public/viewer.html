@@ -1713,7 +1713,7 @@ async function init() {
 }
 
 /* ============================================================================
-   VERRE — exclure du post-processing + réduire légèrement refractionIntensity
+   VERRE — exclure du post-processing Babylon (DefaultRenderingPipeline + SSAO2)
    ============================================================================ */
 function applyGlassTreatment(root) {
   const meshes = root && root.getChildMeshes ? root.getChildMeshes(false) : scene.meshes;
@@ -1724,16 +1724,14 @@ function applyGlassTreatment(root) {
       : [];
     mats.forEach(mat => {
       if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-        // Tagger ce mesh comme verre
+        // Tagger ce mesh comme verre (pour savoir lequel exclure)
         m.__isGlass = true;
-        // Réduire légèrement la réfraction (0.05 = 5% de l'intensité max)
-        mat.subSurface.refractionIntensity = 0.05;
         glassCount++;
       }
     });
   });
   
-  // EXCLURE du pipeline DefaultRenderingPipeline
+  // EXCLURE du pipeline DefaultRenderingPipeline (compositing)
   if (window.compositingPipeline) {
     meshes.forEach(m => {
       if (m.__isGlass && window.compositingPipeline.excludedMeshes) {
@@ -1754,25 +1752,10 @@ function applyGlassTreatment(root) {
   }
   
   if (glassCount > 0) {
-    console.log('🪟 Verre : refractionIntensity 0.05, exclus pipelines (' + glassCount + ' mesh(es))');
+    console.log('🪟 Verre : ' + glassCount + ' mesh(es) exclu(s) des pipelines (DefaultRendering + SSAO2)');
   }
   return glassCount;
 }
-
-// Live tuning si besoin
-window.setGlassRefraction = function (v) {
-  scene.meshes.forEach(m => {
-    const mats = m.material
-      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
-      : [];
-    mats.forEach(mat => {
-      if (mat && mat.subSurface && mat.subSurface.isRefractionEnabled) {
-        mat.subSurface.refractionIntensity = v;
-      }
-    });
-  });
-  console.log('🪟 refractionIntensity = ' + v);
-};
 
 
 /* ============================================================================
