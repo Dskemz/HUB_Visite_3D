@@ -1495,20 +1495,119 @@ async function init() {
   setTimeout(() => { flashExploreHint(); }, 700);
 
   // ========================================================================
-  //  SCÈNE RÉINITIALISÉE — RENDU BABYLON NU (comme le Sandbox)
-  //  Aucun post-processing : ni compositing, ni tone mapping custom, ni SSAO2,
-  //  ni SSR, ni prepass. Les shaders du GLB sont rendus TELS QUELS.
-  //  L'AO et le SSR seront réintroduits proprement plus tard, à la demande.
-  //  On garde les stubs d'API pour que l'éditeur ne plante pas s'il les appelle.
+  //  POST-PROCESS RÉINTRODUIT — OFF PAR DÉFAUT (piloté par l'onglet Post-process)
+  //  Aucun compositing/tone mapping : le rendu reste le rendu Babylon nu tant
+  //  que rien n'est activé. AO et SSR sont créés « prêts mais éteints » et
+  //  s'attachent/détachent à la volée sans recharger. Les shaders du GLB (verre)
+  //  ne sont JAMAIS modifiés.
+  //  - AO coché   → SSAO2 attaché aux caméras   | décoché → détaché (n'existe plus)
+  //  - SSR coché  → SSR attaché aux caméras      | décoché → détaché (n'existe plus)
   // ========================================================================
   window.compositingPipeline = null;
-  window.ssao2Pipeline       = null;
-  window.ssrPipeline         = null;
-  window.__AO_STRENGTH__     = 0;
-  window.__SSR_STATE__       = { enabled:false };
-  window.setAO  = function(){ /* réintroduction ultérieure */ };
-  window.setSSR = function(){ /* réintroduction ultérieure */ };
-  console.log('✅ Scène en rendu Babylon nu (aucun traitement — shaders bruts, comme le Sandbox)');
+
+  // Caméras candidates (principale ortho/perspective + POV première personne)
+  window.__ppCams = function(){
+    var a = [];
+    if (typeof camera   !== 'undefined' && camera)   a.push(camera);
+    if (typeof fpCamera !== 'undefined' && fpCamera) a.push(fpCamera);
+    return a;
+  };
+
+  // --- AO (SSAO2) : créé détaché, attaché seulement quand activé --------------
+  window.ssao2Pipeline   = null;
+  window.__AO_STATE__    = { enabled:false, strength:1.0, radius:1.2, base:0.2 };
+  window.__AO_STRENGTH__ = 0;
+  if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
+    try {
+      var ssao2 = new BABYLON.SSAO2RenderingPipeline('ssao2', scene, { ssaoRatio:0.5, blurRatio:0.5 }, []);
+      ssao2.radius        = 1.2;
+      ssao2.totalStrength = 1.0;
+      ssao2.base          = 0.2;
+      ssao2.samples       = 16;
+      ssao2.maxZ          = 60;
+      ssao2.minZAspect    = 0.5;
+      ssao2.expensiveBlur = false;
+      window.ssao2Pipeline = ssao2;
+      console.log('✅ AO (SSAO2) prêt — détaché (activable dans Post-process)');
+    } catch (e) { console.warn('⚠️ SSAO2 non créé :', e.message); }
+  }
+  // API AO pour l'éditeur : attache/détache + règle en direct.
+  window.setAO = function(opts){
+    opts = opts || {};
+    var p = window.ssao2Pipeline, st = window.__AO_STATE__;
+    if (!p) return;
+    if (opts.strength != null){ st.strength = +opts.strength; p.totalStrength = st.strength; window.__AO_STRENGTH__ = st.strength; }
+    if (opts.radius   != null){ st.radius   = +opts.radius;   p.radius        = st.radius; }
+    if (opts.base     != null){ st.base     = +opts.base;     p.base          = st.base; }
+    if (opts.enabled != null){
+      st.enabled = !!opts.enabled;
+      try {
+        var mgr = scene.postProcessRenderPipelineManager;
+        if (st.enabled) mgr.attachCamerasToRenderPipeline('ssao2', window.__ppCams());
+        else            mgr.detachCamerasFromRenderPipeline('ssao2', window.__ppCams());
+      } catch(_){}
+    }
+  };
+
+  // --- SSR (reflets écran) : créé détaché, attaché seulement quand activé -----
+  window.ssrPipeline   = null;
+  window.__SSR_STATE__ = { enabled:false, strength:0.7, falloff:2.5, roughnessFactor:0.2, thickness:0.5, blur:0.03 };
+  if (BABYLON.SSRRenderingPipeline && engine.webGLVersion > 1) {
+    try {
+      var ssr = new BABYLON.SSRRenderingPipeline('ssr', scene, [], false);
+      ssr.strength                          = 0.7;
+      ssr.reflectionSpecularFalloffExponent = 2.5;
+      ssr.roughnessFactor                   = 0.2;
+      ssr.thickness                         = 0.5;
+      ssr.selfCollisionNumSkip              = 2;
+      ssr.enableSmoothReflections           = true;
+      ssr.blurDispersionStrength            = 0.03;
+      ssr.attenuateScreenBorders            = true;
+      ssr.attenuateFacingCamera             = false;
+      ssr.clipToFrustum                     = true;
+      window.ssrPipeline = ssr;
+      console.log('✅ SSR prêt — détaché (activable dans Post-process)');
+    } catch (e) { console.warn('⚠️ SSR non créé :', e.message); }
+  }
+  window.setSSR = function(opts){
+    opts = opts || {};
+    var st = window.__SSR_STATE__, p = window.ssrPipeline;
+    if (!p) return;
+    if (opts.strength        != null){ st.strength=+opts.strength;               p.strength=st.strength; }
+    if (opts.falloff         != null){ st.falloff=+opts.falloff;                 p.reflectionSpecularFalloffExponent=st.falloff; }
+    if (opts.roughnessFactor != null){ st.roughnessFactor=+opts.roughnessFactor; p.roughnessFactor=st.roughnessFactor; }
+    if (opts.thickness       != null){ st.thickness=+opts.thickness;             p.thickness=st.thickness; }
+    if (opts.blur            != null){ st.blur=+opts.blur;                       p.blurDispersionStrength=st.blur; }
+    if (opts.enabled != null){
+      st.enabled = !!opts.enabled;
+      try {
+        var mgr = scene.postProcessRenderPipelineManager;
+        if (st.enabled) mgr.attachCamerasToRenderPipeline('ssr', window.__ppCams());
+        else            mgr.detachCamerasFromRenderPipeline('ssr', window.__ppCams());
+      } catch(_){}
+    }
+  };
+
+  // ========================================================================
+  //  PICK DE PLACEMENT (POV / lumières) — clic DIRECT dans le viewer 3D
+  //  L'éditeur arme un mode ('pov' ou 'light'), l'utilisateur clique dans la
+  //  vue 3D, on raycaste le sol/mur et on renvoie le point monde à l'éditeur.
+  // ========================================================================
+  window.__pickPlaceMode = null;   // null | 'pov' | 'light'
+  window.__pickPlaceCb   = null;   // callback(worldPoint) fourni par l'éditeur
+  window.armPickPlacement = function(mode, cb){ window.__pickPlaceMode = mode; window.__pickPlaceCb = cb; };
+  window.disarmPickPlacement = function(){ window.__pickPlaceMode = null; window.__pickPlaceCb = null; };
+  // Raycast : on ignore les marqueurs POV, on garde le vrai décor (sol, murs).
+  scene.onPointerObservable.add(function(pi){
+    if (!window.__pickPlaceMode) return;
+    if (pi.type !== BABYLON.PointerEventTypes.POINTERPICK) return;
+    var pick = scene.pick(scene.pointerX, scene.pointerY, function(m){
+      return m.isPickable !== false && !m.poiId && m.name !== 'skybox';
+    });
+    if (pick && pick.hit && pick.pickedPoint && window.__pickPlaceCb){
+      window.__pickPlaceCb({ x: pick.pickedPoint.x, y: pick.pickedPoint.y, z: pick.pickedPoint.z });
+    }
+  });
 
   // Afficher axes de coordonnées (debug)
   // createAxesHelper();
@@ -1630,11 +1729,24 @@ function applyGlassTreatment(root) {
    ============================================================================ */
 window.MATERIAL_CATEGORIES = {
   glass:        { label: 'Verre',        controls: ['refractionOn', 'thickness', 'alpha', 'tint', 'reflection', 'roughness', 'ior'] },
+  wood:         { label: 'Bois',         controls: ['roughness', 'reflection'] },
+  plastic:      { label: 'Plastique',    controls: ['roughness', 'reflection'] },
+  metal:        { label: 'Métal',        controls: ['roughness', 'reflection'] },
+  ceramic:      { label: 'Céramique',    controls: ['roughness', 'reflection'] },
   architecture: { label: 'Architecture', controls: ['roughness', 'reflection'] },
   sol:          { label: 'Sol',          controls: ['roughness', 'reflection'] },
   plastique:    { label: 'Plastique',    controls: ['roughness', 'reflection'] },
-  metal:        { label: 'Métal',        controls: ['roughness', 'reflection'] }
-  // À étendre plus tard : wood, crepis, fabric, stone...
+  met3:         { label: 'Métal',        controls: ['roughness', 'reflection'] }
+  // À étendre : fabric, stone, crepis...
+};
+
+// Types reconnus pour le regroupement par pièce (ordre d'affichage)
+window.MATERIAL_TYPES = {
+  glass:   { label: 'Verre',     controls: ['refractionOn', 'thickness', 'alpha', 'tint', 'reflection', 'roughness', 'ior'] },
+  wood:    { label: 'Bois',      controls: ['roughness', 'reflection'] },
+  plastic: { label: 'Plastique', controls: ['roughness', 'reflection'] },
+  metal:   { label: 'Métal',     controls: ['roughness', 'reflection'] },
+  ceramic: { label: 'Céramique', controls: ['roughness', 'reflection'] }
 };
 
 // Extraire la catégorie d'un nom de matériau : "M_glass_transparent" → "glass"
@@ -1647,6 +1759,95 @@ function materialCategory(name) {
   }
   return null;
 }
+
+/* Regroupement par PIÈCE puis par TYPE.
+   Convention visée : M_<pièce>_<type>_<détail>  (ex: M_salon_glass_01)
+   - pièce = 2e segment, type = 3e segment
+   - Repli : si le nom ne suit pas cette convention (ex: M_glass_thin, ou nom
+     libre du GLB), le matériau est classé pièce « Non classé » sous son type
+     déduit (materialCategory / isRefractionEnabled pour le verre). */
+window.getMaterialsByRoom = function() {
+  const seen = new Set();
+  const rooms = {};   // { pièce: { type: [entries] } }
+  const TYPES = window.MATERIAL_TYPES;
+
+  function pushEntry(room, type, mat) {
+    const ss = mat.subSurface;
+    let tintHex = '#ffffff';
+    if (ss && ss.tintColor && ss.tintColor.toHexString) {
+      tintHex = ss.tintColor.toHexString();
+      if (tintHex.length > 7) tintHex = tintHex.slice(0, 7);
+    }
+    const entry = {
+      id: mat.uniqueId,
+      name: mat.name || ('Matériau ' + mat.uniqueId),
+      type: type,
+      alpha: (typeof mat.alpha === 'number') ? mat.alpha : 1,
+      roughness: (typeof mat.roughness === 'number') ? mat.roughness : 0,
+      reflection: ('environmentIntensity' in mat) ? mat.environmentIntensity : 1,
+      refraction: (ss && typeof ss.refractionIntensity === 'number') ? ss.refractionIntensity : 1,
+      ior: (ss && typeof ss.indexOfRefraction === 'number') ? ss.indexOfRefraction : 1.5,
+      refractionOn: ss ? (ss.isRefractionEnabled !== false) : true,
+      thickness: (ss && typeof ss.maximumThickness === 'number') ? ss.maximumThickness : 0,
+      tint: tintHex
+    };
+    rooms[room] = rooms[room] || {};
+    (rooms[room][type] = rooms[room][type] || []).push(entry);
+  }
+
+  // Normalise les alias de type vers les 5 types canoniques
+  function normalizeType(t) {
+    if (!t) return null;
+    t = t.toLowerCase();
+    if (t === 'bois') return 'wood';
+    if (t === 'plastique') return 'plastic';
+    if (t === 'métal' || t === 'metal') return 'metal';
+    if (t === 'verre') return 'glass';
+    if (t === 'céramique' || t === 'ceramique') return 'ceramic';
+    if (TYPES[t]) return t;
+    return null;
+  }
+
+  scene.meshes.forEach(m => {
+    const mats = m.material
+      ? (Array.isArray(m.material.subMaterials) ? m.material.subMaterials : [m.material])
+      : [];
+    mats.forEach(mat => {
+      if (!mat || seen.has(mat.uniqueId)) return;
+      const parts = String(mat.name || '').split('_');
+      let room = null, type = null;
+
+      // M_<pièce>_<type>_... (≥4 segments : M, pièce, type, détail — ou 3 : M, pièce, type)
+      if (parts.length >= 3 && parts[0].toLowerCase() === 'm') {
+        const maybeType3 = normalizeType(parts[2]);
+        const maybeType2 = normalizeType(parts[1]);
+        if (maybeType3) {           // M_<pièce>_<type>_...
+          room = parts[1];
+          type = maybeType3;
+        } else if (maybeType2) {    // M_<type>_<détail> → pas de pièce
+          room = 'Non classé';
+          type = maybeType2;
+        }
+      } else if (parts.length >= 2 && parts[0].toLowerCase() === 'm') {
+        const t = normalizeType(parts[1]);
+        if (t) { room = 'Non classé'; type = t; }
+      }
+
+      // Repli verre par shader si non détecté par le nom
+      if (!type && mat.subSurface && mat.subSurface.isRefractionEnabled) {
+        room = room || 'Non classé';
+        type = 'glass';
+      }
+
+      if (!type) return;  // matériau sans type reconnu → ignoré
+      seen.add(mat.uniqueId);
+      pushEntry(room, type, mat);
+    });
+  });
+
+  console.log('🔍 getMaterialsByRoom résultat:', { pièces: Object.keys(rooms) });
+  return { types: TYPES, rooms: rooms };
+};
 
 // Parcourt la scène, renvoie les matériaux uniques groupés par catégorie connue.
 window.getMaterialsByCategory = function() {

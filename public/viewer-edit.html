@@ -94,7 +94,8 @@
         <button class="tab"    id="t-cot" onclick="tab('cot')" style="flex:1;">Cotations</button>
         <button class="tab"    id="t-piece" onclick="tab('piece')" style="flex:1;">Pièces</button>
         <button class="tab"    id="t-verre" onclick="tab('verre')" style="flex:1;">Matériaux</button>
-        <button class="tab"    id="t-amb" onclick="tab('amb')" style="flex:1;">Ambiance</button>
+        <button class="tab"    id="t-amb" onclick="tab('amb')" style="flex:1;">Post-process</button>
+        <button class="tab"    id="t-light" onclick="tab('light')" style="flex:1;">Lighting</button>
       </div>
       <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein ecran" style="flex:0 0 auto;">⛶</button>
     </div>
@@ -171,17 +172,17 @@
         <p class="hint">Passe le viewer en <b>vue de dessus</b>.
           Renomme, change la couleur ou la taille — l'effet est immédiat sur le plan.<br><br>
           <b>Placer</b> : clique le bouton, puis clique sur le plan à l'endroit voulu.</p>
-        <div style="display:flex;gap:.4rem;margin-bottom:.8rem;">
-          <input id="f-newpiece" placeholder="Nom de la pièce (ex: Bureau)" style="flex:1;margin:0;padding:0.5rem;font-size:0.9rem;height:2rem;">
-          <button class="btn" id="b-addpiece" onclick="ajouterPiece()" style="flex:0 0 auto;">➕ Ajouter</button>
+        <div style="display:flex;gap:.4rem;margin-bottom:.8rem;align-items:stretch;">
+          <input id="f-newpiece" placeholder="Nom de la pièce (ex: Bureau)" style="flex:1;margin:0;padding:0.6rem 0.7rem;font-size:1rem;height:auto;">
+          <button class="btn" id="b-addpiece" onclick="ajouterPiece()" style="flex:0 0 auto;padding:0.4rem 0.6rem;font-size:0.85rem;">➕</button>
         </div>
         <div class="list" id="piece-list"></div>
       </div>
 
       <div id="p-verre" hidden>
-        <p class="hint"><b>Matériaux de la scène.</b> Regroupés par catégorie :<br>
-          <code>M_glass_*</code> · <code>M_architecture_*</code> · <code>M_sol_*</code> · <code>M_plastique_*</code> · <code>M_metal_*</code><br>
-          Clique une catégorie pour la déplier, puis ajuste chaque matériau en direct.</p>
+        <p class="hint"><b>Matériaux par pièce.</b> Regroupés par pièce, puis par type :<br>
+          <code>M_&lt;pièce&gt;_&lt;type&gt;_&lt;n°&gt;</code> — ex : <code>M_salon_glass_01</code><br>
+          Types : glass · wood · plastic · metal · ceramic. Clique une pièce puis un type pour ajuster.</p>
         <button class="btn sec" onclick="chargerVerres()" style="margin-bottom:.8rem;">🔄 Recharger la liste</button>
         <button class="btn sec" onclick="diagnostiquerVerre()" style="margin-bottom:.8rem;">🔍 Diagnostic verre</button>
         <div id="glass-diag"></div>
@@ -244,9 +245,11 @@
             <span id="v-ssr-blur" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.03</span>
           </div>
         </div>
+      </div>
 
-        <p class="hint"><b>Lumières.</b> Ajoute des sources, puis clique « 📍 Placer » et
-          clique sur le plan (vue de dessus) pour positionner. Point = ampoule,
+      <div id="p-light" hidden>
+        <p class="hint"><b>Lumières.</b> Ajoute une source, clique « 📍 Placer » puis
+          clique <b>directement dans la vue 3D</b> à l'endroit voulu. Point = ampoule,
           Spot = faisceau dirigé, Soleil = lumière directionnelle globale.</p>
         <div style="display:flex;gap:.35rem;margin-bottom:.8rem;">
           <button class="btn" onclick="ambAddLight('point')" style="flex:1;">➕ Point</button>
@@ -605,13 +608,14 @@ const PONT = `
          chargement depuis lighting-config.json). L'éditeur le lit/écrit ici et
          applique les changements en direct via les API du viewer (setAO / addLight…). */
       aoParams: function(){
+        var st = window.__AO_STATE__ || {};
         var s = window.__lightingState || {};
         var ao = s.ao || {};
         return {
-          enabled:  ao.enabled !== false,
-          strength: (ao.strength != null) ? ao.strength : (window.__AO_STRENGTH__ != null ? window.__AO_STRENGTH__ : 1.0),
-          radius:   (ao.radius   != null) ? ao.radius   : 1.2,
-          base:     (ao.base     != null) ? ao.base     : 0.2
+          enabled:  (st.enabled != null) ? st.enabled : (ao.enabled === true),
+          strength: (ao.strength != null) ? ao.strength : (st.strength != null ? st.strength : 1.0),
+          radius:   (ao.radius   != null) ? ao.radius   : (st.radius   != null ? st.radius   : 1.2),
+          base:     (ao.base     != null) ? ao.base     : (st.base     != null ? st.base     : 0.2)
         };
       },
       setAO: function(p){
@@ -625,7 +629,8 @@ const PONT = `
         if (typeof window.setAO === 'function') {
           var st = window.__lightingState.ao;
           window.setAO({
-            strength: (st.enabled === false ? 0 : st.strength),
+            enabled: st.enabled !== false,
+            strength: st.strength,
             radius: st.radius, base: st.base
           });
         }
@@ -686,7 +691,21 @@ const PONT = `
         l.position[0] = r2(x); l.position[2] = r2(z);
         if (typeof window.applyEditableLights === 'function') window.applyEditableLights(s.lights);
       },
-      armLightPlacement: function(id){ lightToPlace = id; },
+      armLightPlacement: function(id){
+        lightToPlace = id;
+        if (typeof window.armPickPlacement === 'function') {
+          window.armPickPlacement('light', function(w){
+            var s = window.__lightingState; if (!s || !s.lights) return;
+            var l = s.lights.find(function(x2){ return x2.id===id; }); if (!l || !l.position) return;
+            l.position[0] = r2(w.x); l.position[2] = r2(w.z);
+            if (w.y != null) l.position[1] = r2(w.y + 0.4); // légèrement au-dessus de la surface cliquée
+            if (typeof window.applyEditableLights === 'function') window.applyEditableLights(s.lights);
+            lightToPlace = null;
+            if (typeof window.disarmPickPlacement === 'function') window.disarmPickPlacement();
+            parent.__edEvent('light','placee');
+          });
+        }
+      },
       /* Export du lighting-config.json (AO + lumières + base héritée du fichier chargé) */
       lightingConfigJSON: function(){
         var s = window.__lightingState || {};
@@ -697,6 +716,16 @@ const PONT = `
       },
 
       /* ===== POV ===== */
+      /* Arme/désarme le mode placement POV : clic DIRECT dans la vue 3D du viewer.
+         Le viewer raycaste le décor et rappelle setCiblePov avec le point monde. */
+      setMode: function(m){
+        onPov = (m === 'pov');
+        if (m === 'pov' && typeof window.armPickPlacement === 'function') {
+          window.armPickPlacement('pov', function(w){ povEnAttenteX=w.x; povEnAttenteZ=w.z; povEnAttenteY=(w.y!=null?w.y:(modelBounds?modelBounds.max.y:0)); afficherMarqueurPov(true); parent.__edEvent('pov','placee'); });
+        } else if (typeof window.disarmPickPlacement === 'function') {
+          window.disarmPickPlacement();
+        }
+      },
       setCiblePov: function(x,z){ povEnAttenteX=x; povEnAttenteZ=z; povEnAttenteY=modelBounds?modelBounds.max.y:0; afficherMarqueurPov(true); parent.__edEvent('pov','placee'); },
       setHauteurPov: function(h){ povEnAttenteY=Math.max(0,Math.min(2,parseFloat(h)||0)); if(hudVisible)hudUpdate(); },
       voirPov: function(){ if(povEnAttenteX==null)return; camera.position=new BABYLON.Vector3(povEnAttenteX,povEnAttenteY,povEnAttenteZ); camera.target=camera.position.clone().addInPlace(new BABYLON.Vector3(0,0,1)); camera.mode=BABYLON.Camera.PERSPECTIVE_CAMERA; setHudVisible(false); camera.attachControl(canvas,true); },
@@ -830,7 +859,7 @@ document.addEventListener('keydown', function(e){
 /* -------- UI ------------------------------------------------------------- */
 function tab(m){
   mode = m;
-  ['pov','cot','piece','verre','amb'].forEach(function(k){
+  ['pov','cot','piece','verre','amb','light'].forEach(function(k){
     var tb = document.getElementById('t-'+k);
     var pb = document.getElementById('p-'+k);
     if (tb) tb.classList.toggle('on', m===k);
@@ -840,7 +869,8 @@ function tab(m){
     ed.editerCotations(m==='cot');
     ed.editerPieces(m==='piece');
     if (m==='piece') refresh();
-    if (m==='amb') refreshAmbiance();
+    if (m==='amb') refreshPostProcess();
+    if (m==='light') refreshLighting();
   }
   if (m==='verre') chargerVerres();
 }
@@ -848,7 +878,7 @@ function tab(m){
 /* -------- AMBIANCE : AO + LUMIÈRES -------------------------------------- */
 let lightPlaceId = null; // id de la lumière en attente de placement au clic
 
-function refreshAmbiance(){
+function refreshPostProcess(){
   if (!ed || !ed.aoParams) return;
   var ao = ed.aoParams();
   document.getElementById('f-ao-on').checked = ao.enabled;
@@ -859,6 +889,9 @@ function refreshAmbiance(){
   document.getElementById('v-ao-radius').textContent = (+ao.radius).toFixed(1);
   document.getElementById('v-ao-base').textContent = (+ao.base).toFixed(2);
   refreshSSR();
+}
+
+function refreshLighting(){
   refreshLightList();
 }
 
@@ -958,10 +991,7 @@ function ambRemoveLight(id){ if (ed){ ed.removeLight(id); refreshLightList(); fl
 function ambPlaceLight(id){
   lightPlaceId = id;
   if (ed && ed.armLightPlacement) ed.armLightPlacement(id);
-  // Bascule le viewer en vue de dessus pour cliquer le plan
-  var frame = document.getElementById('vw').contentWindow;
-  if (frame && !frame.hudVisible && frame.playTopViewAnimation) frame.playTopViewAnimation();
-  flash('Clique sur le plan pour placer la lumière');
+  flash('Clique dans la vue 3D à l\'endroit voulu pour placer la lumière');
 }
 
 function rgbToHex(rgb){
@@ -1341,123 +1371,130 @@ const CTRL_META = {
   alpha:        { label: 'Opacité α',    min: 0, max: 1, step: 0.01 }
 };
 
-let openCategories = { glass: true, architecture: true, sol: true, plastique: true, metal: true };  // état déplié/replié par catégorie
+let openRooms = {};   // état déplié/replié par pièce
+let openTypes = {};   // état déplié/replié par pièce+type ("pièce::type")
 
 function chargerVerres(){
   const w = vwWin();
   const cont = document.getElementById('glass-list');
   if (!cont) return;
-  
+
   if (!w){
     cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ Viewer iframe introuvable.</p>';
     return;
   }
-  
-  if (!w.getMaterialsByCategory){
+  if (!w.getMaterialsByRoom){
     cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">⏳ Viewer pas encore prêt. Réessaie dans un instant.</p>';
     return;
   }
-  
+
   let data;
-  try {
-    data = w.getMaterialsByCategory();
-  } catch(err){
+  try { data = w.getMaterialsByRoom(); }
+  catch(err){
     cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ Erreur viewer : ' + err.message + '</p>';
-    console.error('getMaterialsByCategory error:', err);
+    console.error('getMaterialsByRoom error:', err);
     return;
   }
-  
-  const cats = data.categories || {};
-  const groups = data.groups || {};
-  const catKeys = Object.keys(cats);
-  
-  if (!catKeys.length){
-    cont.innerHTML = '<p class="hint">Aucune catégorie définie dans le viewer.</p>';
-    return;
-  }
-  
-  const hasAny = Object.values(groups).some(arr => arr.length > 0);
-  if (!hasAny){
+
+  const types = data.types || {};
+  const rooms = data.rooms || {};
+  const roomKeys = Object.keys(rooms);
+
+  if (!roomKeys.length){
     cont.innerHTML = '<p class="hint">❌ Aucun matériau trouvé.<br><br>' +
-      '<b>Tes catégories :</b><br>' +
-      '· <code>M_glass_*</code> → Verre<br>' +
-      '· <code>M_architecture_*</code> → Murs, plinthes, etc.<br>' +
-      '· <code>M_sol_*</code> → Sols<br>' +
-      '· <code>M_plastique_*</code> → Plastiques<br>' +
-      '· <code>M_metal_*</code> → Métaux<br><br>' +
+      '<b>Convention de nommage Blender :</b><br>' +
+      '<code>M_&lt;pièce&gt;_&lt;type&gt;_&lt;n°&gt;</code><br>' +
+      'ex : <code>M_salon_glass_01</code>, <code>M_cuisine_wood_02</code><br><br>' +
+      '<b>Types :</b> glass · wood · plastic · metal · ceramic<br><br>' +
       'Clique « 🔄 Recharger » après modification.</p>';
     return;
   }
-  
+
   cont.innerHTML = '';
-  
-  catKeys.forEach(function(cat){
-    const meta = cats[cat] || { label: cat, controls: [] };
-    const items = groups[cat] || [];
-    const open = !!openCategories[cat];
-    
-    if (!items.length) return;  // catégorie vide, la sauter
+
+  // Tri : "Non classé" en dernier, le reste alpha
+  roomKeys.sort(function(a,b){
+    if (a === 'Non classé') return 1;
+    if (b === 'Non classé') return -1;
+    return a.localeCompare(b);
+  });
+
+  roomKeys.forEach(function(room){
+    const typeMap = rooms[room] || {};
+    const nbMat = Object.values(typeMap).reduce(function(s,a){ return s + a.length; }, 0);
+    if (!nbMat) return;
+    if (openRooms[room] === undefined) openRooms[room] = true;
+    const roomOpen = !!openRooms[room];
 
     const section = document.createElement('div');
     section.style.cssText = 'margin-bottom:.6rem;border:1px solid #263149;border-radius:8px;overflow:hidden;';
 
-    // En-tête repliable (CLICKABLE)
+    // En-tête PIÈCE
     const head = document.createElement('div');
-    head.style.cssText = 'width:100%;text-align:left;background:#141c2e;' +
-      'padding:.6rem .8rem;cursor:pointer;' +
-      'display:flex;align-items:center;justify-content:space-between;' +
-      'user-select:none;transition:background .15s;';
-    head.onmouseenter = function(){ head.style.background = '#1a2438'; };
-    head.onmouseleave = function(){ head.style.background = open ? '#1a2438' : '#141c2e'; };
-    if (open) head.style.background = '#1a2438';
-    
+    head.style.cssText = 'width:100%;text-align:left;background:#182238;padding:.6rem .8rem;cursor:pointer;'+
+      'display:flex;align-items:center;justify-content:space-between;user-select:none;';
     const labelSpan = document.createElement('span');
-    labelSpan.style.cssText = 'font:inherit;font-weight:700;font-size:.85rem;color:#e8ecf6;';
-    labelSpan.innerHTML = meta.label + ' <span style="color:#6f7c99;font-weight:500;">(' + items.length + ')</span>';
-    
+    labelSpan.style.cssText = 'font-weight:700;font-size:.9rem;color:#e8ecf6;';
+    labelSpan.innerHTML = '🏠 ' + room + ' <span style="color:#6f7c99;font-weight:500;font-size:.8rem;">(' + nbMat + ')</span>';
     const arrowSpan = document.createElement('span');
     arrowSpan.style.cssText = 'color:#6f7c99;font-size:.8rem;';
-    arrowSpan.textContent = open ? '▾' : '▸';
-    
-    head.appendChild(labelSpan);
-    head.appendChild(arrowSpan);
-    head.onclick = function(){ 
-      openCategories[cat] = !openCategories[cat]; 
-      chargerVerres(); 
-    };
+    arrowSpan.textContent = roomOpen ? '▾' : '▸';
+    head.appendChild(labelSpan); head.appendChild(arrowSpan);
+    head.onclick = function(){ openRooms[room] = !openRooms[room]; chargerVerres(); };
     section.appendChild(head);
 
-    // Corps (matériaux)
-    if (open){
-      const bodyEl = document.createElement('div');
-      bodyEl.style.cssText = 'padding:.6rem .7rem;background:#0d1220;';
-      
-      items.forEach(function(mat, idx){
-        const box = document.createElement('div');
-        box.style.cssText = 'padding:.5rem 0;' + (idx < items.length - 1 ? 'border-bottom:1px solid #1c2740;' : '');
-        
-        let html = '<div style="font-size:.8rem;font-weight:600;color:#c7d0e4;margin-bottom:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + 
-                   mat.name + '</div>';
-        
-        (meta.controls || []).forEach(function(prop){
-          const cm = CTRL_META[prop];
-          if (!cm) return;
-          if (cm.type === 'color'){
-            html += matColorRow(cm.label, mat.id, prop, mat[prop] || '#ffffff');
-          } else if (cm.type === 'toggle'){
-            html += matToggleRow(cm.label, mat.id, prop, mat[prop]);
-          } else {
-            html += matRow(cm.label, mat.id, prop, cm.min, cm.max, cm.step, mat[prop]);
-          }
-        });
-        
-        box.innerHTML = html;
-        bodyEl.appendChild(box);
+    if (roomOpen){
+      // Sous-groupes par TYPE (ordre du registre)
+      const typeKeys = Object.keys(types).filter(function(t){ return typeMap[t] && typeMap[t].length; });
+      // + types éventuels hors registre
+      Object.keys(typeMap).forEach(function(t){ if (typeKeys.indexOf(t) < 0) typeKeys.push(t); });
+
+      typeKeys.forEach(function(type){
+        const items = typeMap[type] || [];
+        if (!items.length) return;
+        const meta = types[type] || { label: type, controls: ['roughness','reflection'] };
+        const tk = room + '::' + type;
+        if (openTypes[tk] === undefined) openTypes[tk] = false;
+        const typeOpen = !!openTypes[tk];
+
+        const sub = document.createElement('div');
+        sub.style.cssText = 'border-top:1px solid #1c2740;';
+
+        const subHead = document.createElement('div');
+        subHead.style.cssText = 'padding:.5rem .8rem .5rem 1.4rem;cursor:pointer;background:#111a2b;'+
+          'display:flex;align-items:center;justify-content:space-between;user-select:none;';
+        const subLabel = document.createElement('span');
+        subLabel.style.cssText = 'font-weight:600;font-size:.8rem;color:#c7d0e4;';
+        subLabel.innerHTML = meta.label + ' <span style="color:#6f7c99;font-weight:500;">(' + items.length + ')</span>';
+        const subArrow = document.createElement('span');
+        subArrow.style.cssText = 'color:#6f7c99;font-size:.75rem;';
+        subArrow.textContent = typeOpen ? '▾' : '▸';
+        subHead.appendChild(subLabel); subHead.appendChild(subArrow);
+        subHead.onclick = function(){ openTypes[tk] = !openTypes[tk]; chargerVerres(); };
+        sub.appendChild(subHead);
+
+        if (typeOpen){
+          const bodyEl = document.createElement('div');
+          bodyEl.style.cssText = 'padding:.5rem .7rem .5rem 1.4rem;background:#0d1220;';
+          items.forEach(function(mat, idx){
+            const box = document.createElement('div');
+            box.style.cssText = 'padding:.5rem 0;' + (idx < items.length - 1 ? 'border-bottom:1px solid #1c2740;' : '');
+            let html = '<div style="font-size:.78rem;font-weight:600;color:#c7d0e4;margin-bottom:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + mat.name + '</div>';
+            (meta.controls || []).forEach(function(prop){
+              const cm = CTRL_META[prop];
+              if (!cm) return;
+              if (cm.type === 'color')      html += matColorRow(cm.label, mat.id, prop, mat[prop] || '#ffffff');
+              else if (cm.type === 'toggle') html += matToggleRow(cm.label, mat.id, prop, mat[prop]);
+              else                           html += matRow(cm.label, mat.id, prop, cm.min, cm.max, cm.step, mat[prop]);
+            });
+            box.innerHTML = html;
+            bodyEl.appendChild(box);
+          });
+          sub.appendChild(bodyEl);
+        }
+        section.appendChild(sub);
       });
-      
-      section.appendChild(bodyEl);
     }
-    
     cont.appendChild(section);
   });
 }
