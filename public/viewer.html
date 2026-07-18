@@ -1275,6 +1275,10 @@ async function init() {
       // La HDRi remplace la réflexion de repli : on libère la sonde devenue inutile.
       if (window.__envFallbackProbe) { try { window.__envFallbackProbe.dispose(); } catch (_) {} window.__envFallbackProbe = null; }
 
+      // La HDRi vient de remplacer la sonde de repli : re-lier la réfraction du
+      // verre sur ce nouvel environnement, sinon le verre reste blanchâtre.
+      if (window.refreshGlassRefraction) window.refreshGlassRefraction();
+
       console.log('✅ HDRi chargée (IBL)');
     });
     hdrTexture.onErrorObservable.add(() => {
@@ -1482,6 +1486,9 @@ async function init() {
 
   await loadManifest();
   await loadWalls();
+  // Si la HDRi est déjà en place, on re-lie la réfraction du verre maintenant
+  // (le callback HDRi s'en charge si elle arrive plus tard).
+  if (window.refreshGlassRefraction) window.refreshGlassRefraction();
   loadRoomsAsync();
 
   // HDRi et skybox gérées par createDefaultEnvironment()
@@ -1844,6 +1851,35 @@ function applyGlassTreatment(root) {
   }
   return glassCount;
 }
+
+/* ----------------------------------------------------------------------------
+   RÉFRACTION VERRE — re-liaison à l'environmentTexture COURANT
+   ----------------------------------------------------------------------------
+   Bug d'ordre de chargement : la réfraction subSurface (sans refractionTexture
+   explicite) se lie à `scene.environmentTexture`. Or au moment où walls.glb
+   compile ses matériaux, l'environmentTexture est encore la SONDE DE REPLI
+   (skybox rendue une fois, laiteuse) — la HDRi arrive en asynchrone APRÈS et
+   remplace l'environmentTexture, mais le matériau verre déjà compilé ne se
+   re-lie pas → verre « blanchâtre ».
+   Décocher/recocher « Réfraction » dans l'éditeur corrigeait l'aspect : ça
+   force `_markAllSubMeshesAsTexturesDirty` et recompile la réfraction sur
+   l'environnement courant. On reproduit EXACTEMENT ce geste au chargement.
+   Aucune valeur du shader n'est modifiée. */
+window.refreshGlassRefraction = function () {
+  var n = 0;
+  (scene.materials || []).forEach(function (mat) {
+    var ss = mat && mat.subSurface;
+    if (ss && ss.isRefractionEnabled) {
+      // false→true : chaque changement de valeur marque les submeshes dirty,
+      // ce qui recompile la réfraction sur l'environmentTexture actuel.
+      ss.isRefractionEnabled = false;
+      ss.isRefractionEnabled = true;
+      n++;
+    }
+  });
+  if (n) console.log('🪟 Réfraction verre re-liée à l\'environnement courant (' + n + ' matériau(x))');
+  return n;
+};
 
 /* ============================================================================
    MATÉRIAUX — moteur de catégories par nomenclature M_<catégorie>_<détail>
@@ -2696,6 +2732,7 @@ function loadRoomsAsync() {
         roomState[r.id].enabled = !!CONFIG.roomsStartVisible;
 
         applyGlassTreatment(node); // vitres du mobilier/pièce : transparence claire
+        if (window.refreshGlassRefraction) window.refreshGlassRefraction();
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
       } catch (err) {
         roomState[r.id].failed = true;

@@ -829,6 +829,11 @@ vw.addEventListener('load', function(){
 /* Le pont nous rappelle quand il est prêt. */
 window.__edPret = function(){
   ed = vw.contentWindow.__ed;
+  // Même correctif que dans le viewer public : dans l'éditeur, l'ordre de
+  // chargement (HDRi asynchrone vs compilation des matériaux) peut laisser la
+  // réfraction du verre liée à la sonde de repli → verre blanchâtre. On force
+  // la re-liaison sur l'environnement courant, sans toucher aux valeurs.
+  try { if (vw.contentWindow.refreshGlassRefraction) vw.contentWindow.refreshGlassRefraction(); } catch(_){}
   document.getElementById('h-name').textContent = ed.nom();
   document.getElementById('st').textContent = 'Prêt.';
   warn('');
@@ -932,7 +937,10 @@ function tab(m){
     if (m==='amb') refreshPostProcess();
     if (m==='light') refreshLighting();
   }
-  if (m==='verre') inspectorRefresh();
+  if (m==='verre') {
+    try { var _w = vwWin(); if (_w && _w.refreshGlassRefraction) _w.refreshGlassRefraction(); } catch(_){}
+    inspectorRefresh();
+  }
 }
 
 /* -------- AMBIANCE : AO + LUMIÈRES -------------------------------------- */
