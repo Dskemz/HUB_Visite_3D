@@ -1275,6 +1275,14 @@ async function init() {
       // La HDRi remplace la réflexion de repli : on libère la sonde devenue inutile.
       if (window.__envFallbackProbe) { try { window.__envFallbackProbe.dispose(); } catch (_) {} window.__envFallbackProbe = null; }
 
+      // Le SSR doit pointer sur la HDRi maintenant qu'elle a remplacé la sonde.
+      try {
+        if (window.ssrPipeline) {
+          window.ssrPipeline.environmentTexture = hdrTexture;
+          window.ssrPipeline.environmentTextureIsProbe = false;
+        }
+      } catch(_){}
+
       // La HDRi vient de remplacer la sonde de repli : re-lier la réfraction du
       // verre sur ce nouvel environnement, sinon le verre reste blanchâtre.
       if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
@@ -1337,6 +1345,25 @@ async function init() {
     console.log('⚠️ lighting-config.json non trouvée, config par défaut');
   }
   
+  // --- LUMIÈRES SUPPRIMÉES DÉFINITIVEMENT ------------------------------------
+  // `windows-fill-1` et `corner-fill` vivent dans lighting-config.json (fichier de
+  // données, hors de ce fichier). On les retire de la config DÈS son chargement :
+  // elles ne sont jamais créées, et elles disparaissent aussi de l'état exporté —
+  // le prochain « Télécharger lighting-config.json » sortira un fichier propre.
+  const LIGHTS_SUPPRIMEES = ['windows-fill-1', 'corner-fill'];
+  (function purgerLumieres(){
+    let n = 0;
+    ['interiorLights', 'editableLights'].forEach(function(cle){
+      if (!Array.isArray(lightConfig[cle])) return;
+      const avant = lightConfig[cle].length;
+      lightConfig[cle] = lightConfig[cle].filter(function(l){
+        return LIGHTS_SUPPRIMEES.indexOf(l && (l.name || l.id)) === -1;
+      });
+      n += avant - lightConfig[cle].length;
+    });
+    if (n) console.log('🗑️ ' + n + ' lumière(s) supprimée(s) : ' + LIGHTS_SUPPRIMEES.join(', '));
+  })();
+
   // --- APPLIQUER LA CONFIG ---
   const sl = lightConfig.spotLight;
   const keyLight = new BABYLON.SpotLight('keyLight',
@@ -1439,10 +1466,15 @@ async function init() {
   // à volonté sans toucher au reste. L'état vit dans window.__lightingState (lu/écrit par
   // l'éditeur) ; window.__lightingBase garde la config d'origine pour l'export.
   window.__lightingBase = JSON.parse(JSON.stringify(lightConfig));
+  // Filet : si une de ces lumières existe déjà dans la scène (créée par un autre
+  // chemin), on la retire pour de bon.
+  LIGHTS_SUPPRIMEES.forEach(function(nom){
+    var L = scene.getLightByName(nom);
+    if (L) { try { L.dispose(); console.log('🗑️ Lumière « ' + nom +' » retirée de la scène'); } catch(_){} }
+  });
   window.__lightingState = {
-    // ⚠️ TEST : l'AO reste dans le projet (réglages conservés et exportés), mais
-    // démarre décochée pour isoler son effet sur le shader de verre.
-    ao: Object.assign({ strength: 1.0, radius: 1.2, base: 0.2 }, lightConfig.ao || {}, { enabled: false }),
+    // AO activée par défaut ; les valeurs de lighting-config.json priment.
+    ao: Object.assign({ enabled: true, strength: 1.0, radius: 1.2, base: 0.2 }, lightConfig.ao || {}),
     lights: Array.isArray(lightConfig.editableLights) ? JSON.parse(JSON.stringify(lightConfig.editableLights)) : []
   };
   const _editableLightObjs = {}; // id → objet lumière Babylon
@@ -1521,19 +1553,20 @@ async function init() {
     return a;
   };
 
-  // --- AO (SSAO2) : créé détaché, attaché seulement quand activé --------------
-  // ⚠️ TEST EN COURS (verre blanc au chargement) : le pipeline SSAO2 est CONSERVÉ
-  // en entier (création, réglages, API setAO, contrôles éditeur inchangés) mais il
-  // n'est PLUS attaché automatiquement au lancement. Objectif : vérifier si c'est
-  // bien son attache — qui (re)monte le geometry buffer / prepass — qui invalide la
-  // liaison de réfraction des matériaux verre. Cocher « Activer l'AO » dans
-  // l'onglet Ambiance l'attache exactement comme avant.
+  // --- AO (SSAO2) : sur son PROPRE geometry buffer -----------------------------
+  // ✅ CLÉ DU PROBLÈME VERRE : la transmission KHR du verre s'appuie sur le
+  // PrePassRenderer. Tant que SSAO2 utilisait lui aussi le prepass, son attache
+  // le reconfigurait et invalidait la liaison de réfraction → vitres blanches.
+  // En passant `forceGeometryBuffer = true` (5e argument), SSAO2 alimente son
+  // propre GeometryBufferRenderer et ne touche PLUS au prepass. Le verre et le
+  // SSR (qui, lui, reste sur le prepass) ne sont donc plus perturbés.
   window.ssao2Pipeline   = null;
-  window.__AO_STATE__    = { enabled:false, strength:1.0, radius:1.2, base:0.2 };
+  window.__AO_STATE__    = { enabled:true, strength:1.0, radius:1.2, base:0.2 };
   window.__AO_STRENGTH__ = 1.0;
   if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
     try {
-      var ssao2 = new BABYLON.SSAO2RenderingPipeline('ssao2', scene, { ssaoRatio:0.5, blurRatio:0.5 }, []);
+      var ssao2 = new BABYLON.SSAO2RenderingPipeline(
+        'ssao2', scene, { ssaoRatio:0.5, blurRatio:0.5 }, [], true); // ⬅️ true = geometry buffer dédié
       ssao2.radius        = 1.2;
       ssao2.totalStrength = 1.0;
       ssao2.base          = 0.2;
@@ -1542,10 +1575,11 @@ async function init() {
       ssao2.minZAspect    = 0.5;
       ssao2.expensiveBlur = false;
       window.ssao2Pipeline = ssao2;
-      // ⚠️ TEST : attache au lancement DÉSACTIVÉE (ligne d'origine conservée juste
-      // en dessous — la ré-activer suffit à revenir au comportement précédent).
-      // try { scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline('ssao2', [camera]); } catch(_){}
-      console.log('✅ AO (SSAO2) prêt — NON attaché au démarrage (test verre) ; activable dans Ambiance');
+      // AO activée au démarrage (exigence projet).
+      try { scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline('ssao2', [camera]); } catch(_){}
+      // Filet de sécurité : re-lier la réfraction du verre une fois tout monté.
+      if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
+      console.log('✅ AO (SSAO2) activée — geometry buffer dédié (prepass laissé au verre/SSR)');
     } catch (e) { console.warn('⚠️ SSAO2 non créé :', e.message); }
   }
   // API AO pour l'éditeur : attache/détache + règle en direct.
@@ -1588,9 +1622,20 @@ async function init() {
       ssr.attenuateScreenBorders            = true;
       ssr.attenuateFacingCamera             = false;
       ssr.clipToFrustum                     = true;
-      ssr.isEnabled                         = false;   // éteint au départ (rendu inchangé)
+      // Filet indispensable : un rayon qui sort de l'écran ou ne touche rien doit
+      // retomber sur l'environnement, sinon il rend NOIR et le SSR semble inerte.
+      try {
+        if (scene.environmentTexture) {
+          ssr.environmentTexture = scene.environmentTexture;
+          ssr.environmentTextureIsProbe = !!window.__envFallbackProbe;
+        }
+      } catch(_){}
+      ssr.isEnabled                         = true;    // activé (le prepass lui est réservé)
       window.ssrPipeline = ssr;
-      console.log('✅ SSR prêt (isEnabled=false — activable dans Post-process)');
+      window.__SSR_STATE__.enabled = true;
+      // Le SSR reconfigure le prepass à son activation → re-lier le verre après.
+      if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
+      console.log('✅ SSR activé (prepass) — fallback environnement branché');
     } catch (e) { console.warn('⚠️ SSR non créé :', e.message); }
   }
   window.setSSR = function(opts){
@@ -2961,6 +3006,18 @@ function enterPanoramaCamera(eyePos, lookAt) {
     if (fpCamera.inputs && fpCamera.inputs.attached && fpCamera.inputs.attached.mouse) {
       fpCamera.inputs.attached.mouse.buttons = [0];
     }
+    // Les pipelines écran ne sont attachés qu'à la caméra principale à leur
+    // création : sans ça, AO et SSR disparaissent complètement en vue POV.
+    try {
+      var _mgr = scene.postProcessRenderPipelineManager;
+      if (window.ssao2Pipeline && window.__AO_STATE__ && window.__AO_STATE__.enabled) {
+        _mgr.attachCamerasToRenderPipeline('ssao2', fpCamera);
+      }
+      if (window.ssrPipeline) {
+        _mgr.attachCamerasToRenderPipeline('ssr', fpCamera);
+      }
+      if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
+    } catch (e) { console.warn('⚠️ Pipelines non attachés à la fpCamera :', e.message); }
   }
   fpCamera.position.copyFrom(eyePos);
   fpCamera.fov = CONFIG.firstPersonFovWide;
