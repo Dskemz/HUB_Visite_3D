@@ -47,6 +47,9 @@
       --brand-navy:#0B1B3F; --brand-navy-rgb:11,27,63;
       --brand-accent:#0046FE; --brand-accent-rgb:0,70,254;
       --brand-accent-dark:#0038cc;
+      /* Gabarit des miniatures photo du panneau POV. Une seule valeur à changer
+         ici si l'on veut du 3/2 ou du 16/9. */
+      --photo-ratio: 4 / 3;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--brand-navy); }
@@ -378,6 +381,12 @@
     .fp-photo-title { color: var(--brand-navy); font-size: 1.05rem; font-weight: 700; }
     .fp-photo-frame {
       width: 100%;
+      /* GABARIT FIXE — sans hauteur imposée, le cadre prenait le ratio propre de
+         chaque photo, et valait 0 tant qu'elle n'était pas chargée : le panneau
+         « sautait » à l'arrivée de l'image, d'une hauteur différente à chaque POV.
+         Avec un ratio fixe la place est réservée d'emblée et identique partout ;
+         seul le NOMBRE de photos fait descendre les boutons. */
+      aspect-ratio: var(--photo-ratio, 4 / 3);
       border-radius: 8px;
       overflow: hidden;
       cursor: zoom-in;
@@ -385,7 +394,9 @@
       background: #eef2f7;
       position: relative;
     }
-    .fp-photo-frame img { width: 100%; display: block; object-fit: cover; }
+    /* height:100% est indispensable : sans elle, object-fit:cover n'a aucun effet
+       et l'image reprend son ratio d'origine, ce qui réintroduit le saut. */
+    .fp-photo-frame img { width: 100%; height: 100%; display: block; object-fit: cover; }
     .fp-photo-frame::after {
       content: '⤢';
       position: absolute;
