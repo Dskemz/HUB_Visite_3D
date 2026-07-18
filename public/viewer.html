@@ -3184,6 +3184,12 @@ function goToPOI(poiId) {
   // (Les pastilles POV ayant été retirées du viewer sur téléphone, l'accès POV se
   //  fait désormais par le menu. Les photos restent accessibles via leur bouton
   //  dédié « Photos » → openPhotosFromMenu().)
+  // Déjà immergé : on VOLE d'un POV à l'autre au lieu de repasser par la caméra
+  // orbite (qui n'est plus la caméra active → transition invisible puis coupe).
+  if (isFirstPerson && fpCamera && scene.activeCamera === fpCamera) {
+    if (poi.id === currentPoiId) return;      // déjà sur place
+    if (travelBetweenPovs(poi)) return;
+  }
   enterFirstPerson(poi);
 }
 
@@ -3511,6 +3517,89 @@ function enterFirstPerson(poi) {
       console.log('✅ Vue 1ère personne :', poi.id);
     }
   });
+}
+
+/* ----------------------------------------------------------------------------
+   VOL D'UN POV À L'AUTRE (déjà en vue 1ère personne)
+   ----------------------------------------------------------------------------
+   `enterFirstPerson` anime l'ArcRotateCamera puis bascule sur la fpCamera à la
+   fin. Depuis un POV, cette caméra orbite n'est PLUS la caméra active : on
+   animait donc une caméra invisible pendant 100 frames, et l'arrivée se faisait
+   par une coupe sèche. Ici on déplace directement la fpCamera — position ET
+   regard — donc le trajet est visible et continu.
+   -------------------------------------------------------------------------- */
+function travelBetweenPovs(poi) {
+  if (isAnimating || !fpCamera) return false;
+
+  const endPos = poiCamPos(poi);
+  const lookAt = poiCamTarget(poi);
+
+  const startPos   = fpCamera.position.clone();
+  const startYaw   = fpCamera.rotation.y;
+  const startPitch = fpCamera.rotation.x;
+  const startFov   = fpCamera.fov;
+
+  // Orientation d'arrivée, même convention que enterPanoramaCamera.
+  const dir = lookAt.subtract(endPos).normalize();
+  const endPitch = -Math.asin(BABYLON.Scalar.Clamp(dir.y, -0.999, 0.999));
+  const endYaw   = Math.atan2(dir.x, dir.z);
+  const endFov   = CONFIG.firstPersonFovWide;
+
+  // Chemin angulaire le plus court : sans ça, passer de +170° à -170° fait faire
+  // un tour complet à l'envers (340° au lieu de 20°).
+  let dYaw = endYaw - startYaw;
+  while (dYaw >  Math.PI) dYaw -= 2 * Math.PI;
+  while (dYaw < -Math.PI) dYaw += 2 * Math.PI;
+
+  isAnimating = true;
+  isTopView = false;
+  isFirstPerson = true;
+  currentPoiId = poi.id;
+
+  // On rend la main au moteur pendant le vol : ni contrôle souris/tactile, ni
+  // clamp de tangage, ni zoom — tout est rétabli à l'arrivée par
+  // enterPanoramaCamera().
+  try { fpCamera.detachControl(); } catch (_) {}
+  disablePovZoom();
+  if (fpPitchObserver) {
+    scene.onBeforeRenderObservable.remove(fpPitchObserver);
+    fpPitchObserver = null;
+  }
+  if (currentAnimObserver) {
+    scene.onBeforeRenderObservable.remove(currentAnimObserver);
+    currentAnimObserver = null;
+  }
+
+  // Durée proportionnelle à la distance : un POV voisin ne doit pas mettre aussi
+  // longtemps qu'une traversée de l'appartement.
+  const dist = BABYLON.Vector3.Distance(startPos, endPos);
+  const totalFrames = Math.round(BABYLON.Scalar.Clamp(40 + dist * 9, 40, 110));
+  let frame = 0;
+
+  currentAnimObserver = scene.onBeforeRenderObservable.add(() => {
+    frame++;
+    const t = Math.min(frame / totalFrames, 1);
+    const eased = easeInOut(t);
+
+    fpCamera.position.copyFrom(BABYLON.Vector3.Lerp(startPos, endPos, eased));
+    fpCamera.rotation.y = startYaw + dYaw * eased;
+    fpCamera.rotation.x = startPitch + (endPitch - startPitch) * eased;
+    fpCamera.rotation.z = 0;
+    fpCamera.fov = startFov + (endFov - startFov) * eased;
+
+    if (t >= 1) {
+      scene.onBeforeRenderObservable.remove(currentAnimObserver);
+      currentAnimObserver = null;
+      isAnimating = false;
+      // Rétablit l'état POV complet : pose exacte, clamp de tangage, contrôles,
+      // molette et pincement.
+      enterPanoramaCamera(endPos, lookAt);
+      showFirstPersonPhoto(poi);
+      updateToggleButton();
+      console.log('✅ Vol POV → POV :', poi.id);
+    }
+  });
+  return true;
 }
 
 /* Re-render le panneau POV si la pièce qui vient de charger est celle du POV
