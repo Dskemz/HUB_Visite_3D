@@ -285,13 +285,14 @@
           </label>
           <p class="hint" style="margin:0 0 .6rem;font-size:.68rem;">Toutes les valeurs sont neutres au départ : tant que rien n'est bougé, le rendu est strictement identique. Décocher rend le rendu d'origine.</p>
 
+          <div style="font-size:.72rem;color:#6f7c99;margin-bottom:.35rem;">Ambiances — recliquer désactive et restaure l'état précédent</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.8rem;">
-            <button class="btn" onclick="loadPreset('neutral')" style="font-size:.7rem;padding:.4rem .5rem;">📸 Studio Neutre</button>
-            <button class="btn" onclick="loadPreset('warm')" style="font-size:.7rem;padding:.4rem .5rem;">🔥 Cinéma Chaleur</button>
-            <button class="btn" onclick="loadPreset('cool')" style="font-size:.7rem;padding:.4rem .5rem;">❄️ Froid Moderne</button>
-            <button class="btn" onclick="loadPreset('golden')" style="font-size:.7rem;padding:.4rem .5rem;">🌅 Matin Doré</button>
-            <button class="btn" onclick="loadPreset('night')" style="font-size:.7rem;padding:.4rem .5rem;">🌃 Nuit Urbaine</button>
-            <button class="btn sec" onclick="gradeReset()" style="font-size:.7rem;padding:.4rem .5rem;">↺ Réinitialiser</button>
+            <button class="btn" id="preset-neutre"      onclick="loadPreset('neutre')"      style="font-size:.7rem;padding:.4rem .5rem;">📸 Studio neutre</button>
+            <button class="btn" id="preset-jour"        onclick="loadPreset('jour')"        style="font-size:.7rem;padding:.4rem .5rem;">🪟 Lumière du jour</button>
+            <button class="btn" id="preset-froid"       onclick="loadPreset('froid')"       style="font-size:.7rem;padding:.4rem .5rem;">❄️ Froid moderne</button>
+            <button class="btn" id="preset-fin_journee" onclick="loadPreset('fin_journee')" style="font-size:.7rem;padding:.4rem .5rem;">🌅 Fin de journée</button>
+            <button class="btn" id="preset-soiree"      onclick="loadPreset('soiree')"      style="font-size:.7rem;padding:.4rem .5rem;">🌙 Soirée</button>
+            <button class="btn sec" onclick="gradeReset()" style="font-size:.7rem;padding:.4rem .5rem;">↺ Curseurs à zéro</button>
           </div>
 
           <details class="fold">
@@ -366,7 +367,7 @@
           <details class="fold">
             <summary><span class="dot"></span>Courbes RVB<span class="ar">▶</span></summary>
             <div class="bd">
-              <div style="font-size:.75rem;color:#6f7c99;margin-bottom:.5rem;">Clic pour ajouter point • Glisser pour ajuster • Double-clic pour supprimer</div>
+              <div style="font-size:.75rem;color:#6f7c99;margin-bottom:.5rem;">S'applique <b>par-dessus</b> l'ambiance active.<br>Clic pour ajouter un point • Glisser pour ajuster • Double-clic pour supprimer</div>
               <div style="position:relative;margin-bottom:.5rem;background:#0d1220;border-radius:6px;overflow:hidden;border:1px solid #263149;">
                 <canvas id="rgb-curve-canvas" width="280" height="200" style="display:block;width:100%;"></canvas>
               </div>
@@ -911,6 +912,12 @@ const PONT = `
       setGrade:   function(o){ if (typeof window.setImageGrade==='function') window.setImageGrade(o); },
       resetGrade: function(){ return (typeof window.resetImageGrade==='function') ? window.resetImageGrade() : null; },
 
+      /* ===== PRESETS D'AMBIANCE (couche base, réversible) ===== */
+      applyPreset: function(nom, def){ return (typeof window.applyGradePreset==='function') ? window.applyGradePreset(nom, def) : null; },
+      clearPreset: function(){ return (typeof window.clearGradePreset==='function') ? window.clearGradePreset() : null; },
+      activePreset:function(){ return (typeof window.getGradePreset==='function') ? window.getGradePreset() : null; },
+      aoState:     function(){ return (typeof window.getAOState==='function') ? window.getAOState() : null; },
+
       /* Export du lighting-config.json — CONSTRUIT DEPUIS LA SCÈNE RÉELLE.
          Avant, on recopiait __lightingBase (photo du fichier chargé) : une lumière
          supprimée dans l'éditeur ressortait dans le JSON et revenait au rechargement. */
@@ -1261,7 +1268,9 @@ function gradeRefresh(){
   var h = document.getElementById('g-hue'), vh = document.getElementById('v-g-hue');
   if (h){ h.value = g.hue; }
   if (vh){ vh.textContent = (+g.hue).toFixed(2) + '°'; }
-  if (g.curves) window.rgbCurves = JSON.parse(JSON.stringify(g.curves));
+  if (g.curves) rgbCurves = JSON.parse(JSON.stringify(g.curves));
+  if (ed.activePreset) presetActif = ed.activePreset();
+  if (typeof majBoutonsPreset === 'function') majBoutonsPreset();
   drawRgbCurve();
 }
 
@@ -1281,7 +1290,7 @@ function gradeSet(){
     var vh = document.getElementById('v-g-hue');
     if (vh) vh.textContent = o.hue.toFixed(2) + '°';
   }
-  o.curves = window.rgbCurves || {r: [], g: [], b: []};
+  o.curves = rgbCurves || { r:[[0,0],[1,1]], g:[[0,0],[1,1]], b:[[0,0],[1,1]] };
   o.tonemap = false;
   ed.setGrade(o);
 }
@@ -1291,21 +1300,40 @@ function gradeReset(){
   ed.resetGrade();
   gradeRefresh();
   gradeSet();          // ré-applique les valeurs neutres au shader
-  flash('↺ Traitement image réinitialisé');
+  flash('↺ Curseurs remis à zéro' + (presetActif ? ' (ambiance conservée)' : ''));
 }
 
 // ==================== COURBES RGB ====================
 let rgbCurves = { r: [[0, 0], [1, 1]], g: [[0, 0], [1, 1]], b: [[0, 0], [1, 1]] };
 let activeCurvePoint = null;
 let activeCurveChannel = null;
+const CURVE_PAD = 20;   // marge intérieure du graphe, en pixels canvas
+
+// Clic écran → coordonnées 0..1 du graphe (mêmes que celles du tracé).
+function curveNorm(e){
+  const cv = e.currentTarget || e.target;
+  const r  = cv.getBoundingClientRect();
+  const sx = cv.width  / r.width;
+  const sy = cv.height / r.height;
+  const px = (e.clientX - r.left) * sx - CURVE_PAD;
+  const py = (e.clientY - r.top)  * sy - CURVE_PAD;
+  const iw = cv.width  - 2 * CURVE_PAD;
+  const ih = cv.height - 2 * CURVE_PAD;
+  return {
+    x: Math.max(0, Math.min(1, px / iw)),
+    y: Math.max(0, Math.min(1, 1 - py / ih))
+  };
+}
 
 function initRgbCurve(){
   const canvas = document.getElementById('rgb-curve-canvas');
   if (!canvas) return;
   canvas.addEventListener('mousedown', curveMouseDown);
   canvas.addEventListener('mousemove', curveMouseMove);
-  canvas.addEventListener('mouseup', curveMouseUp);
   canvas.addEventListener('dblclick', curveDblClick);
+  // Relâche au niveau document : sinon un point reste « collé » si la souris
+  // quitte le canvas pendant le glissement.
+  document.addEventListener('mouseup', curveMouseUp);
   drawRgbCurve();
 }
 
@@ -1314,7 +1342,7 @@ function drawRgbCurve(){
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height;
-  const pad = 20;
+  const pad = CURVE_PAD;
   const inner = { x: pad, y: pad, w: w - 2*pad, h: h - 2*pad };
   
   ctx.fillStyle = '#0d1220';
@@ -1369,124 +1397,182 @@ function drawRgbCurve(){
   });
 }
 
+function canauxVisibles(){
+  return ['r','g','b'].filter(function(k){
+    var el = document.getElementById('curve-channel-' + k);
+    return !el || el.checked;
+  });
+}
+
 function curveMouseDown(e){
-  const canvas = e.target;
-  const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left) / rect.width;
-  const y = (e.clientY - rect.top) / rect.height;
-  const norm = { x: Math.max(0, Math.min(1, x * (canvas.width / rect.width) / canvas.width)), 
-                 y: 1 - Math.max(0, Math.min(1, y * (canvas.height / rect.height) / canvas.height)) };
-  
-  for (let ch of ['r', 'g', 'b']){
+  const norm = curveNorm(e);
+
+  // Saisir un point existant (canaux visibles uniquement).
+  for (let ch of canauxVisibles()){
     const points = rgbCurves[ch] || [];
     for (let p of points){
       const dx = norm.x - p[0], dy = norm.y - p[1];
-      if (dx*dx + dy*dy < 0.01){
+      if (dx*dx + dy*dy < 0.0025){
         activeCurvePoint = p;
         activeCurveChannel = ch;
+        drawRgbCurve();
         return;
       }
     }
   }
-  
-  if (x >= 0 && x <= 1 && y >= 0 && y <= 1){
-    const newPoint = [Math.round(norm.x * 100) / 100, Math.round(norm.y * 100) / 100];
-    const ch = activeCurveChannel || 'r';
-    if (!rgbCurves[ch]) rgbCurves[ch] = [];
-    rgbCurves[ch].push(newPoint);
-    activeCurvePoint = newPoint;
+
+  // Sinon en créer un sur chaque canal visible (le dernier devient actif).
+  const vis = canauxVisibles();
+  if (!vis.length) return;
+  vis.forEach(function(ch){
+    if (!rgbCurves[ch]) rgbCurves[ch] = [[0,0],[1,1]];
+    const p = [Math.round(norm.x * 1000) / 1000, Math.round(norm.y * 1000) / 1000];
+    rgbCurves[ch].push(p);
+    activeCurvePoint = p;
     activeCurveChannel = ch;
-    gradeSet();
-  }
+  });
+  drawRgbCurve();
+  gradeSet();
 }
 
 function curveMouseMove(e){
   if (!activeCurvePoint) return;
-  const canvas = e.currentTarget;
-  const rect = canvas.getBoundingClientRect();
-  const norm = {
-    x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-    y: 1 - Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
-  };
-  activeCurvePoint[0] = Math.round(norm.x * 100) / 100;
-  activeCurvePoint[1] = Math.round(norm.y * 100) / 100;
+  const norm = curveNorm(e);
+  // Les extrémités ne glissent que verticalement : la courbe garde ses bornes.
+  if (activeCurvePoint[0] !== 0 && activeCurvePoint[0] !== 1){
+    activeCurvePoint[0] = Math.round(norm.x * 1000) / 1000;
+  }
+  activeCurvePoint[1] = Math.round(norm.y * 1000) / 1000;
   drawRgbCurve();
   gradeSet();
 }
 
 function curveMouseUp(){
+  if (!activeCurvePoint) return;
   activeCurvePoint = null;
+  drawRgbCurve();
 }
 
 function curveDblClick(e){
-  const canvas = e.target;
-  const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left) / rect.width;
-  const y = (e.clientY - rect.top) / rect.height;
-  const norm = { x: Math.max(0, Math.min(1, x)), y: 1 - Math.max(0, Math.min(1, y)) };
+  const norm = curveNorm(e);
   
-  for (let ch of ['r', 'g', 'b']){
+  let supprime = false;
+  for (let ch of canauxVisibles()){
     const points = rgbCurves[ch] || [];
     for (let i = points.length - 1; i >= 0; i--){
       const p = points[i];
       const dx = norm.x - p[0], dy = norm.y - p[1];
-      if (dx*dx + dy*dy < 0.01 && (p[0] !== 0 && p[0] !== 1)){
+      if (dx*dx + dy*dy < 0.0025 && p[0] !== 0 && p[0] !== 1){
         points.splice(i, 1);
-        drawRgbCurve();
-        gradeSet();
-        return;
+        supprime = true;
+        break;
       }
     }
   }
+  if (supprime){ activeCurvePoint = null; drawRgbCurve(); gradeSet(); }
 }
 
-// ==================== PRESETS ====================
+// ==================== PRESETS D'AMBIANCE ====================
+// Calibrés « photographie d'architecture » : du contraste et une dominante
+// assumée, mais la peinture blanche reste blanche et les visages resteraient
+// crédibles. Chaque preset pose une COUCHE DE BASE réversible : les curseurs
+// fins de l'éditeur continuent de s'appliquer par-dessus, et le décocher
+// restaure exactement l'état d'avant (AO comprise).
 const GRADE_PRESETS = {
-  neutral: {
-    exposure: 0, brightness: 0, contrast: 1, gamma: 1,
-    saturation: 1, value: 1, temperature: 0, tint: 0,
-    lift: 0, gain: 1, hue: 0,
-    curves: { r: [[0, 0], [1, 1]], g: [[0, 0], [1, 1]], b: [[0, 0], [1, 1]] }
+  neutre: {
+    label: 'Studio neutre',
+    exposure: 0.06, contrast: 1.09, gamma: 0.995,
+    saturation: 1.04, value: 1.0, temperature: 0.01, tint: 0,
+    lift: 0.004, gain: 1.015, hue: 0,
+    curves: {
+      r: [[0,0],[0.25,0.235],[0.75,0.775],[1,1]],
+      g: [[0,0],[0.25,0.235],[0.75,0.775],[1,1]],
+      b: [[0,0],[0.25,0.235],[0.75,0.775],[1,1]]
+    },
+    ao: { enabled:true, strength:0.85, radius:1.2, base:0.22 }
   },
-  warm: {
-    exposure: 0.02, brightness: 0, contrast: 1.01, gamma: 1,
-    saturation: 1.05, value: 1, temperature: 0.015, tint: -0.008,
-    lift: 0.001, gain: 1.01, hue: 0.1,
-    curves: { r: [[0, 0], [0.5, 0.52], [1, 1]], g: [[0, 0], [0.5, 0.5], [1, 1]], b: [[0, 0], [0.5, 0.48], [1, 1]] }
+  jour: {
+    label: 'Lumière du jour',
+    exposure: 0.11, contrast: 1.13, gamma: 1.0,
+    saturation: 1.10, value: 1.0, temperature: 0.16, tint: -0.04,
+    lift: 0.008, gain: 1.02, hue: 0,
+    curves: {
+      r: [[0,0.004],[0.25,0.255],[0.75,0.80],[1,1]],
+      g: [[0,0],[0.25,0.24],[0.75,0.78],[1,0.998]],
+      b: [[0,0],[0.25,0.225],[0.75,0.755],[1,0.99]]
+    },
+    ao: { enabled:true, strength:1.0, radius:1.25, base:0.20 }
   },
-  cool: {
-    exposure: 0, brightness: -0.002, contrast: 1.02, gamma: 0.99,
-    saturation: 1.08, value: 1, temperature: -0.015, tint: 0.01,
-    lift: 0, gain: 1, hue: -0.3,
-    curves: { r: [[0, 0], [0.5, 0.48], [1, 1]], g: [[0, 0], [0.5, 0.5], [1, 1]], b: [[0, 0], [0.5, 0.55], [1, 1]] }
+  froid: {
+    label: 'Froid moderne',
+    exposure: 0.03, contrast: 1.17, gamma: 0.985,
+    saturation: 0.95, value: 1.0, temperature: -0.14, tint: 0.05,
+    lift: 0.002, gain: 1.03, hue: 0,
+    curves: {
+      r: [[0,0],[0.25,0.22],[0.75,0.755],[1,0.99]],
+      g: [[0,0.002],[0.25,0.235],[0.75,0.775],[1,1]],
+      b: [[0,0.012],[0.25,0.26],[0.75,0.80],[1,1]]
+    },
+    ao: { enabled:true, strength:1.2, radius:1.1, base:0.16 }
   },
-  golden: {
-    exposure: 0.015, brightness: 0.001, contrast: 1.015, gamma: 1.02,
-    saturation: 1.1, value: 1.05, temperature: 0.018, tint: -0.005,
-    lift: 0.002, gain: 1.02, hue: 0.25,
-    curves: { r: [[0, 0], [0.3, 0.35], [0.7, 0.75], [1, 1]], g: [[0, 0], [0.3, 0.3], [0.7, 0.7], [1, 1]], b: [[0, 0], [0.3, 0.2], [0.7, 0.6], [1, 0.95]] }
+  fin_journee: {
+    label: 'Fin de journée',
+    exposure: 0.09, contrast: 1.11, gamma: 1.02,
+    saturation: 1.14, value: 1.0, temperature: 0.25, tint: -0.06,
+    lift: 0.014, gain: 1.01, hue: 0,
+    curves: {
+      r: [[0,0.010],[0.25,0.275],[0.75,0.82],[1,1]],
+      g: [[0,0.004],[0.25,0.24],[0.75,0.775],[1,0.99]],
+      b: [[0,0],[0.25,0.205],[0.75,0.715],[1,0.955]]
+    },
+    ao: { enabled:true, strength:0.8, radius:1.4, base:0.24 }
   },
-  night: {
-    exposure: -0.01, brightness: -0.003, contrast: 1.1, gamma: 1.05,
-    saturation: 0.95, value: 0.95, temperature: -0.012, tint: 0.008,
-    lift: -0.001, gain: 1.05, hue: -0.15,
-    curves: { r: [[0, 0.05], [0.5, 0.5], [1, 0.95]], g: [[0, 0], [0.5, 0.48], [1, 0.95]], b: [[0, 0.15], [0.5, 0.58], [1, 1]] }
+  soiree: {
+    label: 'Soirée',
+    exposure: -0.10, contrast: 1.21, gamma: 1.03,
+    saturation: 0.92, value: 1.0, temperature: -0.09, tint: 0.03,
+    lift: 0.010, gain: 1.05, hue: 0,
+    curves: {
+      r: [[0,0.006],[0.25,0.215],[0.75,0.755],[1,0.985]],
+      g: [[0,0.008],[0.25,0.225],[0.75,0.765],[1,0.99]],
+      b: [[0,0.020],[0.25,0.265],[0.75,0.80],[1,1]]
+    },
+    ao: { enabled:true, strength:1.35, radius:1.05, base:0.14 }
   }
 };
 
+let presetActif = null;
+
+// Clic sur un preset déjà actif = désactivation → retour exact à l'état d'avant.
 function loadPreset(name){
-  if (!ed || !ed.setGrade || !GRADE_PRESETS[name]) return;
-  const p = GRADE_PRESETS[name];
-  document.getElementById('f-grade-on').checked = true;
-  GRADE_FIELDS.forEach(f => {
-    const el = document.getElementById('g-' + f[0]);
-    if (el && p[f[0]] !== undefined) el.value = p[f[0]];
+  if (!ed || !ed.applyPreset || !GRADE_PRESETS[name]) return;
+  if (presetActif === name){
+    ed.clearPreset();
+    presetActif = null;
+    majBoutonsPreset();
+    gradeRefresh();
+    flash('↩ Preset retiré — réglages précédents restaurés');
+    return;
+  }
+  ed.applyPreset(name, GRADE_PRESETS[name]);
+  presetActif = name;
+  var on = document.getElementById('f-grade-on');
+  if (on) on.checked = true;
+  majBoutonsPreset();
+  gradeRefresh();
+  flash('✨ Ambiance « ' + GRADE_PRESETS[name].label + ' »');
+}
+
+function majBoutonsPreset(){
+  Object.keys(GRADE_PRESETS).forEach(function(k){
+    var b = document.getElementById('preset-' + k);
+    if (!b) return;
+    var on = (presetActif === k);
+    b.style.background   = on ? '#26325a' : '';
+    b.style.borderColor  = on ? '#4a63a8' : '';
+    b.style.color        = on ? '#fff' : '';
+    b.style.fontWeight   = on ? '700' : '';
   });
-  const hel = document.getElementById('g-hue');
-  if (hel && p.hue !== undefined) hel.value = p.hue;
-  rgbCurves = JSON.parse(JSON.stringify(p.curves));
-  gradeSet();
-  flash('✨ Preset « ' + {neutral:'Studio Neutre', warm:'Cinéma Chaleur', cool:'Froid Moderne', golden:'Matin Doré', night:'Nuit Urbaine'}[name] + ' » appliqué');
 }
 
 // Init des courbes au chargement
