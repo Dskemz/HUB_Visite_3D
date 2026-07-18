@@ -1340,7 +1340,7 @@ async function init() {
   // données, hors de ce fichier). On les retire de la config DÈS son chargement :
   // elles ne sont jamais créées, et elles disparaissent aussi de l'état exporté —
   // le prochain « Télécharger lighting-config.json » sortira un fichier propre.
-  const LIGHTS_SUPPRIMEES = ['windows-fill-1'];
+  const LIGHTS_SUPPRIMEES = ['window-fill-1'];
   (function purgerLumieres(){
     let n = 0;
     ['interiorLights', 'editableLights'].forEach(function(cle){
