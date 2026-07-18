@@ -1274,6 +1274,8 @@ async function init() {
       scene.environmentIntensity = 1.0;  // défaut Sandbox (aucune amplification)
       // La HDRi remplace la réflexion de repli : on libère la sonde devenue inutile.
       if (window.__envFallbackProbe) { try { window.__envFallbackProbe.dispose(); } catch (_) {} window.__envFallbackProbe = null; }
+      // La HDRi remplace l'environnement → re-lier la réfraction du verre.
+      if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
 
       console.log('✅ HDRi chargée (IBL)');
     });
@@ -1540,7 +1542,7 @@ async function init() {
 
   // --- AO (SSAO2) : créé détaché, attaché seulement quand activé --------------
   window.ssao2Pipeline   = null;
-  window.__AO_STATE__    = { enabled:true, strength:1.0, radius:1.2, base:0.2 };
+  window.__AO_STATE__    = { enabled:false, strength:1.0, radius:1.2, base:0.2 };
   window.__AO_STRENGTH__ = 1.0;
   if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
     try {
@@ -1869,6 +1871,43 @@ function applyGlassTreatment(root) {
   }
   return glassCount;
 }
+
+/* ----------------------------------------------------------------------------
+   RÉFRACTION VERRE — re-liaison à l'environmentTexture COURANT
+   ----------------------------------------------------------------------------
+   Bug d'ordre de chargement : la réfraction subSurface (sans refractionTexture
+   explicite) se lie à `scene.environmentTexture`. Or au moment où walls.glb
+   compile ses matériaux, l'environmentTexture est encore la SONDE DE REPLI
+   (skybox rendue une fois, laiteuse) — la HDRi arrive en asynchrone APRÈS et
+   remplace l'environmentTexture, mais le matériau verre déjà compilé ne se
+   re-lie pas → verre « blanchâtre ».\n   Re-lier force la recompilation sur
+   l'environnement courant. Aucune valeur du shader n'est modifiée. */
+window.refreshGlassRefraction = function () {
+  var n = 0;
+  (scene.materials || []).forEach(function (mat) {
+    var ss = mat && mat.subSurface;
+    if (!ss || !ss.isRefractionEnabled) return;
+    ss.isRefractionEnabled = false;
+    ss.isRefractionEnabled = true;
+    try { mat.markAsDirty(BABYLON.Material.TextureDirtyFlag); } catch (_) {}
+    n++;
+  });
+  if (n) console.log('🪟 Réfraction verre re-liée à l\'environnement courant (' + n + ' matériau(x))');
+  return n;
+};
+
+/* Re-bind DIFFÉRÉ — indispensable : la réfraction doit être recompilée APRÈS
+   que le prepass / geometry buffer soit réellement monté. On attend quelques
+   frames RÉELLEMENT rendues avant de re-lier. */
+window.refreshGlassRefractionDeferred = function (frames) {
+  var left = (frames == null) ? 3 : frames;
+  var obs = scene.onAfterRenderObservable.add(function () {
+    if (--left > 0) return;
+    scene.onAfterRenderObservable.remove(obs);
+    window.refreshGlassRefraction();
+  });
+};
+
 
 /* ============================================================================
    MATÉRIAUX — moteur de catégories par nomenclature M_<catégorie>_<détail>
@@ -2275,6 +2314,7 @@ async function loadWalls() {
     } catch (e) { /* caps absentes : filtrage par défaut conservé */ }
     // Vitres : réfraction alignée sur l'IOR du shader (~1.01), sinon défaut 1.5 = distorsion
     applyGlassTreatment(wallsRoot);
+    if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(4);
   } catch (err) {
     console.error('Échec chargement walls.glb :', err);
     document.querySelector('#loading-bar h3').textContent = 'Modèle introuvable (walls.glb)';
@@ -2721,6 +2761,7 @@ function loadRoomsAsync() {
         roomState[r.id].enabled = !!CONFIG.roomsStartVisible;
 
         applyGlassTreatment(node); // vitres du mobilier/pièce : transparence claire
+        if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
       } catch (err) {
         roomState[r.id].failed = true;
