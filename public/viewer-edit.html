@@ -22,9 +22,11 @@
            opacity:0;transition:opacity .2s;pointer-events:none;z-index:5}
     #flash.on{opacity:1}
 
-    /* Panneau d'edition, HORS du viewer */
+    /* Panneau d'edition, HORS du viewer.
+       Deux colonnes : le rail d'intercalaires collé au bord, puis le contenu. */
     #side{width:330px;flex:0 0 330px;background:#111827;border-left:1px solid #212c44;
-          display:flex;flex-direction:column;overflow:hidden;transition:width .05s linear}
+          display:flex;flex-direction:row;overflow:hidden;transition:width .05s linear}
+    #side-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
     #resize-handle{width:12px;flex:0 0 12px;cursor:ew-resize;background:#0d1220;
                    border-left:1px solid #1c2740;border-right:1px solid #2c3854;
                    display:flex;align-items:center;justify-content:center;touch-action:none}
@@ -37,10 +39,31 @@
     .hd h1{font-size:1.05rem;font-weight:800;margin-top:.25rem}
     .hd .p{font-size:.76rem;color:#6f7c99;margin-top:.3rem;font-family:ui-monospace,monospace}
 
-    .tabs{display:flex;gap:.35rem;padding:.8rem 1.1rem 0}
-    .tab{flex:1;padding:.5rem;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer;
+    /* Style générique .tab — RÉUTILISÉ par les arbres Matériaux et Lighting.
+       Ne pas y toucher : le rail ci-dessous surcharge uniquement ses enfants. */
+    .tab{padding:.5rem;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer;
          background:#0d1220;border:1px solid #263149;color:#c7d0e4;border-radius:8px}
     .tab.on{background:#4a6cff;border-color:#4a6cff;color:#fff}
+
+    /* ===== Intercalaires verticaux, accrochés à la bordure du panneau =====
+       Le rail longe toute la hauteur ; chaque onglet est un « onglet de
+       classeur » : coins arrondis côté viewer, à plat côté panneau, et
+       l'onglet actif se fond dans le fond du panneau. */
+    .tabs{flex:0 0 38px;display:flex;flex-direction:column;gap:.3rem;
+          padding:1rem 0 1rem .25rem;background:#0d1220;
+          border-right:1px solid #212c44;overflow-y:auto;overflow-x:hidden}
+    .tabs > .tab{writing-mode:vertical-rl;transform:rotate(180deg);
+         padding:.85rem .3rem;font-size:.72rem;
+         background:#141c2e;border:1px solid #263149;border-right:none;
+         color:#8b96ad;border-radius:8px 0 0 8px;white-space:nowrap;
+         transition:background .12s,color .12s}
+    .tabs > .tab:hover{background:#1a2438;color:#c7d0e4}
+    /* L'onglet actif « avance » : même fond que le panneau, séparateur effacé. */
+    .tabs > .tab.on{background:#111827;border-color:#2c3854;color:#fff;
+            box-shadow:inset 3px 0 0 #4a6cff;margin-right:-1px;padding-right:.4rem}
+    .tabs > #b-expand{margin-top:auto;writing-mode:horizontal-tb;transform:none;
+              padding:.5rem .3rem;font-size:.9rem;border-radius:8px;
+              border-right:1px solid #263149;box-shadow:none}
 
     .body{flex:1;overflow-y:auto;padding:1rem 1.1rem}
     .hint{font-size:.76rem;color:#8b96ad;line-height:1.55;margin-bottom:.85rem}
@@ -103,22 +126,24 @@
   <div id="resize-handle"></div>
   <div id="drag-overlay"></div>
   <aside id="side">
+
+    <!-- Intercalaires : collés à la bordure du panneau, empilés verticalement.
+         Les ids t-* et p-* ne bougent pas → la fonction tab() reste inchangée. -->
+    <nav class="tabs" id="tabrail">
+      <button class="tab on" id="t-pov"   onclick="tab('pov')">POV</button>
+      <button class="tab"    id="t-cot"   onclick="tab('cot')">Cotations</button>
+      <button class="tab"    id="t-piece" onclick="tab('piece')">Pièces</button>
+      <button class="tab"    id="t-verre" onclick="tab('verre')">Matériaux</button>
+      <button class="tab"    id="t-amb"   onclick="tab('amb')">Post-process</button>
+      <button class="tab"    id="t-light" onclick="tab('light')">Lighting</button>
+      <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein écran">⛶</button>
+    </nav>
+
+    <div id="side-main">
     <div class="hd">
       <div class="t">Éditeur — usage interne</div>
       <h1 id="h-name">Visite 3D</h1>
       <div class="p" id="h-prop"></div>
-    </div>
-
-    <div class="tabs" style="justify-content:space-between;">
-      <div style="display:flex;gap:.35rem;flex:1;">
-        <button class="tab on" id="t-pov" onclick="tab('pov')" style="flex:1;">POV</button>
-        <button class="tab"    id="t-cot" onclick="tab('cot')" style="flex:1;">Cotations</button>
-        <button class="tab"    id="t-piece" onclick="tab('piece')" style="flex:1;">Pièces</button>
-        <button class="tab"    id="t-verre" onclick="tab('verre')" style="flex:1;">Matériaux</button>
-        <button class="tab"    id="t-amb" onclick="tab('amb')" style="flex:1;">Post-process</button>
-        <button class="tab"    id="t-light" onclick="tab('light')" style="flex:1;">Lighting</button>
-      </div>
-      <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein ecran" style="flex:0 0 auto;">⛶</button>
     </div>
 
     <div class="body">
@@ -277,111 +302,6 @@
             <span id="v-ssr-blur" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.03</span>
           </div>
         </div>
-
-        <!-- ===================== TRAITEMENT IMAGE ===================== -->
-        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
-          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.5rem;">
-            <input type="checkbox" id="f-grade-on" onchange="gradeSet()"> 🎨 Traitement image
-          </label>
-          <p class="hint" style="margin:0 0 .6rem;font-size:.68rem;">Toutes les valeurs sont neutres au départ : tant que rien n'est bougé, le rendu est strictement identique. Décocher rend le rendu d'origine.</p>
-
-          <div style="font-size:.72rem;color:#6f7c99;margin-bottom:.35rem;">Ambiances — recliquer désactive et restaure l'état précédent</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.8rem;">
-            <button class="btn" id="preset-neutre"      onclick="loadPreset('neutre')"      style="font-size:.7rem;padding:.4rem .5rem;">📸 Studio neutre</button>
-            <button class="btn" id="preset-jour"        onclick="loadPreset('jour')"        style="font-size:.7rem;padding:.4rem .5rem;">🪟 Lumière du jour</button>
-            <button class="btn" id="preset-froid"       onclick="loadPreset('froid')"       style="font-size:.7rem;padding:.4rem .5rem;">❄️ Froid moderne</button>
-            <button class="btn" id="preset-fin_journee" onclick="loadPreset('fin_journee')" style="font-size:.7rem;padding:.4rem .5rem;">🌅 Fin de journée</button>
-            <button class="btn" id="preset-soiree"      onclick="loadPreset('soiree')"      style="font-size:.7rem;padding:.4rem .5rem;">🌙 Soirée</button>
-            <button class="btn sec" onclick="gradeReset()" style="font-size:.7rem;padding:.4rem .5rem;">↺ Curseurs à zéro</button>
-          </div>
-
-          <details class="fold">
-            <summary><span class="dot"></span>Exposition<span class="ar">▶</span></summary>
-            <div class="bd">
-              <div class="sl"><label>Exposition</label>
-                <input type="range" id="g-exposure" min="-0.06" max="0.06" step="0.0003" value="0" oninput="gradeSet()">
-                <span class="v" id="v-g-exposure">0.00</span></div>
-            </div>
-          </details>
-
-          <details class="fold">
-            <summary><span class="dot"></span>Luminosité / Contraste<span class="ar">▶</span></summary>
-            <div class="bd">
-              <div class="sl"><label>Luminosité</label>
-                <input type="range" id="g-brightness" min="-0.01" max="0.01" step="0.00005" value="0" oninput="gradeSet()">
-                <span class="v" id="v-g-brightness">0.00</span></div>
-              <div class="sl"><label>Contraste</label>
-                <input type="range" id="g-contrast" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
-                <span class="v" id="v-g-contrast">1.00</span></div>
-            </div>
-          </details>
-
-          <details class="fold">
-            <summary><span class="dot"></span>Gamma<span class="ar">▶</span></summary>
-            <div class="bd">
-              <div class="sl"><label>Gamma</label>
-                <input type="range" id="g-gamma" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
-                <span class="v" id="v-g-gamma">1.00</span></div>
-            </div>
-          </details>
-
-          <details class="fold">
-            <summary><span class="dot"></span>Teinte / Saturation / Valeur<span class="ar">▶</span></summary>
-            <div class="bd">
-              <div class="sl"><label>Teinte</label>
-                <input type="range" id="g-hue" min="-4" max="4" step="0.04" value="0" oninput="gradeSet()">
-                <span class="v" id="v-g-hue">0°</span></div>
-              <div class="sl"><label>Saturation</label>
-                <input type="range" id="g-saturation" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
-                <span class="v" id="v-g-saturation">1.00</span></div>
-              <div class="sl"><label>Valeur</label>
-                <input type="range" id="g-value" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
-                <span class="v" id="v-g-value">1.00</span></div>
-            </div>
-          </details>
-
-          <details class="fold">
-            <summary><span class="dot"></span>Balance des couleurs<span class="ar">▶</span></summary>
-            <div class="bd">
-              <div class="sl"><label>Température</label>
-                <input type="range" id="g-temperature" min="-0.02" max="0.02" step="0.0001" value="0" oninput="gradeSet()">
-                <span class="v" id="v-g-temperature">0.00</span></div>
-              <div class="sl"><label>Vert ↔ Magenta</label>
-                <input type="range" id="g-tint" min="-0.02" max="0.02" step="0.0001" value="0" oninput="gradeSet()">
-                <span class="v" id="v-g-tint">0.00</span></div>
-            </div>
-          </details>
-
-          <details class="fold">
-            <summary><span class="dot"></span>Correction couleur<span class="ar">▶</span></summary>
-            <div class="bd">
-              <div class="sl"><label>Pied noirs</label>
-                <input type="range" id="g-lift" min="-0.006" max="0.006" step="0.00003" value="0" oninput="gradeSet()">
-                <span class="v" id="v-g-lift">0.00</span></div>
-              <div class="sl"><label>Hautes lum.</label>
-                <input type="range" id="g-gain" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
-                <span class="v" id="v-g-gain">1.00</span></div>
-            </div>
-          </details>
-
-          <details class="fold">
-            <summary><span class="dot"></span>Courbes RVB<span class="ar">▶</span></summary>
-            <div class="bd">
-              <div style="font-size:.75rem;color:#6f7c99;margin-bottom:.5rem;">S'applique <b>par-dessus</b> l'ambiance active.<br>Clic pour ajouter un point • Glisser pour ajuster • Double-clic pour supprimer</div>
-              <div style="position:relative;margin-bottom:.5rem;background:#0d1220;border-radius:6px;overflow:hidden;border:1px solid #263149;">
-                <canvas id="rgb-curve-canvas" width="280" height="200" style="display:block;width:100%;"></canvas>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem;font-size:.7rem;">
-                <label style="display:flex;align-items:center;gap:.2rem;"><input type="checkbox" id="curve-channel-r" checked onchange="drawRgbCurve()"> <span style="width:8px;height:8px;background:#ff5555;border-radius:50%;"></span>Rouge</label>
-                <label style="display:flex;align-items:center;gap:.2rem;"><input type="checkbox" id="curve-channel-g" checked onchange="drawRgbCurve()"> <span style="width:8px;height:8px;background:#55ff55;border-radius:50%;"></span>Vert</label>
-                <label style="display:flex;align-items:center;gap:.2rem;"><input type="checkbox" id="curve-channel-b" checked onchange="drawRgbCurve()"> <span style="width:8px;height:8px;background:#5555ff;border-radius:50%;"></span>Bleu</label>
-              </div>
-            </div>
-          </details>
-
-
-
-        </div>
       </div>
 
       <div id="p-light" hidden>
@@ -439,6 +359,7 @@
       <button class="btn sec" id="b-dl" onclick="download()">💾 Télécharger manifest.json</button>
       <button class="btn sec" id="b-dl-light" onclick="downloadLighting()">💡 Télécharger lighting-config.json</button>
       <div class="st" id="st">Chargement du viewer…</div>
+    </div>
     </div>
   </aside>
 
@@ -912,12 +833,6 @@ const PONT = `
       setGrade:   function(o){ if (typeof window.setImageGrade==='function') window.setImageGrade(o); },
       resetGrade: function(){ return (typeof window.resetImageGrade==='function') ? window.resetImageGrade() : null; },
 
-      /* ===== PRESETS D'AMBIANCE (couche base, réversible) ===== */
-      applyPreset: function(nom, def){ return (typeof window.applyGradePreset==='function') ? window.applyGradePreset(nom, def) : null; },
-      clearPreset: function(){ return (typeof window.clearGradePreset==='function') ? window.clearGradePreset() : null; },
-      activePreset:function(){ return (typeof window.getGradePreset==='function') ? window.getGradePreset() : null; },
-      aoState:     function(){ return (typeof window.getAOState==='function') ? window.getAOState() : null; },
-
       /* Export du lighting-config.json — CONSTRUIT DEPUIS LA SCÈNE RÉELLE.
          Avant, on recopiait __lightingBase (photo du fichier chargé) : une lumière
          supprimée dans l'éditeur ressortait dans le JSON et revenait au rechargement. */
@@ -1160,7 +1075,7 @@ function tab(m){
     ed.editerPieces(m==='piece');
     if (m !== 'pov' && ed.setMode) ed.setMode(null);   // désarme le placement POV en quittant l'onglet
     if (m==='piece') refresh();
-    if (m==='amb') { refreshPostProcess(); gradeRefresh(); }
+    if (m==='amb') refreshPostProcess();
     if (m==='light') refreshLighting();
   }
   if (m==='verre') inspectorRefresh();
@@ -1241,342 +1156,6 @@ function setHdri(){
   ed.setHdri({ intensity: intensity, rotationY: rotationY });
   drawHdriPreview();
 }
-
-/* ===== TRAITEMENT IMAGE (colorimétrie) =====================================
-   Plages TRÈS étroites autour de la valeur neutre — un cinquantième de
-   l'amplitude d'origine : sur cette scène le rendu bascule pour des écarts
-   minuscules. Chaque curseur garde ~200 crans, donc la course entière reste
-   utile. Le 2e nombre = décimales d'affichage, calées sur le pas (sinon la
-   valeur semblerait figée pendant qu'on déplace le curseur). */
-const GRADE_FIELDS = [
-  ['exposure',   4], ['brightness', 5], ['contrast', 4], ['gamma', 4],
-  ['saturation', 4], ['value',      4], ['temperature', 4], ['tint', 4],
-  ['lift',       5], ['gain',       4]
-];
-
-function gradeRefresh(){
-  if (!ed || !ed.grade) return;
-  var g = ed.grade(); if (!g) return;
-  var on = document.getElementById('f-grade-on');
-  if (on) on.checked = !!g.enabled;
-  GRADE_FIELDS.forEach(function(f){
-    var el = document.getElementById('g-' + f[0]);
-    var vv = document.getElementById('v-g-' + f[0]);
-    if (el) el.value = g[f[0]];
-    if (vv) vv.textContent = (+g[f[0]]).toFixed(f[1]);
-  });
-  var h = document.getElementById('g-hue'), vh = document.getElementById('v-g-hue');
-  if (h){ h.value = g.hue; }
-  if (vh){ vh.textContent = (+g.hue).toFixed(2) + '°'; }
-  if (g.curves) rgbCurves = JSON.parse(JSON.stringify(g.curves));
-  if (ed.activePreset) presetActif = ed.activePreset();
-  if (typeof majBoutonsPreset === 'function') majBoutonsPreset();
-  drawRgbCurve();
-}
-
-function gradeSet(){
-  if (!ed || !ed.setGrade) return;
-  var o = { enabled: document.getElementById('f-grade-on').checked };
-  GRADE_FIELDS.forEach(function(f){
-    var el = document.getElementById('g-' + f[0]);
-    if (!el) return;
-    o[f[0]] = parseFloat(el.value);
-    var vv = document.getElementById('v-g-' + f[0]);
-    if (vv) vv.textContent = parseFloat(el.value).toFixed(f[1]);
-  });
-  var h = document.getElementById('g-hue');
-  if (h){
-    o.hue = parseFloat(h.value);
-    var vh = document.getElementById('v-g-hue');
-    if (vh) vh.textContent = o.hue.toFixed(2) + '°';
-  }
-  o.curves = rgbCurves || { r:[[0,0],[1,1]], g:[[0,0],[1,1]], b:[[0,0],[1,1]] };
-  o.tonemap = false;
-  ed.setGrade(o);
-}
-
-function gradeReset(){
-  if (!ed || !ed.resetGrade) return;
-  ed.resetGrade();
-  gradeRefresh();
-  gradeSet();          // ré-applique les valeurs neutres au shader
-  flash('↺ Curseurs remis à zéro' + (presetActif ? ' (ambiance conservée)' : ''));
-}
-
-// ==================== COURBES RGB ====================
-let rgbCurves = { r: [[0, 0], [1, 1]], g: [[0, 0], [1, 1]], b: [[0, 0], [1, 1]] };
-let activeCurvePoint = null;
-let activeCurveChannel = null;
-const CURVE_PAD = 20;   // marge intérieure du graphe, en pixels canvas
-
-// Clic écran → coordonnées 0..1 du graphe (mêmes que celles du tracé).
-function curveNorm(e){
-  const cv = e.currentTarget || e.target;
-  const r  = cv.getBoundingClientRect();
-  const sx = cv.width  / r.width;
-  const sy = cv.height / r.height;
-  const px = (e.clientX - r.left) * sx - CURVE_PAD;
-  const py = (e.clientY - r.top)  * sy - CURVE_PAD;
-  const iw = cv.width  - 2 * CURVE_PAD;
-  const ih = cv.height - 2 * CURVE_PAD;
-  return {
-    x: Math.max(0, Math.min(1, px / iw)),
-    y: Math.max(0, Math.min(1, 1 - py / ih))
-  };
-}
-
-function initRgbCurve(){
-  const canvas = document.getElementById('rgb-curve-canvas');
-  if (!canvas) return;
-  canvas.addEventListener('mousedown', curveMouseDown);
-  canvas.addEventListener('mousemove', curveMouseMove);
-  canvas.addEventListener('dblclick', curveDblClick);
-  // Relâche au niveau document : sinon un point reste « collé » si la souris
-  // quitte le canvas pendant le glissement.
-  document.addEventListener('mouseup', curveMouseUp);
-  drawRgbCurve();
-}
-
-function drawRgbCurve(){
-  const canvas = document.getElementById('rgb-curve-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  const pad = CURVE_PAD;
-  const inner = { x: pad, y: pad, w: w - 2*pad, h: h - 2*pad };
-  
-  ctx.fillStyle = '#0d1220';
-  ctx.fillRect(0, 0, w, h);
-  
-  ctx.strokeStyle = '#1c2740';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.rect(inner.x, inner.y, inner.w, inner.h); ctx.stroke();
-  
-  ctx.strokeStyle = '#0f1829';
-  ctx.lineWidth = 0.5;
-  for (let i = 1; i < 4; i++){
-    const x = inner.x + (inner.w / 4) * i;
-    const y = inner.y + (inner.h / 4) * i;
-    ctx.beginPath(); ctx.moveTo(x, inner.y); ctx.lineTo(x, inner.y + inner.h); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(inner.x, y); ctx.lineTo(inner.x + inner.w, y); ctx.stroke();
-  }
-  
-  const channels = [
-    { key: 'r', color: '#ff8888', id: 'curve-channel-r' },
-    { key: 'g', color: '#88ff88', id: 'curve-channel-g' },
-    { key: 'b', color: '#8888ff', id: 'curve-channel-b' }
-  ];
-  
-  channels.forEach(ch => {
-    const visible = document.getElementById(ch.id)?.checked ?? true;
-    if (!visible) return;
-    
-    const points = rgbCurves[ch.key] || [[0, 0], [1, 1]];
-    const sorted = [...points].sort((a, b) => a[0] - b[0]);
-    
-    ctx.strokeStyle = ch.color;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    sorted.forEach((p, i) => {
-      const px = inner.x + p[0] * inner.w;
-      const py = inner.y + (1 - p[1]) * inner.h;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    });
-    ctx.stroke();
-    
-    sorted.forEach(p => {
-      const px = inner.x + p[0] * inner.w;
-      const py = inner.y + (1 - p[1]) * inner.h;
-      ctx.fillStyle = activeCurvePoint === p && activeCurveChannel === ch.key ? '#ffff00' : ch.color;
-      ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#0d1220';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    });
-  });
-}
-
-function canauxVisibles(){
-  return ['r','g','b'].filter(function(k){
-    var el = document.getElementById('curve-channel-' + k);
-    return !el || el.checked;
-  });
-}
-
-function curveMouseDown(e){
-  const norm = curveNorm(e);
-
-  // Saisir un point existant (canaux visibles uniquement).
-  for (let ch of canauxVisibles()){
-    const points = rgbCurves[ch] || [];
-    for (let p of points){
-      const dx = norm.x - p[0], dy = norm.y - p[1];
-      if (dx*dx + dy*dy < 0.0025){
-        activeCurvePoint = p;
-        activeCurveChannel = ch;
-        drawRgbCurve();
-        return;
-      }
-    }
-  }
-
-  // Sinon en créer un sur chaque canal visible (le dernier devient actif).
-  const vis = canauxVisibles();
-  if (!vis.length) return;
-  vis.forEach(function(ch){
-    if (!rgbCurves[ch]) rgbCurves[ch] = [[0,0],[1,1]];
-    const p = [Math.round(norm.x * 1000) / 1000, Math.round(norm.y * 1000) / 1000];
-    rgbCurves[ch].push(p);
-    activeCurvePoint = p;
-    activeCurveChannel = ch;
-  });
-  drawRgbCurve();
-  gradeSet();
-}
-
-function curveMouseMove(e){
-  if (!activeCurvePoint) return;
-  const norm = curveNorm(e);
-  // Les extrémités ne glissent que verticalement : la courbe garde ses bornes.
-  if (activeCurvePoint[0] !== 0 && activeCurvePoint[0] !== 1){
-    activeCurvePoint[0] = Math.round(norm.x * 1000) / 1000;
-  }
-  activeCurvePoint[1] = Math.round(norm.y * 1000) / 1000;
-  drawRgbCurve();
-  gradeSet();
-}
-
-function curveMouseUp(){
-  if (!activeCurvePoint) return;
-  activeCurvePoint = null;
-  drawRgbCurve();
-}
-
-function curveDblClick(e){
-  const norm = curveNorm(e);
-  
-  let supprime = false;
-  for (let ch of canauxVisibles()){
-    const points = rgbCurves[ch] || [];
-    for (let i = points.length - 1; i >= 0; i--){
-      const p = points[i];
-      const dx = norm.x - p[0], dy = norm.y - p[1];
-      if (dx*dx + dy*dy < 0.0025 && p[0] !== 0 && p[0] !== 1){
-        points.splice(i, 1);
-        supprime = true;
-        break;
-      }
-    }
-  }
-  if (supprime){ activeCurvePoint = null; drawRgbCurve(); gradeSet(); }
-}
-
-// ==================== PRESETS D'AMBIANCE ====================
-// Calibrés « photographie d'architecture » : du contraste et une dominante
-// assumée, mais la peinture blanche reste blanche et les visages resteraient
-// crédibles. Chaque preset pose une COUCHE DE BASE réversible : les curseurs
-// fins de l'éditeur continuent de s'appliquer par-dessus, et le décocher
-// restaure exactement l'état d'avant (AO comprise).
-const GRADE_PRESETS = {
-  neutre: {
-    label: 'Studio neutre',
-    exposure: 0.06, contrast: 1.09, gamma: 0.995,
-    saturation: 1.04, value: 1.0, temperature: 0.01, tint: 0,
-    lift: 0.004, gain: 1.015, hue: 0,
-    curves: {
-      r: [[0,0],[0.25,0.235],[0.75,0.775],[1,1]],
-      g: [[0,0],[0.25,0.235],[0.75,0.775],[1,1]],
-      b: [[0,0],[0.25,0.235],[0.75,0.775],[1,1]]
-    },
-    ao: { enabled:true, strength:0.85, radius:1.2, base:0.22 }
-  },
-  jour: {
-    label: 'Lumière du jour',
-    exposure: 0.11, contrast: 1.13, gamma: 1.0,
-    saturation: 1.10, value: 1.0, temperature: 0.16, tint: -0.04,
-    lift: 0.008, gain: 1.02, hue: 0,
-    curves: {
-      r: [[0,0.004],[0.25,0.255],[0.75,0.80],[1,1]],
-      g: [[0,0],[0.25,0.24],[0.75,0.78],[1,0.998]],
-      b: [[0,0],[0.25,0.225],[0.75,0.755],[1,0.99]]
-    },
-    ao: { enabled:true, strength:1.0, radius:1.25, base:0.20 }
-  },
-  froid: {
-    label: 'Froid moderne',
-    exposure: 0.03, contrast: 1.17, gamma: 0.985,
-    saturation: 0.95, value: 1.0, temperature: -0.14, tint: 0.05,
-    lift: 0.002, gain: 1.03, hue: 0,
-    curves: {
-      r: [[0,0],[0.25,0.22],[0.75,0.755],[1,0.99]],
-      g: [[0,0.002],[0.25,0.235],[0.75,0.775],[1,1]],
-      b: [[0,0.012],[0.25,0.26],[0.75,0.80],[1,1]]
-    },
-    ao: { enabled:true, strength:1.2, radius:1.1, base:0.16 }
-  },
-  fin_journee: {
-    label: 'Fin de journée',
-    exposure: 0.09, contrast: 1.11, gamma: 1.02,
-    saturation: 1.14, value: 1.0, temperature: 0.25, tint: -0.06,
-    lift: 0.014, gain: 1.01, hue: 0,
-    curves: {
-      r: [[0,0.010],[0.25,0.275],[0.75,0.82],[1,1]],
-      g: [[0,0.004],[0.25,0.24],[0.75,0.775],[1,0.99]],
-      b: [[0,0],[0.25,0.205],[0.75,0.715],[1,0.955]]
-    },
-    ao: { enabled:true, strength:0.8, radius:1.4, base:0.24 }
-  },
-  soiree: {
-    label: 'Soirée',
-    exposure: -0.10, contrast: 1.21, gamma: 1.03,
-    saturation: 0.92, value: 1.0, temperature: -0.09, tint: 0.03,
-    lift: 0.010, gain: 1.05, hue: 0,
-    curves: {
-      r: [[0,0.006],[0.25,0.215],[0.75,0.755],[1,0.985]],
-      g: [[0,0.008],[0.25,0.225],[0.75,0.765],[1,0.99]],
-      b: [[0,0.020],[0.25,0.265],[0.75,0.80],[1,1]]
-    },
-    ao: { enabled:true, strength:1.35, radius:1.05, base:0.14 }
-  }
-};
-
-let presetActif = null;
-
-// Clic sur un preset déjà actif = désactivation → retour exact à l'état d'avant.
-function loadPreset(name){
-  if (!ed || !ed.applyPreset || !GRADE_PRESETS[name]) return;
-  if (presetActif === name){
-    ed.clearPreset();
-    presetActif = null;
-    majBoutonsPreset();
-    gradeRefresh();
-    flash('↩ Preset retiré — réglages précédents restaurés');
-    return;
-  }
-  ed.applyPreset(name, GRADE_PRESETS[name]);
-  presetActif = name;
-  var on = document.getElementById('f-grade-on');
-  if (on) on.checked = true;
-  majBoutonsPreset();
-  gradeRefresh();
-  flash('✨ Ambiance « ' + GRADE_PRESETS[name].label + ' »');
-}
-
-function majBoutonsPreset(){
-  Object.keys(GRADE_PRESETS).forEach(function(k){
-    var b = document.getElementById('preset-' + k);
-    if (!b) return;
-    var on = (presetActif === k);
-    b.style.background   = on ? '#26325a' : '';
-    b.style.borderColor  = on ? '#4a63a8' : '';
-    b.style.color        = on ? '#fff' : '';
-    b.style.fontWeight   = on ? '700' : '';
-  });
-}
-
-// Init des courbes au chargement
-window.addEventListener('load', () => { setTimeout(initRgbCurve, 100); });
 
 function importHdri(input){
   var file = input.files && input.files[0];
