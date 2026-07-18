@@ -502,6 +502,20 @@ const PONT = `
   let onPov = false;      // onglet POV en mode placement
   let undoStack = [];
 
+  /* Après un « Voir (orienter) », exitPanoramaCamera() repose l'ArcRotateCamera
+     SUR le point de vue — ce qui laisse l'éditeur collé au sol. On restaure donc
+     le cadrage orbite tel qu'il était avant d'entrer en orientation. */
+  function restaurerVueOrbite(){
+    var s = window.__edOrbitSave;
+    if (!s) return;
+    try {
+      camera.setTarget(s.target);
+      camera.setPosition(s.position);
+      if (s.mode != null) camera.mode = s.mode;
+    } catch(_){}
+    window.__edOrbitSave = null;
+  }
+
   function majCurseur(){
     const s = document.getElementById('hud-svg');
     if (!s) return;
@@ -936,9 +950,67 @@ const PONT = `
       },
       setCiblePov: function(x,z){ povEnAttenteX=x; povEnAttenteZ=z; window.__povFloorY=(modelBounds?modelBounds.min.y:0); povEnAttenteY=window.__povFloorY; afficherMarqueurPov(true); parent.__edEvent('pov','placee'); },
       setHauteurPov: function(h){ var floor=(window.__povFloorY!=null?window.__povFloorY:(modelBounds?modelBounds.min.y:0)); povEnAttenteY=floor+Math.max(0,Math.min(2,parseFloat(h)||0)); afficherMarqueurPov(true); if(hudVisible)hudUpdate(); },
-      voirPov: function(){ if(povEnAttenteX==null)return; camera.position=new BABYLON.Vector3(povEnAttenteX,povEnAttenteY,povEnAttenteZ); camera.target=camera.position.clone().addInPlace(new BABYLON.Vector3(0,0,1)); camera.mode=BABYLON.Camera.PERSPECTIVE_CAMERA; setHudVisible(false); camera.attachControl(canvas,true); },
-      validerPov: function(id,label,room,photos){ if(povEnAttenteX==null)return null; const pos=camera.position,tgt=camera.target,r2=v=>Math.round(v*100)/100; const pov={id:id||('pov-'+(propertyData.poi.length+1)),label:label||id,camPos:[r2(pos.x),r2(pos.y),r2(pos.z)],camTarget:[r2(tgt.x),r2(tgt.y),r2(tgt.z)]}; if(room)pov.roomId=room; if(photos&&photos.length)pov.photos=photos; propertyData.poi=propertyData.poi||[]; const i=propertyData.poi.findIndex(p=>p.id===pov.id); if(i>=0)propertyData.poi[i]=pov;else propertyData.poi.push(pov); createPoiMarkers();rebuildPoiList(); povEnAttenteX=povEnAttenteY=povEnAttenteZ=null; afficherMarqueurPov(false); return pov.label; },
-      annulerPov: function(){ povEnAttenteX=povEnAttenteY=povEnAttenteZ=null; afficherMarqueurPov(false); },
+      /* VOIR / ORIENTER — la caméra doit être POSÉE SUR le point et pivoter sur
+         elle-même. Avant, on bricolait l'ArcRotateCamera : lui assigner .position
+         puis .target reconstruit un orbite de rayon 1 autour d'un pivot situé 1 m
+         devant → caméra décalée et rotation autour du mauvais centre. On réutilise
+         donc la vraie caméra 1re personne du viewer (UniversalCamera), qui est
+         exactement faite pour ça : œil fixe sur le point, seul le regard tourne. */
+      voirPov: function(){
+        if (povEnAttenteX == null) return;
+        // Mémoriser la vue orbite pour la restaurer après validation/annulation.
+        window.__edOrbitSave = {
+          position: camera.position.clone(),
+          target:   (camera.target ? camera.target.clone() : BABYLON.Vector3.Zero()),
+          mode:     camera.mode
+        };
+        var eye = new BABYLON.Vector3(povEnAttenteX, povEnAttenteY, povEnAttenteZ);
+        // Cap initial : on reprend la direction horizontale de la vue courante
+        // pour ne pas désorienter ; repli sur +Z si elle est verticale.
+        var fwd;
+        try { fwd = camera.getForwardRay().direction.clone(); } catch(_) { fwd = null; }
+        if (!fwd) fwd = new BABYLON.Vector3(0, 0, 1);
+        fwd.y = 0;
+        if (fwd.lengthSquared() < 1e-4) fwd.set(0, 0, 1);
+        fwd.normalize();
+        isFirstPerson = true;              // cohérence avec la logique du viewer
+        enterPanoramaCamera(eye, eye.add(fwd));
+        setHudVisible(false);
+      },
+      validerPov: function(id,label,room,photos){
+        if (povEnAttenteX == null) return null;
+        // Lire la pose sur la caméra RÉELLEMENT active (POV si on vient d'orienter).
+        var enPov = !!(fpCamera && scene.activeCamera === fpCamera);
+        var cam   = enPov ? fpCamera : camera;
+        var pos   = cam.position.clone();
+        var tgt   = enPov
+          ? pos.add(cam.getForwardRay().direction)
+          : (camera.target ? camera.target.clone() : pos.add(new BABYLON.Vector3(0,0,1)));
+        const r2 = v => Math.round(v*100)/100;
+        const pov = {
+          id: id || ('pov-' + (propertyData.poi.length + 1)),
+          label: label || id,
+          camPos:    [r2(pos.x), r2(pos.y), r2(pos.z)],
+          camTarget: [r2(tgt.x), r2(tgt.y), r2(tgt.z)]
+        };
+        if (room) pov.roomId = room;
+        if (photos && photos.length) pov.photos = photos;
+        propertyData.poi = propertyData.poi || [];
+        const i = propertyData.poi.findIndex(p => p.id === pov.id);
+        if (i >= 0) propertyData.poi[i] = pov; else propertyData.poi.push(pov);
+        if (enPov) { isFirstPerson = false; exitPanoramaCamera(); restaurerVueOrbite(); }
+        createPoiMarkers(); rebuildPoiList();
+        povEnAttenteX = povEnAttenteY = povEnAttenteZ = null;
+        afficherMarqueurPov(false);
+        return pov.label;
+      },
+      annulerPov: function(){
+        if (fpCamera && scene.activeCamera === fpCamera) {
+          isFirstPerson = false; exitPanoramaCamera(); restaurerVueOrbite();
+        }
+        povEnAttenteX = povEnAttenteY = povEnAttenteZ = null;
+        afficherMarqueurPov(false);
+      },
       editerPov: function(id){ propertyData.poi=propertyData.poi||[]; const poi=propertyData.poi.find(p=>p.id===id); if(!poi)return null; povEnAttenteX=poi.camPos[0]; povEnAttenteY=poi.camPos[1]; povEnAttenteZ=poi.camPos[2]; afficherMarqueurPov(true); return poi; },
 
       undo: function(){
