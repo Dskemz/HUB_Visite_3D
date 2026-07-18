@@ -23,34 +23,28 @@
     #flash.on{opacity:1}
 
     /* Panneau d'edition, HORS du viewer */
-    #side{width:330px;flex:0 0 auto;background:#111827;border-right:1px solid #212c44;
-          display:flex;flex-direction:row;overflow:hidden;transition:width .05s linear}
+    #side{width:330px;flex:0 0 330px;background:#111827;border-left:1px solid #212c44;
+          display:flex;flex-direction:column;overflow:hidden;transition:width .05s linear}
     #resize-handle{width:12px;flex:0 0 12px;cursor:ew-resize;background:#0d1220;
-                   border-right:1px solid #1c2740;border-left:1px solid #2c3854;
+                   border-left:1px solid #1c2740;border-right:1px solid #2c3854;
                    display:flex;align-items:center;justify-content:center;touch-action:none}
     #resize-handle::before{content:'';width:2px;height:28px;border-radius:2px;background:#3a4666}
     #resize-handle:hover{background:#1a2438}
     #drag-overlay{position:fixed;inset:0;display:none;z-index:999;cursor:ew-resize}
     #drag-overlay.active{display:block}
-    
-    /* Conteneur vertical des onglets + contenu */
-    #side > div:first-child{display:flex;flex:1;min-width:0;flex-direction:row}
-    
-    .tabs{display:flex;flex-direction:column;gap:.35rem;padding:.8rem .4rem;
-          flex:0 0 auto;width:72px;background:#0d1220;border-right:1px solid #212c44;}
-    .tab{padding:.5rem .35rem;font:inherit;font-size:.65rem;font-weight:700;cursor:pointer;
-         background:transparent;border:1px solid #263149;color:#6f7c99;border-radius:6px;
-         writing-mode:vertical-lr;transform:rotate(180deg);text-align:center;
-         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .tab:hover{border-color:#4a6cff;color:#c7d0e4}
+    .hd{padding:1rem 1.1rem;border-bottom:1px solid #212c44}
+    .hd .t{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#6f7c99;font-weight:700}
+    .hd h1{font-size:1.05rem;font-weight:800;margin-top:.25rem}
+    .hd .p{font-size:.76rem;color:#6f7c99;margin-top:.3rem;font-family:ui-monospace,monospace}
+
+    .tabs{display:flex;gap:.35rem;padding:.8rem 1.1rem 0}
+    .tab{flex:1;padding:.5rem;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer;
+         background:#0d1220;border:1px solid #263149;color:#c7d0e4;border-radius:8px}
     .tab.on{background:#4a6cff;border-color:#4a6cff;color:#fff}
-    
+
+    .body{flex:1;overflow-y:auto;padding:1rem 1.1rem}
     .hint{font-size:.76rem;color:#8b96ad;line-height:1.55;margin-bottom:.85rem}
     .hint b{color:#e8ecf6}
-    
-    .hd{padding:1rem 1.1rem;border-bottom:1px solid #212c44;flex:1}
-    .body{flex:1;overflow-y:auto;padding:1rem 1.1rem}
-    .ft{padding:.9rem 1.1rem;border-top:1px solid #212c44}
 
     input{width:100%;background:#0d1220;border:1px solid #263149;color:#e8ecf6;
           border-radius:8px;padding:.55rem .7rem;font:inherit;font-size:.82rem;
@@ -109,25 +103,26 @@
   <div id="resize-handle"></div>
   <div id="drag-overlay"></div>
   <aside id="side">
-    <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-      <div class="hd">
-        <div class="t">Éditeur — usage interne</div>
-        <h1 id="h-name">Visite 3D</h1>
-        <div class="p" id="h-prop"></div>
-      </div>
-      
-      <div style="display:flex;flex:1;min-height:0;">
-        <div class="tabs">
-          <button class="tab on" id="t-pov" onclick="tab('pov')">POV</button>
-          <button class="tab"    id="t-cot" onclick="tab('cot')">Cotations</button>
-          <button class="tab"    id="t-piece" onclick="tab('piece')">Pièces</button>
-          <button class="tab"    id="t-verre" onclick="tab('verre')">Matériaux</button>
-          <button class="tab"    id="t-light" onclick="tab('light')">Lighting</button>
-          <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein ecran" style="margin-top:auto;">⛶</button>
-        </div>
+    <div class="hd">
+      <div class="t">Éditeur — usage interne</div>
+      <h1 id="h-name">Visite 3D</h1>
+      <div class="p" id="h-prop"></div>
+    </div>
 
-        <div class="body" style="flex:1;overflow-y:auto;">
-          <div id="p-pov">
+    <div class="tabs" style="justify-content:space-between;">
+      <div style="display:flex;gap:.35rem;flex:1;">
+        <button class="tab on" id="t-pov" onclick="tab('pov')" style="flex:1;">POV</button>
+        <button class="tab"    id="t-cot" onclick="tab('cot')" style="flex:1;">Cotations</button>
+        <button class="tab"    id="t-piece" onclick="tab('piece')" style="flex:1;">Pièces</button>
+        <button class="tab"    id="t-verre" onclick="tab('verre')" style="flex:1;">Matériaux</button>
+        <button class="tab"    id="t-amb" onclick="tab('amb')" style="flex:1;">Post-process</button>
+        <button class="tab"    id="t-light" onclick="tab('light')" style="flex:1;">Lighting</button>
+      </div>
+      <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein ecran" style="flex:0 0 auto;">⛶</button>
+    </div>
+
+    <div class="body">
+      <div id="p-pov">
         <p class="hint"><b>Placement interactif.</b> Clique « Placer POV » puis clique dans la vue 3D :
           le point se pose au sol. Règle la hauteur, oriente ta vue avec « Voir », puis « Valider ».</p>
         <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.7rem;">
@@ -226,6 +221,169 @@
         </details>
       </div>
 
+      <div id="p-amb" hidden>
+        <p class="hint"><b>Occlusion ambiante (AO).</b> Assombrit les recoins pour « poser »
+          les objets. Ajuste la puissance et le rayon en direct.</p>
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.6rem;">
+            <input type="checkbox" id="f-ao-on" onchange="ambSetAO()"> Activer l'AO
+          </label>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Puissance</label>
+            <input type="range" id="f-ao-strength" min="0" max="2" step="0.05" value="1" style="flex:1;" oninput="ambSetAO()">
+            <span id="v-ao-strength" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">1.0</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Rayon</label>
+            <input type="range" id="f-ao-radius" min="0.2" max="4" step="0.1" value="1.2" style="flex:1;" oninput="ambSetAO()">
+            <span id="v-ao-radius" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">1.2</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Présence</label>
+            <input type="range" id="f-ao-base" min="0" max="1" step="0.05" value="0.2" style="flex:1;" oninput="ambSetAO()">
+            <span id="v-ao-base" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">0.2</span>
+          </div>
+          <p class="hint" style="margin:.5rem 0 0;font-size:.68rem;">Présence = luminosité minimale préservée dans les zones occluses (plus haut = AO plus discrète).</p>
+        </div>
+
+        <div id="ssr-box" style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.4rem;">
+            <input type="checkbox" id="f-ssr-on" onchange="ambSetSSR()"> Reflets écran (SSR) — test verre
+          </label>
+          <p class="hint" style="margin:0 0 .6rem;font-size:.68rem;">⚠️ SSR + verre transparent + SSAO2 est réputé instable (conflit de profondeur). <b>Off par défaut → le rendu public reste intact.</b> Active-le ici pour juger sur ce GLB ; désactive pour revenir au rendu d'origine.</p>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Intensité</label>
+            <input type="range" id="f-ssr-strength" min="0" max="2" step="0.05" value="0.7" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-strength" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.70</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Netteté</label>
+            <input type="range" id="f-ssr-falloff" min="0.5" max="6" step="0.1" value="2.5" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-falloff" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">2.5</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Rugosité</label>
+            <input type="range" id="f-ssr-rough" min="0" max="1" step="0.02" value="0.2" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-rough" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.20</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Épaisseur</label>
+            <input type="range" id="f-ssr-thick" min="0.1" max="3" step="0.05" value="0.5" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-thick" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.50</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Flou reflets</label>
+            <input type="range" id="f-ssr-blur" min="0" max="0.2" step="0.005" value="0.03" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-blur" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.03</span>
+          </div>
+        </div>
+
+        <!-- ===================== TRAITEMENT IMAGE ===================== -->
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.5rem;">
+            <input type="checkbox" id="f-grade-on" onchange="gradeSet()"> 🎨 Traitement image
+          </label>
+          <p class="hint" style="margin:0 0 .6rem;font-size:.68rem;">Toutes les valeurs sont neutres au départ : tant que rien n'est bougé, le rendu est strictement identique. Décocher rend le rendu d'origine.</p>
+
+          <div style="font-size:.72rem;color:#6f7c99;margin-bottom:.35rem;">Ambiances — recliquer désactive et restaure l'état précédent</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.8rem;">
+            <button class="btn" id="preset-neutre"      onclick="loadPreset('neutre')"      style="font-size:.7rem;padding:.4rem .5rem;">📸 Studio neutre</button>
+            <button class="btn" id="preset-jour"        onclick="loadPreset('jour')"        style="font-size:.7rem;padding:.4rem .5rem;">🪟 Lumière du jour</button>
+            <button class="btn" id="preset-froid"       onclick="loadPreset('froid')"       style="font-size:.7rem;padding:.4rem .5rem;">❄️ Froid moderne</button>
+            <button class="btn" id="preset-fin_journee" onclick="loadPreset('fin_journee')" style="font-size:.7rem;padding:.4rem .5rem;">🌅 Fin de journée</button>
+            <button class="btn" id="preset-soiree"      onclick="loadPreset('soiree')"      style="font-size:.7rem;padding:.4rem .5rem;">🌙 Soirée</button>
+            <button class="btn sec" onclick="gradeReset()" style="font-size:.7rem;padding:.4rem .5rem;">↺ Curseurs à zéro</button>
+          </div>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Exposition<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Exposition</label>
+                <input type="range" id="g-exposure" min="-0.06" max="0.06" step="0.0003" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-exposure">0.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Luminosité / Contraste<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Luminosité</label>
+                <input type="range" id="g-brightness" min="-0.01" max="0.01" step="0.00005" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-brightness">0.00</span></div>
+              <div class="sl"><label>Contraste</label>
+                <input type="range" id="g-contrast" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-contrast">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Gamma<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Gamma</label>
+                <input type="range" id="g-gamma" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-gamma">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Teinte / Saturation / Valeur<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Teinte</label>
+                <input type="range" id="g-hue" min="-4" max="4" step="0.04" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-hue">0°</span></div>
+              <div class="sl"><label>Saturation</label>
+                <input type="range" id="g-saturation" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-saturation">1.00</span></div>
+              <div class="sl"><label>Valeur</label>
+                <input type="range" id="g-value" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-value">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Balance des couleurs<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Température</label>
+                <input type="range" id="g-temperature" min="-0.02" max="0.02" step="0.0001" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-temperature">0.00</span></div>
+              <div class="sl"><label>Vert ↔ Magenta</label>
+                <input type="range" id="g-tint" min="-0.02" max="0.02" step="0.0001" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-tint">0.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Correction couleur<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Pied noirs</label>
+                <input type="range" id="g-lift" min="-0.006" max="0.006" step="0.00003" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-lift">0.00</span></div>
+              <div class="sl"><label>Hautes lum.</label>
+                <input type="range" id="g-gain" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-gain">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Courbes RVB<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div style="font-size:.75rem;color:#6f7c99;margin-bottom:.5rem;">S'applique <b>par-dessus</b> l'ambiance active.<br>Clic pour ajouter un point • Glisser pour ajuster • Double-clic pour supprimer</div>
+              <div style="position:relative;margin-bottom:.5rem;background:#0d1220;border-radius:6px;overflow:hidden;border:1px solid #263149;">
+                <canvas id="rgb-curve-canvas" width="280" height="200" style="display:block;width:100%;"></canvas>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem;font-size:.7rem;">
+                <label style="display:flex;align-items:center;gap:.2rem;"><input type="checkbox" id="curve-channel-r" checked onchange="drawRgbCurve()"> <span style="width:8px;height:8px;background:#ff5555;border-radius:50%;"></span>Rouge</label>
+                <label style="display:flex;align-items:center;gap:.2rem;"><input type="checkbox" id="curve-channel-g" checked onchange="drawRgbCurve()"> <span style="width:8px;height:8px;background:#55ff55;border-radius:50%;"></span>Vert</label>
+                <label style="display:flex;align-items:center;gap:.2rem;"><input type="checkbox" id="curve-channel-b" checked onchange="drawRgbCurve()"> <span style="width:8px;height:8px;background:#5555ff;border-radius:50%;"></span>Bleu</label>
+              </div>
+            </div>
+          </details>
+
+
+
+        </div>
+      </div>
+
       <div id="p-light" hidden>
         <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
           <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">🌅 HDRI (environnement)</div>
@@ -272,8 +430,6 @@
           <button class="btn" onclick="ambAddLight('directional')" style="flex:1;">➕ Soleil</button>
         </div>
         <div class="list" id="light-list"></div>
-      </div>
-        </div>
       </div>
     </div>
 
