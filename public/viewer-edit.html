@@ -78,7 +78,7 @@
     .sl{display:flex;gap:.4rem;align-items:center;margin-bottom:.45rem}
     .sl label{font-size:.72rem;color:#6f7c99;flex:0 0 86px}
     .sl input[type=range]{flex:1}
-    .sl .v{font-size:.72rem;color:#c7d0e4;flex:0 0 40px;text-align:right;
+    .sl .v{font-size:.68rem;color:#c7d0e4;flex:0 0 62px;text-align:right;
            font-family:ui-monospace,monospace}
     .row{display:flex;align-items:center;gap:.4rem;padding:.45rem .1rem;
          border-bottom:1px solid #1c2740;font-size:.8rem}
@@ -289,7 +289,7 @@
             <summary><span class="dot"></span>Exposition<span class="ar">▶</span></summary>
             <div class="bd">
               <div class="sl"><label>Exposition</label>
-                <input type="range" id="g-exposure" min="-0.3" max="0.3" step="0.003" value="0" oninput="gradeSet()">
+                <input type="range" id="g-exposure" min="-0.06" max="0.06" step="0.0003" value="0" oninput="gradeSet()">
                 <span class="v" id="v-g-exposure">0.00</span></div>
             </div>
           </details>
@@ -298,10 +298,10 @@
             <summary><span class="dot"></span>Luminosité / Contraste<span class="ar">▶</span></summary>
             <div class="bd">
               <div class="sl"><label>Luminosité</label>
-                <input type="range" id="g-brightness" min="-0.05" max="0.05" step="0.0005" value="0" oninput="gradeSet()">
+                <input type="range" id="g-brightness" min="-0.01" max="0.01" step="0.00005" value="0" oninput="gradeSet()">
                 <span class="v" id="v-g-brightness">0.00</span></div>
               <div class="sl"><label>Contraste</label>
-                <input type="range" id="g-contrast" min="0.9" max="1.1" step="0.001" value="1" oninput="gradeSet()">
+                <input type="range" id="g-contrast" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
                 <span class="v" id="v-g-contrast">1.00</span></div>
             </div>
           </details>
@@ -310,7 +310,7 @@
             <summary><span class="dot"></span>Gamma<span class="ar">▶</span></summary>
             <div class="bd">
               <div class="sl"><label>Gamma</label>
-                <input type="range" id="g-gamma" min="0.9" max="1.1" step="0.001" value="1" oninput="gradeSet()">
+                <input type="range" id="g-gamma" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
                 <span class="v" id="v-g-gamma">1.00</span></div>
             </div>
           </details>
@@ -319,13 +319,13 @@
             <summary><span class="dot"></span>Teinte / Saturation / Valeur<span class="ar">▶</span></summary>
             <div class="bd">
               <div class="sl"><label>Teinte</label>
-                <input type="range" id="g-hue" min="-18" max="18" step="0.2" value="0" oninput="gradeSet()">
+                <input type="range" id="g-hue" min="-4" max="4" step="0.04" value="0" oninput="gradeSet()">
                 <span class="v" id="v-g-hue">0°</span></div>
               <div class="sl"><label>Saturation</label>
-                <input type="range" id="g-saturation" min="0.9" max="1.1" step="0.001" value="1" oninput="gradeSet()">
+                <input type="range" id="g-saturation" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
                 <span class="v" id="v-g-saturation">1.00</span></div>
               <div class="sl"><label>Valeur</label>
-                <input type="range" id="g-value" min="0.9" max="1.1" step="0.001" value="1" oninput="gradeSet()">
+                <input type="range" id="g-value" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
                 <span class="v" id="v-g-value">1.00</span></div>
             </div>
           </details>
@@ -334,10 +334,10 @@
             <summary><span class="dot"></span>Balance des couleurs<span class="ar">▶</span></summary>
             <div class="bd">
               <div class="sl"><label>Température</label>
-                <input type="range" id="g-temperature" min="-0.1" max="0.1" step="0.001" value="0" oninput="gradeSet()">
+                <input type="range" id="g-temperature" min="-0.02" max="0.02" step="0.0001" value="0" oninput="gradeSet()">
                 <span class="v" id="v-g-temperature">0.00</span></div>
               <div class="sl"><label>Vert ↔ Magenta</label>
-                <input type="range" id="g-tint" min="-0.1" max="0.1" step="0.001" value="0" oninput="gradeSet()">
+                <input type="range" id="g-tint" min="-0.02" max="0.02" step="0.0001" value="0" oninput="gradeSet()">
                 <span class="v" id="v-g-tint">0.00</span></div>
             </div>
           </details>
@@ -346,10 +346,10 @@
             <summary><span class="dot"></span>Correction couleur<span class="ar">▶</span></summary>
             <div class="bd">
               <div class="sl"><label>Pied noirs</label>
-                <input type="range" id="g-lift" min="-0.03" max="0.03" step="0.0003" value="0" oninput="gradeSet()">
+                <input type="range" id="g-lift" min="-0.006" max="0.006" step="0.00003" value="0" oninput="gradeSet()">
                 <span class="v" id="v-g-lift">0.00</span></div>
               <div class="sl"><label>Hautes lum.</label>
-                <input type="range" id="g-gain" min="0.9" max="1.1" step="0.001" value="1" oninput="gradeSet()">
+                <input type="range" id="g-gain" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
                 <span class="v" id="v-g-gain">1.00</span></div>
             </div>
           </details>
@@ -358,13 +358,13 @@
             <summary><span class="dot"></span>Courbes RVB<span class="ar">▶</span></summary>
             <div class="bd">
               <div class="sl"><label>Rouge</label>
-                <input type="range" id="g-curveR" min="0.9" max="1.1" step="0.001" value="1" oninput="gradeSet()">
+                <input type="range" id="g-curveR" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
                 <span class="v" id="v-g-curveR">1.00</span></div>
               <div class="sl"><label>Vert</label>
-                <input type="range" id="g-curveG" min="0.9" max="1.1" step="0.001" value="1" oninput="gradeSet()">
+                <input type="range" id="g-curveG" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
                 <span class="v" id="v-g-curveG">1.00</span></div>
               <div class="sl"><label>Bleu</label>
-                <input type="range" id="g-curveB" min="0.9" max="1.1" step="0.001" value="1" oninput="gradeSet()">
+                <input type="range" id="g-curveB" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
                 <span class="v" id="v-g-curveB">1.00</span></div>
             </div>
           </details>
@@ -1235,16 +1235,16 @@ function setHdri(){
 }
 
 /* ===== TRAITEMENT IMAGE (colorimétrie) =====================================
-   Plages volontairement ÉTROITES autour de la valeur neutre (environ un dixième
-   de l'amplitude d'origine) : sur cette scène, un dixième d'unité suffisait déjà
-   à tout écraser. Chaque curseur garde ~200 crans, donc le réglage est fin sur
-   toute sa course. Le 2e nombre = décimales d'affichage, adaptées au pas (avec
-   2 décimales, un pas de 0.001 semblerait ne rien faire). */
+   Plages TRÈS étroites autour de la valeur neutre — un cinquantième de
+   l'amplitude d'origine : sur cette scène le rendu bascule pour des écarts
+   minuscules. Chaque curseur garde ~200 crans, donc la course entière reste
+   utile. Le 2e nombre = décimales d'affichage, calées sur le pas (sinon la
+   valeur semblerait figée pendant qu'on déplace le curseur). */
 const GRADE_FIELDS = [
-  ['exposure',   3], ['brightness', 4], ['contrast', 3], ['gamma', 3],
-  ['saturation', 3], ['value',      3], ['temperature', 3], ['tint', 3],
-  ['lift',       4], ['gain',       3],
-  ['curveR',     3], ['curveG',     3], ['curveB', 3]
+  ['exposure',   4], ['brightness', 5], ['contrast', 4], ['gamma', 4],
+  ['saturation', 4], ['value',      4], ['temperature', 4], ['tint', 4],
+  ['lift',       5], ['gain',       4],
+  ['curveR',     4], ['curveG',     4], ['curveB', 4]
 ];
 
 function gradeRefresh(){
@@ -1260,7 +1260,7 @@ function gradeRefresh(){
   });
   var h = document.getElementById('g-hue'), vh = document.getElementById('v-g-hue');
   if (h){ h.value = g.hue; }
-  if (vh){ vh.textContent = (+g.hue).toFixed(1) + '°'; }
+  if (vh){ vh.textContent = (+g.hue).toFixed(2) + '°'; }
   var tm = document.getElementById('g-tonemap');
   if (tm) tm.checked = !!g.tonemap;
 }
@@ -1279,7 +1279,7 @@ function gradeSet(){
   if (h){
     o.hue = parseFloat(h.value);
     var vh = document.getElementById('v-g-hue');
-    if (vh) vh.textContent = o.hue.toFixed(1) + '°';
+    if (vh) vh.textContent = o.hue.toFixed(2) + '°';
   }
   var tm = document.getElementById('g-tonemap');
   if (tm) o.tonemap = tm.checked;
