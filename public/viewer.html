@@ -1277,7 +1277,7 @@ async function init() {
 
       // La HDRi vient de remplacer la sonde de repli : re-lier la réfraction du
       // verre sur ce nouvel environnement, sinon le verre reste blanchâtre.
-      if (window.refreshGlassRefraction) window.refreshGlassRefraction();
+      if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
 
       console.log('✅ HDRi chargée (IBL)');
     });
@@ -1486,9 +1486,9 @@ async function init() {
 
   await loadManifest();
   await loadWalls();
-  // Si la HDRi est déjà en place, on re-lie la réfraction du verre maintenant
-  // (le callback HDRi s'en charge si elle arrive plus tard).
-  if (window.refreshGlassRefraction) window.refreshGlassRefraction();
+  // Re-liaison différée : elle doit s'exécuter après l'attache du pipeline AO
+  // (plus bas) et le montage effectif du prepass.
+  if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(4);
   loadRoomsAsync();
 
   // HDRi et skybox gérées par createDefaultEnvironment()
@@ -1537,6 +1537,11 @@ async function init() {
       window.ssao2Pipeline = ssao2;
       // Activé par défaut : attaché à la caméra principale au lancement.
       try { scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline('ssao2', [camera]); } catch(_){}
+      // ⚠️ L'attache du pipeline AO (re)monte le geometry buffer / prepass, ce
+      // qui invalide la liaison de réfraction des matériaux verre déjà compilés
+      // → vitres blanches. L'AO reste bien activé au chargement ; on re-lie
+      // simplement le verre APRÈS, une fois le prepass réellement monté.
+      if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
       console.log('✅ AO (SSAO2) activé par défaut');
     } catch (e) { console.warn('⚠️ SSAO2 non créé :', e.message); }
   }
@@ -1554,6 +1559,8 @@ async function init() {
         var mgr = scene.postProcessRenderPipelineManager;
         if (st.enabled) mgr.attachCamerasToRenderPipeline('ssao2', window.__ppCams());
         else            mgr.detachCamerasFromRenderPipeline('ssao2', window.__ppCams());
+        // Toute attache/détache remonte le prepass → re-lier le verre après.
+        if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
       } catch(_){}
     }
   };
@@ -1869,16 +1876,30 @@ window.refreshGlassRefraction = function () {
   var n = 0;
   (scene.materials || []).forEach(function (mat) {
     var ss = mat && mat.subSurface;
-    if (ss && ss.isRefractionEnabled) {
-      // false→true : chaque changement de valeur marque les submeshes dirty,
-      // ce qui recompile la réfraction sur l'environmentTexture actuel.
-      ss.isRefractionEnabled = false;
-      ss.isRefractionEnabled = true;
-      n++;
-    }
+    if (!ss || !ss.isRefractionEnabled) return;
+    // Reproduit exactement le décochage/recochage manuel de « Réfraction ».
+    ss.isRefractionEnabled = false;
+    ss.isRefractionEnabled = true;
+    // Filet : forcer explicitement la recompilation des textures du matériau,
+    // au cas où le setter court-circuiterait (valeur identique en fin de tick).
+    try { mat.markAsDirty(BABYLON.Material.TextureDirtyFlag); } catch (_) {}
+    n++;
   });
   if (n) console.log('🪟 Réfraction verre re-liée à l\'environnement courant (' + n + ' matériau(x))');
   return n;
+};
+
+/* Re-bind DIFFÉRÉ — indispensable : la réfraction doit être recompilée APRÈS
+   que le prepass / geometry buffer soit réellement monté (l'attache du pipeline
+   AO le monte, ce qui invalide la liaison faite juste avant). On attend donc
+   quelques frames RÉELLEMENT rendues avant de re-lier. */
+window.refreshGlassRefractionDeferred = function (frames) {
+  var left = (frames == null) ? 3 : frames;
+  var obs = scene.onAfterRenderObservable.add(function () {
+    if (--left > 0) return;
+    scene.onAfterRenderObservable.remove(obs);
+    window.refreshGlassRefraction();
+  });
 };
 
 /* ============================================================================
@@ -2732,7 +2753,7 @@ function loadRoomsAsync() {
         roomState[r.id].enabled = !!CONFIG.roomsStartVisible;
 
         applyGlassTreatment(node); // vitres du mobilier/pièce : transparence claire
-        if (window.refreshGlassRefraction) window.refreshGlassRefraction();
+        if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
       } catch (err) {
         roomState[r.id].failed = true;
