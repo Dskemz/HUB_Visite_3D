@@ -6,9 +6,49 @@
   <title>Éditeur — Visite 3D</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* ===================== PALETTE ============================================
+       Niveaux de gris façon Blender + un seul accent orange. Tout l'habillage
+       de l'éditeur passe par ces variables — y compris les styles inline et
+       ceux générés en JS — donc changer une teinte se fait ICI, à un endroit.
+       (Les rares #hex qui subsistent ailleurs sont des DONNÉES : couleur du
+       marqueur POV, valeurs par défaut des color pickers.) */
+    :root{
+      /* fonds, du plus sombre au plus clair */
+      --bg-0:#1d1d1d;   /* body, champs de saisie, boîtes, rail d'onglets */
+      --bg-1:#262626;   /* fond du panneau d'édition */
+      --bg-2:#2b2b2b;   /* cartes, onglet inactif */
+      --bg-3:#303030;   /* survol léger */
+      --bg-4:#383838;   /* survol marqué, petits boutons de ligne */
+      /* bordures, du plus discret au plus marqué */
+      --bd-0:#303030;
+      --bd-1:#383838;
+      --bd-2:#454545;
+      --bd-3:#525252;
+      --bd-4:#5f5f5f;   /* poignée de redimensionnement */
+      /* textes, du plus lisible au plus discret */
+      --tx-0:#e8e8e8;
+      --tx-1:#c4c4c4;
+      --tx-2:#a8a8a8;
+      --tx-3:#8f8f8f;
+      --tx-4:#7a7a7a;
+      --tx-5:#6a6a6a;   /* placeholder */
+      /* accent unique */
+      --ac:#d97757;     /* orange */
+      --ac-h:#e08a6d;   /* survol */
+      --ac-d:#4a3325;   /* orange assourdi : fond des états « ouvert » */
+      --ac-db:#7a5340;  /* bordure de ces états */
+      /* avertissement (reste dans la famille chaude) */
+      --wn-bg:#3a2a1c; --wn-bd:#6b4f35; --wn-tx:#e8cfa4;
+    }
+    /* Curseurs, cases à cocher et sélections prennent l'accent : sans ça le
+       navigateur les rend en bleu système et la conversion reste incomplète. */
+    html{accent-color:var(--ac);
+         scrollbar-color:var(--bd-3) var(--bg-0);scrollbar-width:thin}
+    ::selection{background:var(--ac);color:#fff}
+
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
-    body{font-family:'Inter',system-ui,sans-serif;background:#0d1220;color:#e8ecf6;
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg-0);color:var(--tx-0);
          display:flex;overflow:hidden}
 
     /* Le VRAI viewer, tel quel. Aucune ligne recopiee. */
@@ -17,103 +57,104 @@
 
     /* Bandeau d'etat par-dessus le viewer */
     #flash{position:absolute;top:14px;left:50%;transform:translateX(-50%);
-           background:rgba(13,18,32,.92);border:1px solid #2c3854;color:#e8ecf6;
+           background:rgba(24,24,24,.94);border:1px solid var(--bd-3);color:var(--tx-0);
            padding:.5rem .9rem;border-radius:9px;font-size:.82rem;font-weight:600;
            opacity:0;transition:opacity .2s;pointer-events:none;z-index:5}
     #flash.on{opacity:1}
 
     /* Panneau d'edition, HORS du viewer.
        Deux colonnes : le rail d'intercalaires collé au bord, puis le contenu. */
-    #side{width:330px;flex:0 0 330px;background:#111827;border-left:1px solid #212c44;
+    #side{width:330px;flex:0 0 330px;background:var(--bg-1);border-left:1px solid var(--bd-1);
           display:flex;flex-direction:row;overflow:hidden;transition:width .05s linear}
     #side-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
-    #resize-handle{width:12px;flex:0 0 12px;cursor:ew-resize;background:#0d1220;
-                   border-left:1px solid #1c2740;border-right:1px solid #2c3854;
+    #resize-handle{width:12px;flex:0 0 12px;cursor:ew-resize;background:var(--bg-0);
+                   border-left:1px solid var(--bd-0);border-right:1px solid var(--bd-3);
                    display:flex;align-items:center;justify-content:center;touch-action:none}
-    #resize-handle::before{content:'';width:2px;height:28px;border-radius:2px;background:#3a4666}
-    #resize-handle:hover{background:#1a2438}
+    #resize-handle::before{content:'';width:2px;height:28px;border-radius:2px;background:var(--bd-4)}
+    #resize-handle:hover{background:var(--bg-4)}
     #drag-overlay{position:fixed;inset:0;display:none;z-index:999;cursor:ew-resize}
     #drag-overlay.active{display:block}
-    .hd{padding:1rem 1.1rem;border-bottom:1px solid #212c44}
-    .hd .t{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#6f7c99;font-weight:700}
+    .hd{padding:1rem 1.1rem;border-bottom:1px solid var(--bd-1)}
+    .hd .t{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--tx-4);font-weight:700}
     .hd h1{font-size:1.05rem;font-weight:800;margin-top:.25rem}
-    .hd .p{font-size:.76rem;color:#6f7c99;margin-top:.3rem;font-family:ui-monospace,monospace}
+    .hd .p{font-size:.76rem;color:var(--tx-4);margin-top:.3rem;font-family:ui-monospace,monospace}
 
     /* Style générique .tab — RÉUTILISÉ par les arbres Matériaux et Lighting.
        Ne pas y toucher : le rail ci-dessous surcharge uniquement ses enfants. */
     .tab{padding:.5rem;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer;
-         background:#0d1220;border:1px solid #263149;color:#c7d0e4;border-radius:8px}
-    .tab.on{background:#4a6cff;border-color:#4a6cff;color:#fff}
+         background:var(--bg-0);border:1px solid var(--bd-2);color:var(--tx-1);border-radius:8px}
+    .tab.on{background:var(--ac);border-color:var(--ac);color:#fff}
 
     /* ===== Intercalaires verticaux, accrochés à la bordure du panneau =====
        Le rail longe toute la hauteur ; chaque onglet est un « onglet de
        classeur » : coins arrondis côté viewer, à plat côté panneau, et
        l'onglet actif se fond dans le fond du panneau. */
     .tabs{flex:0 0 38px;display:flex;flex-direction:column;gap:.3rem;
-          padding:1rem 0 1rem .25rem;background:#0d1220;
-          border-right:1px solid #212c44;overflow-y:auto;overflow-x:hidden}
+          padding:1rem 0 1rem .25rem;background:var(--bg-0);
+          border-right:1px solid var(--bd-1);overflow-y:auto;overflow-x:hidden}
     .tabs > .tab{writing-mode:vertical-rl;transform:rotate(180deg);
          padding:.85rem .3rem;font-size:.72rem;
-         background:#141c2e;border:1px solid #263149;border-right:none;
-         color:#8b96ad;border-radius:8px 0 0 8px;white-space:nowrap;
+         background:var(--bg-2);border:1px solid var(--bd-2);border-right:none;
+         color:var(--tx-3);border-radius:8px 0 0 8px;white-space:nowrap;
          transition:background .12s,color .12s}
-    .tabs > .tab:hover{background:#1a2438;color:#c7d0e4}
+    .tabs > .tab:hover{background:var(--bg-4);color:var(--tx-1)}
     /* L'onglet actif « avance » : même fond que le panneau, séparateur effacé. */
-    .tabs > .tab.on{background:#111827;border-color:#2c3854;color:#fff;
-            box-shadow:inset 3px 0 0 #4a6cff;margin-right:-1px;padding-right:.4rem}
+    .tabs > .tab.on{background:var(--bg-1);border-color:var(--bd-3);color:#fff;
+            box-shadow:inset 3px 0 0 var(--ac);margin-right:-1px;padding-right:.4rem}
     .tabs > #b-expand{margin-top:auto;writing-mode:horizontal-tb;transform:none;
               padding:.5rem .3rem;font-size:.9rem;border-radius:8px;
-              border-right:1px solid #263149;box-shadow:none}
+              border-right:1px solid var(--bd-2);box-shadow:none}
 
     .body{flex:1;overflow-y:auto;padding:1rem 1.1rem}
-    .hint{font-size:.76rem;color:#8b96ad;line-height:1.55;margin-bottom:.85rem}
-    .hint b{color:#e8ecf6}
+    .hint{font-size:.76rem;color:var(--tx-3);line-height:1.55;margin-bottom:.85rem}
+    .hint b{color:var(--tx-0)}
 
-    input{width:100%;background:#0d1220;border:1px solid #263149;color:#e8ecf6;
+    input{width:100%;background:var(--bg-0);border:1px solid var(--bd-2);color:var(--tx-0);
           border-radius:8px;padding:.55rem .7rem;font:inherit;font-size:.82rem;
           margin-bottom:.5rem;outline:none}
-    input:focus{border-color:#4a6cff}
-    input::placeholder{color:#5b6580}
+    input:focus{border-color:var(--ac)}
+    input::placeholder{color:var(--tx-5)}
 
     .btn{width:100%;padding:.65rem;border:none;border-radius:8px;font:inherit;
-         font-weight:700;font-size:.84rem;cursor:pointer;background:#4a6cff;color:#fff}
-    .btn:hover{opacity:.9}
-    .btn.sec{background:#0d1220;border:1px solid #2c3854;color:#c7d0e4}
+         font-weight:700;font-size:.84rem;cursor:pointer;background:var(--ac);color:#fff}
+    .btn:hover{background:var(--ac-h)}
+    .btn.sec{background:var(--bg-0);border:1px solid var(--bd-3);color:var(--tx-1)}
+    .btn.sec:hover{background:var(--bg-3);border-color:var(--bd-4);color:var(--tx-0)}
     .btn:disabled{opacity:.4;cursor:not-allowed}
 
     .list{margin-top:.9rem}
 
     /* ===== Sous-menus repliables (Traitement image) — charte éditeur ===== */
-    .fold{background:#0d1220;border:1px solid #263149;border-radius:8px;
+    .fold{background:var(--bg-0);border:1px solid var(--bd-2);border-radius:8px;
           margin-bottom:.55rem;overflow:hidden}
     .fold > summary{cursor:pointer;list-style:none;padding:.55rem .65rem;
-          font-size:.78rem;color:#c7d0e4;display:flex;align-items:center;gap:.45rem;
+          font-size:.78rem;color:var(--tx-1);display:flex;align-items:center;gap:.45rem;
           user-select:none}
     .fold > summary::-webkit-details-marker{display:none}
-    .fold > summary:hover{background:#131a2c}
-    .fold > summary .ar{margin-left:auto;color:#6f7c99;font-size:.7rem;
+    .fold > summary:hover{background:var(--bg-3)}
+    .fold > summary .ar{margin-left:auto;color:var(--tx-4);font-size:.7rem;
           transition:transform .15s}
     .fold[open] > summary .ar{transform:rotate(90deg)}
-    .fold > summary .dot{width:6px;height:6px;border-radius:50%;background:#2c3854;
+    .fold > summary .dot{width:6px;height:6px;border-radius:50%;background:var(--bd-3);
           flex:0 0 auto}
-    .fold[open] > summary .dot{background:#4a6cff}
+    .fold[open] > summary .dot{background:var(--ac)}
     .fold .bd{padding:.15rem .65rem .65rem}
     .sl{display:flex;gap:.4rem;align-items:center;margin-bottom:.45rem}
-    .sl label{font-size:.72rem;color:#6f7c99;flex:0 0 86px}
+    .sl label{font-size:.72rem;color:var(--tx-4);flex:0 0 86px}
     .sl input[type=range]{flex:1}
-    .sl .v{font-size:.68rem;color:#c7d0e4;flex:0 0 62px;text-align:right;
+    .sl .v{font-size:.68rem;color:var(--tx-1);flex:0 0 62px;text-align:right;
            font-family:ui-monospace,monospace}
     .row{display:flex;align-items:center;gap:.4rem;padding:.45rem .1rem;
-         border-bottom:1px solid #1c2740;font-size:.8rem}
+         border-bottom:1px solid var(--bd-0);font-size:.8rem}
     .row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .row button{background:#1a2438;border:none;color:#c7d0e4;border-radius:6px;
+    .row button{background:var(--bg-4);border:none;color:var(--tx-1);border-radius:6px;
                 padding:.25rem .5rem;font-size:.74rem;cursor:pointer}
-    .row button:hover{background:#4a6cff;color:#fff}
+    .row button:hover{background:var(--ac);color:#fff}
 
-    .ft{padding:.9rem 1.1rem;border-top:1px solid #212c44}
-    .st{font-size:.74rem;color:#6f7c99;margin-top:.55rem;text-align:center}
+    .ft{padding:.9rem 1.1rem;border-top:1px solid var(--bd-1)}
+    .st{font-size:.74rem;color:var(--tx-4);margin-top:.55rem;text-align:center}
     .warn{margin:0 1.1rem 1rem;padding:.7rem .8rem;border-radius:8px;font-size:.76rem;
-          line-height:1.5;background:#2a1f12;border:1px solid #5a4526;color:#e8cfa4}
+          line-height:1.5;background:var(--wn-bg);border:1px solid var(--wn-bd);color:var(--wn-tx)}
   </style>
 </head>
 <body>
@@ -150,25 +191,25 @@
       <div id="p-pov">
         <p class="hint"><b>Placement interactif.</b> Clique « Placer POV » puis clique dans la vue 3D :
           le point se pose au sol. Règle la hauteur, oriente ta vue avec « Voir », puis « Valider ».</p>
-        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.7rem;">
+        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.7rem;">
           <div style="display:flex;gap:.4rem;margin-bottom:.5rem;">
             <button class="btn" id="b-place-pov" onclick="placerPov()" style="flex:1;">📍 Placer POV</button>
             <button class="btn sec" id="b-cancel-pov" onclick="annulerPov()" style="flex:1;display:none;">❌ Annuler</button>
           </div>
           <div style="display:flex;gap:.4rem;align-items:center;">
-            <label style="font-size:.76rem;color:#6f7c99;flex:0 0 50px;">Hauteur</label>
+            <label style="font-size:.76rem;color:var(--tx-4);flex:0 0 50px;">Hauteur</label>
             <input type="range" id="f-height" min="0" max="2" step="0.05" value="0" style="flex:1;"
                    oninput="setHauteurPov(this.value)">
-            <span id="h-height-val" style="font-size:.76rem;color:#c7d0e4;flex:0 0 40px;">0 m</span>
+            <span id="h-height-val" style="font-size:.76rem;color:var(--tx-1);flex:0 0 40px;">0 m</span>
           </div>
         </div>
         <div style="display:flex;gap:.4rem;margin-bottom:.5rem;">
           <div style="flex:1;">
-            <label style="display:block;font-size:.68rem;color:#6f7c99;margin-bottom:.2rem;">Identifiant (technique, unique)</label>
+            <label style="display:block;font-size:.68rem;color:var(--tx-4);margin-bottom:.2rem;">Identifiant (technique, unique)</label>
             <input id="f-id" placeholder="ex: pov-cuisine-1" style="width:100%;margin:0;">
           </div>
           <div style="flex:1;">
-            <label style="display:block;font-size:.68rem;color:#6f7c99;margin-bottom:.2rem;">Nom affiché au visiteur</label>
+            <label style="display:block;font-size:.68rem;color:var(--tx-4);margin-bottom:.2rem;">Nom affiché au visiteur</label>
             <input id="f-label" placeholder="ex: Cuisine" style="width:100%;margin:0;">
           </div>
         </div>
@@ -178,8 +219,8 @@
           <button class="btn" id="b-voir" onclick="voirPov()" style="flex:1;display:none;">👁️ Voir (orienter)</button>
           <button class="btn" id="b-valider" onclick="validerPov()" style="flex:1;display:none;">💾 Valider</button>
         </div>
-        <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.7rem;background:#0d1220;padding:.5rem .7rem;border-radius:8px;">
-          <label style="font-size:.74rem;color:#9fb4ce;flex:1;">🎨 Couleur de tous les POV</label>
+        <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.7rem;background:var(--bg-0);padding:.5rem .7rem;border-radius:8px;">
+          <label style="font-size:.74rem;color:var(--tx-2);flex:1;">🎨 Couleur de tous les POV</label>
           <input type="color" id="f-pov-color" value="#0B1B3F" style="flex:0 0 auto;width:44px;height:28px;padding:0;border:none;background:none;cursor:pointer;" oninput="setPovColor(this.value)">
         </div>
         <div class="list" id="pov-list" style="margin-top:.9rem;"></div>
@@ -192,32 +233,32 @@
           · <b>clic sur une graduation</b> → elle disparaît, les deux cotes fusionnent.<br><br>
           Aucun calcul, aucune saisie.</p>
 
-        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
-          <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">📏 Dimensions générales (périmètre)</div>
+        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="font-size:.8rem;color:var(--tx-4);margin-bottom:.5rem;">📏 Dimensions générales (périmètre)</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem;">
-            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Haut</label>
+            <div><label style="display:block;font-size:.7rem;color:var(--tx-2);margin-bottom:.2rem;">Haut</label>
               <input type="number" id="f-dim-top" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('top',this.value)"></div>
-            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Bas</label>
+            <div><label style="display:block;font-size:.7rem;color:var(--tx-2);margin-bottom:.2rem;">Bas</label>
               <input type="number" id="f-dim-bottom" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('bottom',this.value)"></div>
-            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Gauche</label>
+            <div><label style="display:block;font-size:.7rem;color:var(--tx-2);margin-bottom:.2rem;">Gauche</label>
               <input type="number" id="f-dim-left" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('left',this.value)"></div>
-            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Droite</label>
+            <div><label style="display:block;font-size:.7rem;color:var(--tx-2);margin-bottom:.2rem;">Droite</label>
               <input type="number" id="f-dim-right" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('right',this.value)"></div>
           </div>
-          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--tx-2);cursor:pointer;">
             <input type="checkbox" id="f-not-rect" onchange="setRectangular(!this.checked)">
             N'est pas rectangulaire
           </label>
         </div>
 
-        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
-          <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">📐 Espacement des cotations (px)</div>
+        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="font-size:.8rem;color:var(--tx-4);margin-bottom:.5rem;">📐 Espacement des cotations (px)</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem;">
-            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Extérieures</label>
+            <div><label style="display:block;font-size:.7rem;color:var(--tx-2);margin-bottom:.2rem;">Extérieures</label>
               <input type="number" id="f-offset-dim" placeholder="px" step="1" style="width:100%;" oninput="setOffsetDim(this.value)"></div>
-            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Segments</label>
+            <div><label style="display:block;font-size:.7rem;color:var(--tx-2);margin-bottom:.2rem;">Segments</label>
               <input type="number" id="f-offset-seg" placeholder="px" step="1" style="width:100%;" oninput="setOffsetSeg(this.value)"></div>
-            <div style="grid-column:1/-1;"><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Pièces isolées</label>
+            <div style="grid-column:1/-1;"><label style="display:block;font-size:.7rem;color:var(--tx-2);margin-bottom:.2rem;">Pièces isolées</label>
               <input type="number" id="f-offset-room" placeholder="px" step="1" style="width:100%;" oninput="setOffsetRoom(this.value)"></div>
           </div>
         </div>
@@ -241,7 +282,7 @@
         <button class="btn sec" onclick="inspectorRefresh()" style="margin-bottom:.7rem;">🔄 Recharger</button>
         <div id="mat-tree"></div>
         <details style="margin-top:.8rem;">
-          <summary style="cursor:pointer;font-size:.72rem;color:#6f7c99;">🔍 Diagnostic (noms bruts)</summary>
+          <summary style="cursor:pointer;font-size:.72rem;color:var(--tx-4);">🔍 Diagnostic (noms bruts)</summary>
           <div style="margin-top:.5rem;"><button class="btn sec" onclick="diagnostiquerVerre()" style="margin-bottom:.6rem;">Lister les noms vus par le viewer</button><div id="glass-diag"></div></div>
         </details>
       </div>
@@ -249,88 +290,88 @@
       <div id="p-amb" hidden>
         <p class="hint"><b>Occlusion ambiante (AO).</b> Assombrit les recoins pour « poser »
           les objets. Ajuste la puissance et le rayon en direct.</p>
-        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
-          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.6rem;">
+        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--tx-2);cursor:pointer;margin-bottom:.6rem;">
             <input type="checkbox" id="f-ao-on" onchange="ambSetAO()"> Activer l'AO
           </label>
           <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
-            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Puissance</label>
+            <label style="font-size:.72rem;color:var(--tx-4);flex:0 0 62px;">Puissance</label>
             <input type="range" id="f-ao-strength" min="0" max="2" step="0.05" value="1" style="flex:1;" oninput="ambSetAO()">
-            <span id="v-ao-strength" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">1.0</span>
+            <span id="v-ao-strength" style="font-size:.72rem;color:var(--tx-1);flex:0 0 32px;">1.0</span>
           </div>
           <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
-            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Rayon</label>
+            <label style="font-size:.72rem;color:var(--tx-4);flex:0 0 62px;">Rayon</label>
             <input type="range" id="f-ao-radius" min="0.2" max="4" step="0.1" value="1.2" style="flex:1;" oninput="ambSetAO()">
-            <span id="v-ao-radius" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">1.2</span>
+            <span id="v-ao-radius" style="font-size:.72rem;color:var(--tx-1);flex:0 0 32px;">1.2</span>
           </div>
           <div style="display:flex;gap:.4rem;align-items:center;">
-            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Présence</label>
+            <label style="font-size:.72rem;color:var(--tx-4);flex:0 0 62px;">Présence</label>
             <input type="range" id="f-ao-base" min="0" max="1" step="0.05" value="0.2" style="flex:1;" oninput="ambSetAO()">
-            <span id="v-ao-base" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">0.2</span>
+            <span id="v-ao-base" style="font-size:.72rem;color:var(--tx-1);flex:0 0 32px;">0.2</span>
           </div>
           <p class="hint" style="margin:.5rem 0 0;font-size:.68rem;">Présence = luminosité minimale préservée dans les zones occluses (plus haut = AO plus discrète).</p>
         </div>
 
-        <div id="ssr-box" style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
-          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.4rem;">
+        <div id="ssr-box" style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--tx-2);cursor:pointer;margin-bottom:.4rem;">
             <input type="checkbox" id="f-ssr-on" onchange="ambSetSSR()"> Reflets écran (SSR) — test verre
           </label>
           <p class="hint" style="margin:0 0 .6rem;font-size:.68rem;">⚠️ SSR + verre transparent + SSAO2 est réputé instable (conflit de profondeur). <b>Off par défaut → le rendu public reste intact.</b> Active-le ici pour juger sur ce GLB ; désactive pour revenir au rendu d'origine.</p>
           <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
-            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Intensité</label>
+            <label style="font-size:.72rem;color:var(--tx-4);flex:0 0 72px;">Intensité</label>
             <input type="range" id="f-ssr-strength" min="0" max="2" step="0.05" value="0.7" style="flex:1;" oninput="ambSetSSR()">
-            <span id="v-ssr-strength" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.70</span>
+            <span id="v-ssr-strength" style="font-size:.72rem;color:var(--tx-1);flex:0 0 34px;">0.70</span>
           </div>
           <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
-            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Netteté</label>
+            <label style="font-size:.72rem;color:var(--tx-4);flex:0 0 72px;">Netteté</label>
             <input type="range" id="f-ssr-falloff" min="0.5" max="6" step="0.1" value="2.5" style="flex:1;" oninput="ambSetSSR()">
-            <span id="v-ssr-falloff" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">2.5</span>
+            <span id="v-ssr-falloff" style="font-size:.72rem;color:var(--tx-1);flex:0 0 34px;">2.5</span>
           </div>
           <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
-            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Rugosité</label>
+            <label style="font-size:.72rem;color:var(--tx-4);flex:0 0 72px;">Rugosité</label>
             <input type="range" id="f-ssr-rough" min="0" max="1" step="0.02" value="0.2" style="flex:1;" oninput="ambSetSSR()">
-            <span id="v-ssr-rough" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.20</span>
+            <span id="v-ssr-rough" style="font-size:.72rem;color:var(--tx-1);flex:0 0 34px;">0.20</span>
           </div>
           <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
-            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Épaisseur</label>
+            <label style="font-size:.72rem;color:var(--tx-4);flex:0 0 72px;">Épaisseur</label>
             <input type="range" id="f-ssr-thick" min="0.1" max="3" step="0.05" value="0.5" style="flex:1;" oninput="ambSetSSR()">
-            <span id="v-ssr-thick" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.50</span>
+            <span id="v-ssr-thick" style="font-size:.72rem;color:var(--tx-1);flex:0 0 34px;">0.50</span>
           </div>
           <div style="display:flex;gap:.4rem;align-items:center;">
-            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Flou reflets</label>
+            <label style="font-size:.72rem;color:var(--tx-4);flex:0 0 72px;">Flou reflets</label>
             <input type="range" id="f-ssr-blur" min="0" max="0.2" step="0.005" value="0.03" style="flex:1;" oninput="ambSetSSR()">
-            <span id="v-ssr-blur" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.03</span>
+            <span id="v-ssr-blur" style="font-size:.72rem;color:var(--tx-1);flex:0 0 34px;">0.03</span>
           </div>
         </div>
       </div>
 
       <div id="p-light" hidden>
-        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
-          <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">🌅 HDRI (environnement)</div>
+        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="font-size:.8rem;color:var(--tx-4);margin-bottom:.5rem;">🌅 HDRI (environnement)</div>
           <!-- Miniature live : rendue par le moteur du viewer, reflète intensité
                ET orientation en temps réel. Le repère vertical marque le « nord »
                de la scène, pour voir de combien on tourne. -->
           <div style="position:relative;margin-bottom:.55rem;">
             <canvas id="hdri-preview" width="512" height="128"
                     style="width:100%;height:64px;display:block;border-radius:6px;
-                           border:1px solid #263149;background:#0d1220;"></canvas>
+                           border:1px solid var(--bd-2);background:var(--bg-0);"></canvas>
             <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;
                         background:rgba(255,255,255,.35);pointer-events:none;"></div>
             <div id="hdri-preview-msg"
                  style="position:absolute;inset:0;display:flex;align-items:center;
-                        justify-content:center;font-size:.7rem;color:#6f7c99;">
+                        justify-content:center;font-size:.7rem;color:var(--tx-4);">
               HDRI non chargée
             </div>
           </div>
           <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
-            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Intensité</label>
+            <label style="font-size:.72rem;color:var(--tx-4);flex:0 0 72px;">Intensité</label>
             <input type="range" id="f-hdri-int" min="0" max="4" step="0.05" value="1" style="flex:1;" oninput="setHdri()">
-            <span id="v-hdri-int" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">1.00</span>
+            <span id="v-hdri-int" style="font-size:.72rem;color:var(--tx-1);flex:0 0 34px;">1.00</span>
           </div>
           <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.6rem;">
-            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Orientation</label>
+            <label style="font-size:.72rem;color:var(--tx-4);flex:0 0 72px;">Orientation</label>
             <input type="range" id="f-hdri-rot" min="0" max="6.283" step="0.02" value="0" style="flex:1;" oninput="setHdri()">
-            <span id="v-hdri-rot" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0°</span>
+            <span id="v-hdri-rot" style="font-size:.72rem;color:var(--tx-1);flex:0 0 34px;">0°</span>
           </div>
           <label class="btn sec" style="display:block;text-align:center;cursor:pointer;margin:0;">
             📁 Changer de HDRI (.hdr / .env)
@@ -338,11 +379,11 @@
           </label>
         </div>
 
-        <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">💡 Lumières déjà dans la scène</div>
+        <div style="font-size:.8rem;color:var(--tx-4);margin-bottom:.5rem;">💡 Lumières déjà dans la scène</div>
         <p class="hint" style="font-size:.68rem;margin-top:0;">Clique une lumière pour la déplier, l'ajuster ou la supprimer.</p>
         <div id="scene-light-tree" style="margin-bottom:1rem;"></div>
 
-        <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;border-top:1px solid #263149;padding-top:.7rem;">➕ Ajouter une lumière éditable</div>
+        <div style="font-size:.8rem;color:var(--tx-4);margin-bottom:.5rem;border-top:1px solid var(--bd-2);padding-top:.7rem;">➕ Ajouter une lumière éditable</div>
         <p class="hint" style="font-size:.68rem;margin-top:0;">Ajoute, clique « 📍 Placer » puis clique <b>dans la vue 3D</b>. Coche 👁 pour l'afficher et manipuler ses axes (déplacement + rotation).</p>
         <div style="display:flex;gap:.35rem;margin-bottom:.8rem;">
           <button class="btn" onclick="ambAddLight('point')" style="flex:1;">➕ Point</button>
@@ -1044,7 +1085,7 @@ function toggleExpand(){
     side.style.width = '70%';
     side.style.flex = '0 0 70%';
     stage.style.flex = '0 0 30%';
-    b.style.background = '#4a6cff';
+    b.style.background = 'var(--ac)';
     b.style.color = '#fff';
     b.textContent = '⛶';
   } else {
@@ -1179,11 +1220,11 @@ function refreshSceneLights(){
     if (sceneLightOpen[l.id] === undefined) sceneLightOpen[l.id] = false;
     var open = sceneLightOpen[l.id];
     var card = document.createElement('div');
-    card.style.cssText = 'border:1px solid #263149;border-radius:8px;margin-bottom:.4rem;overflow:hidden;';
+    card.style.cssText = 'border:1px solid var(--bd-2);border-radius:8px;margin-bottom:.4rem;overflow:hidden;';
 
     var head = document.createElement('button');
     head.className = 'tab';
-    head.style.cssText = 'width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;font-size:.74rem;border-radius:0;border:none;'+(open?'background:#26325a;color:#fff;':'');
+    head.style.cssText = 'width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;font-size:.74rem;border-radius:0;border:none;'+(open?'background:var(--ac-d);color:#fff;':'');
     head.innerHTML = '<span>💡 '+l.id+' <span style="opacity:.55;font-weight:500;">'+l.kind+(l.enabled?'':' · éteinte')+'</span></span><span style="opacity:.7;">'+(open?'▾':'▸')+'</span>';
     head.onclick = function(){ sceneLightOpen[l.id] = !sceneLightOpen[l.id]; refreshSceneLights(); };
     card.appendChild(head);
@@ -1191,20 +1232,20 @@ function refreshSceneLights(){
     if (open){
       var col = l.color ? rgbToHex(l.color) : '#ffffff';
       var body = document.createElement('div');
-      body.style.cssText = 'padding:.6rem;background:#0d1220;';
+      body.style.cssText = 'padding:.6rem;background:var(--bg-0);';
       body.innerHTML =
         '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem;">'+
-          '<label style="display:flex;align-items:center;gap:.3rem;flex:1;cursor:pointer;font-size:.72rem;color:#c7d0e4;">'+
+          '<label style="display:flex;align-items:center;gap:.3rem;flex:1;cursor:pointer;font-size:.72rem;color:var(--tx-1);">'+
             '<input type="checkbox" '+(l.enabled?'checked':'')+' onchange="sceneLightToggle(\''+l.id+'\',this.checked)"> Allumée'+
           '</label>'+
           '<button class="btn sec" style="width:auto;flex:0 0 auto;padding:.3rem .6rem;font-size:.72rem;" onclick="sceneLightRemove(\''+l.id+'\')">✕ Supprimer</button>'+
         '</div>'+
         '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
-          '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Intensité</label>'+
+          '<label style="font-size:.7rem;color:var(--tx-4);flex:0 0 62px;">Intensité</label>'+
           '<input type="range" min="0" max="5" step="0.1" value="'+l.intensity+'" style="flex:1;" oninput="sceneLightSet(\''+l.id+'\',{intensity:parseFloat(this.value)})">'+
         '</div>'+
         '<div style="display:flex;gap:.4rem;align-items:center;">'+
-          '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Couleur</label>'+
+          '<label style="font-size:.7rem;color:var(--tx-4);flex:0 0 62px;">Couleur</label>'+
           '<input type="color" value="'+col+'" style="flex:0 0 auto;width:40px;height:26px;padding:0;border:none;background:none;cursor:pointer;" oninput="sceneLightSet(\''+l.id+'\',{color:hexToRgb(this.value)})">'+
         '</div>';
       card.appendChild(body);
@@ -1286,26 +1327,26 @@ function refreshLightList(){
     var col = l.color ? rgbToHex(l.color) : '#ffffff';
     var hasPos = !!l.position;
     var card = document.createElement('div');
-    card.style.cssText = 'background:#0d1220;padding:.6rem;border-radius:8px;margin-bottom:.55rem;';
+    card.style.cssText = 'background:var(--bg-0);padding:.6rem;border-radius:8px;margin-bottom:.55rem;';
     card.innerHTML =
       '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem;">'+
-        '<b style="font-size:.76rem;color:#c7d0e4;flex:1;">'+l.id+'</b>'+
-        '<label style="display:flex;align-items:center;gap:.25rem;font-size:.68rem;color:#9fb4ce;cursor:pointer;flex:0 0 auto;" title="Afficher et manipuler (axes déplacement + rotation)">'+
+        '<b style="font-size:.76rem;color:var(--tx-1);flex:1;">'+l.id+'</b>'+
+        '<label style="display:flex;align-items:center;gap:.25rem;font-size:.68rem;color:var(--tx-2);cursor:pointer;flex:0 0 auto;" title="Afficher et manipuler (axes déplacement + rotation)">'+
           '<input type="checkbox" onchange="ambToggleGizmo(\''+l.id+'\',this.checked)"> 👁 axes'+
         '</label>'+
         (hasPos ? '<button class="btn" style="width:auto;flex:0 0 auto;padding:.3rem .5rem;" onclick="ambPlaceLight(\''+l.id+'\')">📍 Placer</button>' : '')+
         '<button class="btn sec" style="width:auto;flex:0 0 auto;padding:.3rem .5rem;" onclick="ambRemoveLight(\''+l.id+'\')">✕</button>'+
       '</div>'+
       '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.35rem;">'+
-        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Intensité</label>'+
+        '<label style="font-size:.7rem;color:var(--tx-4);flex:0 0 62px;">Intensité</label>'+
         '<input type="range" min="0" max="5" step="0.1" value="'+(l.intensity!=null?l.intensity:1.5)+'" style="flex:1;" oninput="ambUpdateLight(\''+l.id+'\',{intensity:parseFloat(this.value)})">'+
       '</div>'+
       '<div style="display:flex;gap:.4rem;align-items:center;'+(l.range!=null?'':'display:none;')+'margin-bottom:.35rem;">'+
-        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Portée</label>'+
+        '<label style="font-size:.7rem;color:var(--tx-4);flex:0 0 62px;">Portée</label>'+
         '<input type="range" min="1" max="80" step="1" value="'+(l.range!=null?l.range:40)+'" style="flex:1;" oninput="ambUpdateLight(\''+l.id+'\',{range:parseFloat(this.value)})">'+
       '</div>'+
       '<div style="display:flex;gap:.4rem;align-items:center;">'+
-        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Couleur</label>'+
+        '<label style="font-size:.7rem;color:var(--tx-4);flex:0 0 62px;">Couleur</label>'+
         '<input type="color" value="'+col+'" style="flex:0 0 auto;width:40px;height:26px;padding:0;border:none;background:none;cursor:pointer;" oninput="ambUpdateLight(\''+l.id+'\',{color:hexToRgb(this.value)})">'+
       '</div>';
     list.appendChild(card);
@@ -1571,7 +1612,7 @@ function refresh(){
         inp.type = 'number';
         inp.step = '0.01';
         inp.value = seg.toFixed(2);
-        inp.style.cssText = 'flex:0 0 60px;margin-left:.3rem;font-size:.76rem;padding:.2rem;background:#0d1220;border:1px solid #263149;color:#e8ecf6;border-radius:4px;';
+        inp.style.cssText = 'flex:0 0 60px;margin-left:.3rem;font-size:.76rem;padding:.2rem;background:var(--bg-0);border:1px solid var(--bd-2);color:var(--tx-0);border-radius:4px;';
         inp.onchange = function(){
           const v = parseFloat(inp.value);
           if (!isNaN(v) && v > 0.01){
@@ -1585,13 +1626,13 @@ function refresh(){
         if (i < c.segs.length-1) {
           const plus = document.createElement('span');
           plus.textContent = '+';
-          plus.style.cssText = 'margin:0 .2rem;color:#6f7c99;';
+          plus.style.cssText = 'margin:0 .2rem;color:var(--tx-4);';
           row.appendChild(plus);
         }
       });
     } else {
       const sp = document.createElement('span');
-      sp.style.color = '#6f7c99';
+      sp.style.color = 'var(--tx-4)';
       sp.textContent = '— aucune coupure —';
       row.appendChild(sp);
     }
@@ -1731,12 +1772,12 @@ function inspectorRefresh(){
   const cont = document.getElementById('mat-tree');
   if (!cont) return;
   if (!w || !w.getMaterialsByRoom){
-    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">⏳ Viewer pas prêt.</p>';
+    cont.innerHTML = '<p class="hint" style="color:var(--wn-tx);">⏳ Viewer pas prêt.</p>';
     return;
   }
   let data;
   try { data = w.getMaterialsByRoom(); }
-  catch(e){ cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ '+e.message+'</p>'; return; }
+  catch(e){ cont.innerHTML = '<p class="hint" style="color:var(--wn-tx);">❌ '+e.message+'</p>'; return; }
   const rooms = data.rooms || {};
   let roomKeys = Object.keys(rooms);
   if (!roomKeys.length){
@@ -1755,7 +1796,7 @@ function inspectorRefresh(){
 
     const roomBtn = document.createElement('button');
     roomBtn.className = 'tab';
-    roomBtn.style.cssText = 'width:100%;text-align:left;margin-bottom:.4rem;display:flex;justify-content:space-between;align-items:center;'+(rOpen?'background:#4a6cff;border-color:#4a6cff;color:#fff;':'');
+    roomBtn.style.cssText = 'width:100%;text-align:left;margin-bottom:.4rem;display:flex;justify-content:space-between;align-items:center;'+(rOpen?'background:var(--ac);border-color:var(--ac);color:#fff;':'');
     roomBtn.innerHTML = '<span>🏠 '+room+' <span style="opacity:.6;font-weight:500;">('+nb+')</span></span><span style="opacity:.7;">'+(rOpen?'▾':'▸')+'</span>';
     roomBtn.onclick = function(){ matOpenRoom[room] = !matOpenRoom[room]; inspectorRefresh(); };
     cont.appendChild(roomBtn);
@@ -1775,7 +1816,7 @@ function inspectorRefresh(){
 
       const typeBtn = document.createElement('button');
       typeBtn.className = 'tab';
-      typeBtn.style.cssText = 'width:100%;text-align:left;margin-bottom:.35rem;font-size:.72rem;display:flex;justify-content:space-between;align-items:center;'+(tOpen?'background:#26325a;border-color:#3a4a7a;color:#fff;':'');
+      typeBtn.style.cssText = 'width:100%;text-align:left;margin-bottom:.35rem;font-size:.72rem;display:flex;justify-content:space-between;align-items:center;'+(tOpen?'background:var(--ac-d);border-color:var(--ac-db);color:#fff;':'');
       typeBtn.innerHTML = '<span>'+(MAT_TYPE_LABEL[type]||type)+' <span style="opacity:.6;font-weight:500;">('+items.length+')</span></span><span style="opacity:.7;">'+(tOpen?'▾':'▸')+'</span>';
       typeBtn.onclick = function(){ matOpenType[tk] = !matOpenType[tk]; inspectorRefresh(); };
       wrap.appendChild(typeBtn);
@@ -1796,20 +1837,20 @@ function inspectorRefresh(){
 function buildMatCard(matId, matName){
   const w = vwWin();
   const card = document.createElement('div');
-  card.style.cssText = 'border:1px solid #263149;border-radius:8px;margin-bottom:.4rem;overflow:hidden;';
+  card.style.cssText = 'border:1px solid var(--bd-2);border-radius:8px;margin-bottom:.4rem;overflow:hidden;';
   if (matOpenMat[matId] === undefined) matOpenMat[matId] = false;
   const open = matOpenMat[matId];
 
   const head = document.createElement('div');
-  head.style.cssText = 'padding:.5rem .7rem;cursor:pointer;background:#111a2b;display:flex;justify-content:space-between;align-items:center;user-select:none;';
-  head.innerHTML = '<span style="font-size:.75rem;color:#c7d0e4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+matName+'</span><span style="color:#6f7c99;font-size:.72rem;">'+(open?'▾':'▸')+'</span>';
+  head.style.cssText = 'padding:.5rem .7rem;cursor:pointer;background:var(--bg-2);display:flex;justify-content:space-between;align-items:center;user-select:none;';
+  head.innerHTML = '<span style="font-size:.75rem;color:var(--tx-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+matName+'</span><span style="color:var(--tx-4);font-size:.72rem;">'+(open?'▾':'▸')+'</span>';
   head.onclick = function(){ matOpenMat[matId] = !matOpenMat[matId]; inspectorRefresh(); };
   card.appendChild(head);
 
   if (open && w && w.inspectorGetMaterial){
     const d = w.inspectorGetMaterial(matId);
     const body = document.createElement('div');
-    body.style.cssText = 'padding:.6rem .7rem;background:#0d1220;';
+    body.style.cssText = 'padding:.6rem .7rem;background:var(--bg-0);';
     if (d) body.innerHTML = matPropsHtml(d);
     else body.innerHTML = '<p class="hint">Introuvable.</p>';
     card.appendChild(body);
@@ -1830,7 +1871,7 @@ function matPropsHtml(d){
     html += insSlider('Rugosité', id, 'roughness', 0, 1, 0.01, d.roughness);
     html += insSlider('Reflets env.', id, 'environmentIntensity', 0, 3, 0.05, d.environmentIntensity);
     if (d.hasSubSurface){
-      html += '<div style="border-top:1px solid #1c2740;margin:.5rem 0;padding-top:.4rem;font-size:.68rem;color:#6f7c99;">Transmission</div>';
+      html += '<div style="border-top:1px solid var(--bd-0);margin:.5rem 0;padding-top:.4rem;font-size:.68rem;color:var(--tx-4);">Transmission</div>';
       html += insToggle('Réfraction', id, 'refractionEnabled', d.refractionEnabled);
       html += insSlider('Intensité réfr.', id, 'refractionIntensity', 0, 1, 0.01, d.refractionIntensity);
       html += insSlider('IOR', id, 'indexOfRefraction', 1, 2.5, 0.01, d.indexOfRefraction);
@@ -1848,25 +1889,25 @@ function insSlider(label, id, key, min, max, step, val){
   if (typeof val !== 'number') val = 0;
   const disp = (max === 1) ? Math.round(val*100)+'%' : val.toFixed(2);
   return '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
-    '<label style="font-size:.7rem;color:#9fb4ce;flex:0 0 96px;">'+label+'</label>'+
+    '<label style="font-size:.7rem;color:var(--tx-2);flex:0 0 96px;">'+label+'</label>'+
     '<input type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'" style="flex:1;" '+
       'oninput="insSet('+id+',\''+key+'\',parseFloat(this.value),this.nextElementSibling,'+max+')">'+
-    '<span style="flex:0 0 38px;font-size:.68rem;text-align:right;color:#c7d0e4;">'+disp+'</span></div>';
+    '<span style="flex:0 0 38px;font-size:.68rem;text-align:right;color:var(--tx-1);">'+disp+'</span></div>';
 }
 function insColor(label, id, key, val){
   return '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
-    '<label style="font-size:.7rem;color:#9fb4ce;flex:0 0 96px;">'+label+'</label>'+
-    '<input type="color" value="'+(val||'#000000')+'" style="flex:1;height:26px;padding:2px;background:#0d1220;border:1px solid #263149;border-radius:6px;cursor:pointer;" '+
+    '<label style="font-size:.7rem;color:var(--tx-2);flex:0 0 96px;">'+label+'</label>'+
+    '<input type="color" value="'+(val||'#000000')+'" style="flex:1;height:26px;padding:2px;background:var(--bg-0);border:1px solid var(--bd-2);border-radius:6px;cursor:pointer;" '+
       'oninput="insSet('+id+',\''+key+'\',this.value)"></div>';
 }
 function insToggle(label, id, key, val){
-  return '<label style="display:flex;align-items:center;gap:.5rem;font-size:.7rem;color:#9fb4ce;margin-bottom:.4rem;cursor:pointer;">'+
+  return '<label style="display:flex;align-items:center;gap:.5rem;font-size:.7rem;color:var(--tx-2);margin-bottom:.4rem;cursor:pointer;">'+
     '<input type="checkbox" '+(val?'checked':'')+' onchange="insSet('+id+',\''+key+'\',this.checked)"><span>'+label+'</span></label>';
 }
 function insTransparency(id, mode){
   const opts = [['-1','(auto)'],['0','Opaque'],['1','Alpha test'],['2','Alpha blend'],['3','Test+blend']];
   let s = '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
-    '<label style="font-size:.7rem;color:#9fb4ce;flex:0 0 96px;">Transparence</label>'+
+    '<label style="font-size:.7rem;color:var(--tx-2);flex:0 0 96px;">Transparence</label>'+
     '<select style="flex:1;margin:0;" onchange="insSet('+id+',\'transparencyMode\',this.value)">';
   opts.forEach(function(o){ s += '<option value="'+o[0]+'"'+(String(mode)===o[0]?' selected':'')+'>'+o[1]+'</option>'; });
   s += '</select></div>';
@@ -1883,7 +1924,7 @@ function diagnostiquerVerre(){
   const box = document.getElementById('glass-diag');
   if (!box) return;
   if (!w){
-    box.innerHTML = '<p class="hint" style="color:#e8cfa4;">⏳ Viewer pas prêt.</p>';
+    box.innerHTML = '<p class="hint" style="color:var(--wn-tx);">⏳ Viewer pas prêt.</p>';
     return;
   }
   // 1) TOUS les noms de matériaux vus par le viewer (vérif nomenclature)
@@ -1891,34 +1932,34 @@ function diagnostiquerVerre(){
   if (w.listAllMaterialNames){
     var names = [];
     try { names = w.listAllMaterialNames(); } catch(e){}
-    allHtml = '<div style="background:#0d1220;border:1px solid #263149;border-radius:8px;'+
-      'padding:.5rem .6rem;margin-bottom:.8rem;font-size:.7rem;font-family:ui-monospace,monospace;color:#c7d0e4;">'+
-      '<div style="color:#6f7c99;margin-bottom:.4rem;">📋 '+names.length+' matériau(x) vus par le viewer :</div>'+
+    allHtml = '<div style="background:var(--bg-0);border:1px solid var(--bd-2);border-radius:8px;'+
+      'padding:.5rem .6rem;margin-bottom:.8rem;font-size:.7rem;font-family:ui-monospace,monospace;color:var(--tx-1);">'+
+      '<div style="color:var(--tx-4);margin-bottom:.4rem;">📋 '+names.length+' matériau(x) vus par le viewer :</div>'+
       names.map(function(n){
         var ok = /^m_[^_]+_(glass|wood|plastic|metal|ceramic|verre|bois|plastique|métal|céramique|ceramique)_/i.test(n);
-        return '<div style="color:'+(ok?'#7dd3fc':'#e8cfa4')+';">'+(ok?'✓ ':'⚠ ')+n+'</div>';
+        return '<div style="color:'+(ok?'var(--tx-1)':'var(--wn-tx)')+';">'+(ok?'✓ ':'⚠ ')+n+'</div>';
       }).join('')+
-      '<div style="color:#6f7c99;margin-top:.4rem;font-family:inherit;">✓ = suit <code>M_&lt;pièce&gt;_&lt;type&gt;_*</code> · ⚠ = hors convention (→ « Non classé »)</div>'+
+      '<div style="color:var(--tx-4);margin-top:.4rem;font-family:inherit;">✓ = suit <code>M_&lt;pièce&gt;_&lt;type&gt;_*</code> · ⚠ = hors convention (→ « Non classé »)</div>'+
       '</div>';
   }
   if (!w.diagnoseGlass){ box.innerHTML = allHtml; return; }
   let rows;
   try { rows = w.diagnoseGlass(); }
-  catch(e){ box.innerHTML = allHtml + '<p class="hint" style="color:#e8cfa4;">❌ '+e.message+'</p>'; return; }
+  catch(e){ box.innerHTML = allHtml + '<p class="hint" style="color:var(--wn-tx);">❌ '+e.message+'</p>'; return; }
   if (!rows || !rows.length){
-    box.innerHTML = allHtml + '<div style="background:#2a1f12;border:1px solid #5a4526;color:#e8cfa4;'+
+    box.innerHTML = allHtml + '<div style="background:var(--wn-bg);border:1px solid var(--wn-bd);color:var(--wn-tx);'+
       'padding:.7rem;border-radius:8px;font-size:.74rem;line-height:1.5;">'+
       '⚠️ Aucun mesh de verre détecté par réfraction.</div>';
     return;
   }
-  let html = allHtml + '<div style="background:#0d1220;border:1px solid #263149;border-radius:8px;'+
+  let html = allHtml + '<div style="background:var(--bg-0);border:1px solid var(--bd-2);border-radius:8px;'+
     'padding:.5rem .6rem;margin-bottom:.8rem;font-size:.7rem;font-family:ui-monospace,monospace;'+
-    'color:#c7d0e4;overflow-x:auto;">'+
-    '<div style="color:#6f7c99;margin-bottom:.4rem;">'+rows.length+' mesh(es) verre détecté(s) :</div>';
+    'color:var(--tx-1);overflow-x:auto;">'+
+    '<div style="color:var(--tx-4);margin-bottom:.4rem;">'+rows.length+' mesh(es) verre détecté(s) :</div>';
   rows.forEach(function(r){
-    html += '<div style="border-top:1px solid #1c2740;padding:.4rem 0;">'+
-      '<div style="color:#e8ecf6;font-weight:600;">'+r.material+' <span style="color:#6f7c99;">('+r.mesh+' · '+r.type+')</span></div>'+
-      '<div>réfraction: <b style="color:'+(r.refractionEnabled?'#7dd3fc':'#8b96ad')+'">'+r.refractionEnabled+'</b>'+
+    html += '<div style="border-top:1px solid var(--bd-0);padding:.4rem 0;">'+
+      '<div style="color:var(--tx-0);font-weight:600;">'+r.material+' <span style="color:var(--tx-4);">('+r.mesh+' · '+r.type+')</span></div>'+
+      '<div>réfraction: <b style="color:'+(r.refractionEnabled?'var(--tx-1)':'var(--tx-3)')+'">'+r.refractionEnabled+'</b>'+
       ' · int: '+r.refractionIntensity+' · IOR: '+r.ior+' · épais.: '+r.maxThickness+'</div>'+
       '</div>';
   });
