@@ -3692,8 +3692,9 @@ function showFirstPersonPhoto(poi) {
   poiPhotosGallery = photos.map(img => baseUrl + encodeURIComponent(img) + '?v=' + CONFIG.photoVersion);
 
   // --- Toutes les pièces (switcher sans quitter 1ère personne) ---
-  // Ordre fixe (celui du manifest) ; le POV actif reste à sa place, désactivé et coloré.
-  const allPois = (propertyData && propertyData.poi ? propertyData.poi : []);
+  // Ordre FIGÉ pour la session : chaque bouton garde sa place à chaque clic.
+  // Le POV actif reste à sa position, simplement désactivé et coloré.
+  const allPois = poisInStableOrder();
   const otherPoiHTML = allPois.length ? `
     <div class="fp-other-poi">
       <div class="fp-section-title">Toutes les pièces</div>
@@ -3702,6 +3703,7 @@ function showFirstPersonPhoto(poi) {
           const isActive = p.id === poi.id;
           return `
           <button class="fp-poi-btn ${isActive ? 'active' : ''}"
+                  style="order:${poiRank(p)}"
                   ${isActive ? 'disabled' : ''}
                   onclick="goToPOI('${p.id}')">
             ${poiLabel(p)}
@@ -3769,7 +3771,7 @@ function flashTopViewHint() {
 /* (Re)construit la liste de boutons de pièces dans le panneau droite */
 function rebuildPoiList() {
   const panel = document.getElementById('poi-panel');
-  const pois = propertyData && propertyData.poi ? propertyData.poi : [];
+  const pois = poisInStableOrder();
   const phone = isPhoneUI();
 
   // Cartes de pièce — identiques sur les deux plateformes.
@@ -3778,7 +3780,7 @@ function rebuildPoiList() {
     // .poi-btn : titre (desktop = bouton POV inchangé ; téléphone = titre de carte).
     // .poi-item-acts : visible UNIQUEMENT sur téléphone (bouton Photos).
     return `
-      <div class="poi-item">
+      <div class="poi-item" style="order:${poiRank(poi)}">
         <button class="poi-btn" id="poi-${poi.id}" data-poi="${poi.id}" onclick="onPoiNameClick('${poi.id}')">${poiLabel(poi)}</button>
         <div class="poi-item-acts">
           ${hasPhotos ? `<button class="poi-mini poi-mini-photo" onclick="event.stopPropagation(); openPhotosFromMenu('${poi.id}')" title="Photos de la pièce">
@@ -4034,9 +4036,35 @@ window.setPovColor = function(hex){
   } catch(_){}
 };
 
+/* ----------------------------------------------------------------------------
+   ORDRE D'AFFICHAGE FIGÉ DES POV
+   ----------------------------------------------------------------------------
+   Les listes de pièces (« Visiter les pièces » du menu et « Toutes les pièces »
+   du panneau POV) sont reconstruites à CHAQUE clic. Elles doivent toujours
+   afficher les mêmes boutons aux mêmes places : on capture l'ordre une seule
+   fois, au premier rendu, et on s'y tient pour toute la session — quoi qu'il
+   arrive ensuite au tableau `propertyData.poi`. Un POV ajouté après coup
+   (éditeur) est mis à la FIN, jamais intercalé.
+   -------------------------------------------------------------------------- */
+let __poiOrder = null;
+function poisInStableOrder() {
+  const pois = (propertyData && Array.isArray(propertyData.poi)) ? propertyData.poi : [];
+  if (!__poiOrder) __poiOrder = new Map();
+  pois.forEach(p => {
+    if (p && p.id != null && !__poiOrder.has(p.id)) __poiOrder.set(p.id, __poiOrder.size);
+  });
+  const rang = p => (p && __poiOrder.has(p.id)) ? __poiOrder.get(p.id) : Number.MAX_SAFE_INTEGER;
+  return pois.slice().sort((a, b) => rang(a) - rang(b));
+}
+/* Rang figé d'un POV — sert aussi à épingler la place en CSS (grid `order`),
+   pour que même un reflow ne puisse pas permuter deux boutons. */
+function poiRank(poi) {
+  if (!__poiOrder || !poi || poi.id == null) return 0;
+  return __poiOrder.has(poi.id) ? __poiOrder.get(poi.id) : 0;
+}
+
 function createPoiMarkers() {
   if (!propertyData || !propertyData.poi) return;
-
   // Nettoyer d'éventuels anciens marqueurs
   Object.values(poiMarkers).forEach(m => {
     if (m.observer) scene.unregisterBeforeRender(m.observer);
