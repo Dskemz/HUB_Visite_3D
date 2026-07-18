@@ -59,6 +59,27 @@
     .btn:disabled{opacity:.4;cursor:not-allowed}
 
     .list{margin-top:.9rem}
+
+    /* ===== Sous-menus repliables (Traitement image) — charte éditeur ===== */
+    .fold{background:#0d1220;border:1px solid #263149;border-radius:8px;
+          margin-bottom:.55rem;overflow:hidden}
+    .fold > summary{cursor:pointer;list-style:none;padding:.55rem .65rem;
+          font-size:.78rem;color:#c7d0e4;display:flex;align-items:center;gap:.45rem;
+          user-select:none}
+    .fold > summary::-webkit-details-marker{display:none}
+    .fold > summary:hover{background:#131a2c}
+    .fold > summary .ar{margin-left:auto;color:#6f7c99;font-size:.7rem;
+          transition:transform .15s}
+    .fold[open] > summary .ar{transform:rotate(90deg)}
+    .fold > summary .dot{width:6px;height:6px;border-radius:50%;background:#2c3854;
+          flex:0 0 auto}
+    .fold[open] > summary .dot{background:#4a6cff}
+    .fold .bd{padding:.15rem .65rem .65rem}
+    .sl{display:flex;gap:.4rem;align-items:center;margin-bottom:.45rem}
+    .sl label{font-size:.72rem;color:#6f7c99;flex:0 0 86px}
+    .sl input[type=range]{flex:1}
+    .sl .v{font-size:.72rem;color:#c7d0e4;flex:0 0 40px;text-align:right;
+           font-family:ui-monospace,monospace}
     .row{display:flex;align-items:center;gap:.4rem;padding:.45rem .1rem;
          border-bottom:1px solid #1c2740;font-size:.8rem}
     .row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -256,11 +277,129 @@
             <span id="v-ssr-blur" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.03</span>
           </div>
         </div>
+
+        <!-- ===================== TRAITEMENT IMAGE ===================== -->
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.5rem;">
+            <input type="checkbox" id="f-grade-on" onchange="gradeSet()"> 🎨 Traitement image
+          </label>
+          <p class="hint" style="margin:0 0 .6rem;font-size:.68rem;">Toutes les valeurs sont neutres au départ : tant que rien n'est bougé, le rendu est strictement identique. Décocher rend le rendu d'origine.</p>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Exposition<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Exposition</label>
+                <input type="range" id="g-exposure" min="-3" max="3" step="0.05" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-exposure">0.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Luminosité / Contraste<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Luminosité</label>
+                <input type="range" id="g-brightness" min="-0.5" max="0.5" step="0.01" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-brightness">0.00</span></div>
+              <div class="sl"><label>Contraste</label>
+                <input type="range" id="g-contrast" min="0" max="2" step="0.01" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-contrast">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Gamma<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Gamma</label>
+                <input type="range" id="g-gamma" min="0.4" max="2.5" step="0.01" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-gamma">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Teinte / Saturation / Valeur<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Teinte</label>
+                <input type="range" id="g-hue" min="-180" max="180" step="1" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-hue">0°</span></div>
+              <div class="sl"><label>Saturation</label>
+                <input type="range" id="g-saturation" min="0" max="2" step="0.01" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-saturation">1.00</span></div>
+              <div class="sl"><label>Valeur</label>
+                <input type="range" id="g-value" min="0" max="2" step="0.01" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-value">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Balance des couleurs<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Température</label>
+                <input type="range" id="g-temperature" min="-1" max="1" step="0.01" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-temperature">0.00</span></div>
+              <div class="sl"><label>Vert ↔ Magenta</label>
+                <input type="range" id="g-tint" min="-1" max="1" step="0.01" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-tint">0.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Correction couleur<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Pied noirs</label>
+                <input type="range" id="g-lift" min="-0.3" max="0.3" step="0.005" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-lift">0.00</span></div>
+              <div class="sl"><label>Hautes lum.</label>
+                <input type="range" id="g-gain" min="0" max="2" step="0.01" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-gain">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Courbes RVB<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Rouge</label>
+                <input type="range" id="g-curveR" min="0.4" max="2.5" step="0.01" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-curveR">1.00</span></div>
+              <div class="sl"><label>Vert</label>
+                <input type="range" id="g-curveG" min="0.4" max="2.5" step="0.01" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-curveG">1.00</span></div>
+              <div class="sl"><label>Bleu</label>
+                <input type="range" id="g-curveB" min="0.4" max="2.5" step="0.01" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-curveB">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Tonemap<span class="ar">▶</span></summary>
+            <div class="bd">
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.75rem;color:#9fb4ce;cursor:pointer;">
+                <input type="checkbox" id="g-tonemap" onchange="gradeSet()" style="width:auto;"> Tonemap filmique (ACES)
+              </label>
+            </div>
+          </details>
+
+          <button class="btn sec" onclick="gradeReset()" style="margin-top:.5rem;">↺ Réinitialiser (rendu d'origine)</button>
+        </div>
       </div>
 
       <div id="p-light" hidden>
         <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
           <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">🌅 HDRI (environnement)</div>
+          <!-- Miniature live : rendue par le moteur du viewer, reflète intensité
+               ET orientation en temps réel. Le repère vertical marque le « nord »
+               de la scène, pour voir de combien on tourne. -->
+          <div style="position:relative;margin-bottom:.55rem;">
+            <canvas id="hdri-preview" width="512" height="128"
+                    style="width:100%;height:64px;display:block;border-radius:6px;
+                           border:1px solid #263149;background:#0d1220;"></canvas>
+            <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;
+                        background:rgba(255,255,255,.35);pointer-events:none;"></div>
+            <div id="hdri-preview-msg"
+                 style="position:absolute;inset:0;display:flex;align-items:center;
+                        justify-content:center;font-size:.7rem;color:#6f7c99;">
+              HDRI non chargée
+            </div>
+          </div>
           <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
             <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Intensité</label>
             <input type="range" id="f-hdri-int" min="0" max="4" step="0.05" value="1" style="flex:1;" oninput="setHdri()">
@@ -750,8 +889,20 @@ const PONT = `
       hdriParams:  function(){ return (typeof window.getHdriParams==='function') ? window.getHdriParams() : {hasHdri:false,intensity:1,rotationY:0}; },
       setHdri:     function(p){ if (typeof window.setHdriParams==='function') window.setHdriParams(p); },
       replaceHdri: function(url, isEnv){ return (typeof window.replaceHdri==='function') ? window.replaceHdri(url, isEnv) : false; },
-      /* Export du lighting-config.json (AO + lumières + base héritée du fichier chargé) */
+      hdriPreview: function(w,h){ return (typeof window.getHdriPreviewPixels==='function') ? window.getHdriPreviewPixels(w,h) : null; },
+
+      /* ===== TRAITEMENT IMAGE (colorimétrie) ===== */
+      grade:      function(){ return (typeof window.getImageGrade==='function') ? window.getImageGrade() : null; },
+      setGrade:   function(o){ if (typeof window.setImageGrade==='function') window.setImageGrade(o); },
+      resetGrade: function(){ return (typeof window.resetImageGrade==='function') ? window.resetImageGrade() : null; },
+
+      /* Export du lighting-config.json — CONSTRUIT DEPUIS LA SCÈNE RÉELLE.
+         Avant, on recopiait __lightingBase (photo du fichier chargé) : une lumière
+         supprimée dans l'éditeur ressortait dans le JSON et revenait au rechargement. */
       lightingConfigJSON: function(){
+        if (typeof window.buildLightingConfig === 'function') {
+          return JSON.stringify(window.buildLightingConfig(), null, 2);
+        }
         var s = window.__lightingState || {};
         var out = Object.assign({}, window.__lightingBase || {});
         out.ao = s.ao || out.ao;
@@ -929,7 +1080,7 @@ function tab(m){
     ed.editerPieces(m==='piece');
     if (m !== 'pov' && ed.setMode) ed.setMode(null);   // désarme le placement POV en quittant l'onglet
     if (m==='piece') refresh();
-    if (m==='amb') refreshPostProcess();
+    if (m==='amb') { refreshPostProcess(); gradeRefresh(); }
     if (m==='light') refreshLighting();
   }
   if (m==='verre') inspectorRefresh();
@@ -962,7 +1113,43 @@ function refreshHdri(){
   var h = ed.hdriParams();
   var fi = document.getElementById('f-hdri-int'), fr = document.getElementById('f-hdri-rot');
   if (fi){ fi.value = h.intensity; document.getElementById('v-hdri-int').textContent = (+h.intensity).toFixed(2); }
-  if (fr){ fr.value = h.rotationY; document.getElementById('v-hdri-rot').textContent = Math.round(h.rotationY*180/Math.PI) + '°'; }
+  if (fr){
+    fr.value = h.rotationY;
+    document.getElementById('v-hdri-rot').textContent = Math.round(h.rotationY*180/Math.PI) + '°';
+    // Rotation impossible tant que l'environnement est la sonde de repli.
+    fr.disabled = (h.canRotate === false);
+    fr.title = (h.canRotate === false)
+      ? 'Orientation disponible une fois la HDRI chargée' : '';
+  }
+  drawHdriPreview();
+}
+
+/* Miniature HDRI : les pixels sont rendus par le moteur du viewer (la texture vit
+   dans SON contexte WebGL) puis recopiés dans notre canvas 2D. On la redessine à
+   chaque changement de curseur — pas à chaque frame. */
+function drawHdriPreview(){
+  var cv = document.getElementById('hdri-preview');
+  var msg = document.getElementById('hdri-preview-msg');
+  if (!cv || !ed || !ed.hdriPreview) return;
+  var W = 256, H = 96;
+  var res;
+  try { res = ed.hdriPreview(W, H); } catch(e){ res = null; }
+  var peindre = function(r){
+    if (!r || !r.data){ if (msg) msg.style.display = 'flex'; return; }
+    if (msg) msg.style.display = 'none';
+    cv.width = r.width; cv.height = r.height;
+    var ctx = cv.getContext('2d');
+    var img = ctx.createImageData(r.width, r.height);
+    img.data.set(new Uint8ClampedArray(r.data.buffer || r.data));
+    // Babylon rend l'origine en bas à gauche : on retourne verticalement.
+    ctx.putImageData(img, 0, 0);
+    ctx.save();
+    ctx.scale(1, -1);
+    ctx.drawImage(cv, 0, -r.height, r.width, r.height);
+    ctx.restore();
+  };
+  if (res && typeof res.then === 'function') res.then(peindre).catch(function(){ if (msg) msg.style.display='flex'; });
+  else peindre(res);
 }
 
 function setHdri(){
@@ -972,6 +1159,62 @@ function setHdri(){
   document.getElementById('v-hdri-int').textContent = intensity.toFixed(2);
   document.getElementById('v-hdri-rot').textContent = Math.round(rotationY*180/Math.PI) + '°';
   ed.setHdri({ intensity: intensity, rotationY: rotationY });
+  drawHdriPreview();
+}
+
+/* ===== TRAITEMENT IMAGE (colorimétrie) ===================================== */
+const GRADE_FIELDS = [
+  ['exposure',   2], ['brightness', 2], ['contrast', 2], ['gamma', 2],
+  ['saturation', 2], ['value',      2], ['temperature', 2], ['tint', 2],
+  ['lift',       2], ['gain',       2],
+  ['curveR',     2], ['curveG',     2], ['curveB', 2]
+];
+
+function gradeRefresh(){
+  if (!ed || !ed.grade) return;
+  var g = ed.grade(); if (!g) return;
+  var on = document.getElementById('f-grade-on');
+  if (on) on.checked = !!g.enabled;
+  GRADE_FIELDS.forEach(function(f){
+    var el = document.getElementById('g-' + f[0]);
+    var vv = document.getElementById('v-g-' + f[0]);
+    if (el) el.value = g[f[0]];
+    if (vv) vv.textContent = (+g[f[0]]).toFixed(f[1]);
+  });
+  var h = document.getElementById('g-hue'), vh = document.getElementById('v-g-hue');
+  if (h){ h.value = g.hue; }
+  if (vh){ vh.textContent = Math.round(g.hue) + '°'; }
+  var tm = document.getElementById('g-tonemap');
+  if (tm) tm.checked = !!g.tonemap;
+}
+
+function gradeSet(){
+  if (!ed || !ed.setGrade) return;
+  var o = { enabled: document.getElementById('f-grade-on').checked };
+  GRADE_FIELDS.forEach(function(f){
+    var el = document.getElementById('g-' + f[0]);
+    if (!el) return;
+    o[f[0]] = parseFloat(el.value);
+    var vv = document.getElementById('v-g-' + f[0]);
+    if (vv) vv.textContent = parseFloat(el.value).toFixed(f[1]);
+  });
+  var h = document.getElementById('g-hue');
+  if (h){
+    o.hue = parseFloat(h.value);
+    var vh = document.getElementById('v-g-hue');
+    if (vh) vh.textContent = Math.round(o.hue) + '°';
+  }
+  var tm = document.getElementById('g-tonemap');
+  if (tm) o.tonemap = tm.checked;
+  ed.setGrade(o);
+}
+
+function gradeReset(){
+  if (!ed || !ed.resetGrade) return;
+  ed.resetGrade();
+  gradeRefresh();
+  gradeSet();          // ré-applique les valeurs neutres au shader
+  flash('↺ Traitement image réinitialisé');
 }
 
 function importHdri(input){

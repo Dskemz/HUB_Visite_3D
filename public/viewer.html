@@ -1274,6 +1274,8 @@ async function init() {
       scene.environmentIntensity = 1.0;  // défaut Sandbox (aucune amplification)
       // La HDRi remplace la réflexion de repli : on libère la sonde devenue inutile.
       if (window.__envFallbackProbe) { try { window.__envFallbackProbe.dispose(); } catch (_) {} window.__envFallbackProbe = null; }
+      // Ré-appliquer l'orientation réglée avant la fin du chargement (sinon perdue).
+      if (window.applyHdriRotation) window.applyHdriRotation();
       // La HDRi remplace l'environnement → re-lier la réfraction du verre.
       if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
 
@@ -1620,6 +1622,137 @@ async function init() {
     }
   };
 
+  /* ========================================================================
+     TRAITEMENT IMAGE (colorimétrie) — post-process unique, NEUTRE par défaut
+     ------------------------------------------------------------------------
+     Un seul shader regroupe les 9 réglages de la palette de référence :
+       Exposition · Luminosité/Contraste · Gamma · Teinte/Saturation/Valeur ·
+       Balance des couleurs (température / vert-magenta) · Correction couleur
+       (lift/gain) · Courbes RVB (gamma par canal) · Tonemap (ACES).
+     Un shader unique plutôt qu'une chaîne de post-process : une seule passe,
+     pas d'accumulation d'erreurs d'arrondi, et surtout un rendu IDENTIQUE au
+     rendu actuel tant que tout est aux valeurs neutres. Le post-process n'est
+     même pas créé tant que l'utilisateur n'a rien activé.
+     ======================================================================== */
+  window.__GRADE_STATE__ = {
+    enabled: false,
+    exposure: 0,        // en stops   (0 = neutre)
+    brightness: 0,      // -1 → 1     (0 = neutre)
+    contrast: 1,        // 0 → 2      (1 = neutre)
+    gamma: 1,           // 0.4 → 2.5  (1 = neutre)
+    saturation: 1,      // 0 → 2      (1 = neutre)
+    hue: 0,             // -180 → 180 (0 = neutre)
+    value: 1,           // 0 → 2      (1 = neutre)
+    temperature: 0,     // -1 (froid) → 1 (chaud)
+    tint: 0,            // -1 (vert)  → 1 (magenta)
+    lift: 0,            // -0.5 → 0.5 (0 = neutre) — pied des noirs
+    gain: 1,            // 0 → 2      (1 = neutre) — hautes lumières
+    curveR: 1, curveG: 1, curveB: 1,  // gamma par canal (1 = neutre)
+    tonemap: false      // ACES filmique
+  };
+  window.imageGradePP = null;
+
+  BABYLON.Effect.ShadersStore['imageGradeFragmentShader'] = `
+precision highp float;
+varying vec2 vUV;
+uniform sampler2D textureSampler;
+uniform float uExposure, uBrightness, uContrast, uGamma;
+uniform float uSaturation, uHue, uValue;
+uniform float uTemperature, uTint;
+uniform float uLift, uGain;
+uniform vec3  uCurve;
+uniform float uTonemap;
+
+vec3 shiftHue(vec3 c, float a){
+  mat3 m = mat3(0.299,0.587,0.114, 0.596,-0.274,-0.322, 0.211,-0.523,0.312);
+  mat3 i = mat3(1.0,0.956,0.621, 1.0,-0.272,-0.647, 1.0,-1.107,1.705);
+  vec3 yiq = m * c;
+  float h = atan(yiq.z, yiq.y) + a;
+  float ch = length(yiq.yz);
+  return i * vec3(yiq.x, ch * cos(h), ch * sin(h));
+}
+
+vec3 aces(vec3 x){
+  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0);
+}
+
+void main(void){
+  vec4 src = texture2D(textureSampler, vUV);
+  vec3 c = src.rgb;
+  c *= pow(2.0, uExposure);
+  c = (c - 0.5) * uContrast + 0.5 + uBrightness;
+  c += vec3(uTemperature, 0.0, -uTemperature) * 0.15;
+  c += vec3(uTint, -uTint, uTint) * 0.10;
+  c = c * uGain + uLift;
+  c = max(c, 0.0);
+  if (abs(uHue) > 0.0001) c = shiftHue(c, uHue);
+  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  c = mix(vec3(l), c, uSaturation);
+  c *= uValue;
+  c = max(c, 0.0);
+  c = pow(c, vec3(1.0 / max(uGamma, 0.01)));
+  c = pow(c, 1.0 / max(uCurve, vec3(0.01)));
+  if (uTonemap > 0.5) c = aces(c);
+  gl_FragColor = vec4(clamp(c, 0.0, 1.0), src.a);
+}
+`;
+
+  function creerImageGrade(){
+    if (window.imageGradePP) return window.imageGradePP;
+    var pp = new BABYLON.PostProcess(
+      'imageGrade', 'imageGrade',
+      ['uExposure','uBrightness','uContrast','uGamma','uSaturation','uHue','uValue',
+       'uTemperature','uTint','uLift','uGain','uCurve','uTonemap'],
+      null, 1.0, null, BABYLON.Texture.BILINEAR_SAMPLINGMODE, engine, true);
+    pp.onApply = function(effect){
+      var s = window.__GRADE_STATE__;
+      effect.setFloat('uExposure',    s.exposure);
+      effect.setFloat('uBrightness',  s.brightness);
+      effect.setFloat('uContrast',    s.contrast);
+      effect.setFloat('uGamma',       s.gamma);
+      effect.setFloat('uSaturation',  s.saturation);
+      effect.setFloat('uHue',         s.hue * Math.PI / 180);
+      effect.setFloat('uValue',       s.value);
+      effect.setFloat('uTemperature', s.temperature);
+      effect.setFloat('uTint',        s.tint);
+      effect.setFloat('uLift',        s.lift);
+      effect.setFloat('uGain',        s.gain);
+      effect.setFloat3('uCurve',      s.curveR, s.curveG, s.curveB);
+      effect.setFloat('uTonemap',     s.tonemap ? 1 : 0);
+    };
+    window.imageGradePP = pp;
+    console.log('✅ Traitement image créé (neutre)');
+    return pp;
+  }
+
+  // Attache/détache sur TOUTES les caméras (perspective, ortho, POV).
+  function attacherImageGrade(actif){
+    var pp = actif ? creerImageGrade() : window.imageGradePP;
+    if (!pp) return;
+    window.__ppCams().forEach(function(cam){
+      try { actif ? cam.attachPostProcess(pp) : cam.detachPostProcess(pp); } catch(_){}
+    });
+  }
+
+  window.getImageGrade = function(){ return Object.assign({}, window.__GRADE_STATE__); };
+  window.setImageGrade = function(opts){
+    opts = opts || {};
+    var s = window.__GRADE_STATE__;
+    Object.keys(opts).forEach(function(k){
+      if (k === 'enabled' || k === 'tonemap') { s[k] = !!opts[k]; return; }
+      if (k in s && opts[k] != null) s[k] = parseFloat(opts[k]);
+    });
+    if (opts.enabled != null) attacherImageGrade(s.enabled);
+  };
+  // Remise à zéro : toutes les valeurs neutres, rendu d'origine exact.
+  window.resetImageGrade = function(){
+    window.__GRADE_STATE__ = Object.assign(window.__GRADE_STATE__, {
+      exposure:0, brightness:0, contrast:1, gamma:1, saturation:1, hue:0, value:1,
+      temperature:0, tint:0, lift:0, gain:1, curveR:1, curveG:1, curveB:1, tonemap:false
+    });
+    return window.getImageGrade();
+  };
+
   // ========================================================================
   //  PICK DE PLACEMENT (POV / lumières) — clic DIRECT dans le viewer 3D
   //  L'éditeur arme un mode ('pov' ou 'light'), l'utilisateur clique dans la
@@ -1686,26 +1819,119 @@ async function init() {
     if (patch.position && l.position) l.position = new BABYLON.Vector3(patch.position[0], patch.position[1], patch.position[2]);
     if (patch.direction && l.direction) l.direction = new BABYLON.Vector3(patch.direction[0], patch.direction[1], patch.direction[2]);
   };
+  window.__removedLights = [];
   window.removeSceneLight = function(id){
     var l = scene.getLightByName(id); if (!l) return false;
     detachLightGizmo();
     l.dispose();
+    // Mémoriser la suppression : sans ça l'export repartait de __lightingBase
+    // (photo de la config chargée) et la lumière revenait au rechargement.
+    if (window.__removedLights.indexOf(id) === -1) window.__removedLights.push(id);
+    // La retirer aussi de l'état éditable en mémoire.
+    var st = window.__lightingState;
+    if (st && Array.isArray(st.lights)) {
+      st.lights = st.lights.filter(function(d){ return d && d.id !== id; });
+    }
     return true;
   };
 
+  /* --------------------------------------------------------------------------
+     EXPORT lighting-config.json — CONSTRUIT DEPUIS LA SCÈNE RÉELLE
+     --------------------------------------------------------------------------
+     Avant : l'export recopiait `__lightingBase` (photo du fichier chargé) et ne
+     remplaçait que `ao` et `editableLights`. Résultat : une lumière supprimée ou
+     réglée dans l'éditeur ressortait telle quelle dans le JSON, et revenait au
+     rechargement. Ici on part de la base, puis on la RECONCILIE avec la scène :
+     toute lumière absente/supprimée est retirée, et les intensités/couleurs des
+     lumières encore vivantes sont relues sur les objets Babylon.
+     -------------------------------------------------------------------------- */
+  window.buildLightingConfig = function(){
+    var base = JSON.parse(JSON.stringify(window.__lightingBase || {}));
+    var st   = window.__lightingState || {};
+    var supprimees = (window.__removedLights || []).concat(
+      (typeof LIGHTS_SUPPRIMEES !== 'undefined') ? LIGHTS_SUPPRIMEES : []);
+
+    var vivante = function(nom){
+      return !!nom && supprimees.indexOf(nom) === -1 && !!scene.getLightByName(nom);
+    };
+
+    // 1) Lumières « système » : on les retire de l'export si elles n'existent plus,
+    //    sinon on relit leurs valeurs réelles.
+    [ ['spotLight',        'keyLight'],
+      ['directionalLight', 'shadowLight'],
+      ['ambientLight',     'ambient'],
+      ['fillLight',        'fillLight'] ].forEach(function(paire){
+      var cle = paire[0], nom = paire[1];
+      if (!base[cle]) return;
+      var L = scene.getLightByName(nom);
+      if (!vivante(nom)) { delete base[cle]; return; }
+      base[cle].intensity = (L.__savedIntensity != null && L.intensity === 0)
+        ? 0 : L.intensity;
+      if (L.diffuse)     base[cle].color       = [L.diffuse.r, L.diffuse.g, L.diffuse.b];
+      if (L.groundColor) base[cle].groundColor = [L.groundColor.r, L.groundColor.g, L.groundColor.b];
+      if (L.position && base[cle].position)   base[cle].position  = [L.position.x, L.position.y, L.position.z];
+      if (L.direction && base[cle].direction) base[cle].direction = [L.direction.x, L.direction.y, L.direction.z];
+      if (L.range != null && base[cle].range != null) base[cle].range = L.range;
+    });
+
+    // 2) Lumières intérieures : purge des supprimées + relecture des vivantes.
+    if (Array.isArray(base.interiorLights)) {
+      base.interiorLights = base.interiorLights
+        .filter(function(l){ return l && vivante(l.name); })
+        .map(function(l){
+          var L = scene.getLightByName(l.name);
+          var o = Object.assign({}, l);
+          o.intensity = L.intensity;
+          if (L.position) o.position = [L.position.x, L.position.y, L.position.z];
+          if (L.range != null) o.range = L.range;
+          if (L.diffuse)  o.color = [L.diffuse.r, L.diffuse.g, L.diffuse.b];
+          return o;
+        });
+      if (!base.interiorLights.length) delete base.interiorLights;
+    }
+
+    // 3) Lumières éditables (créées dans l'éditeur) : état courant, purgé.
+    base.editableLights = (st.lights || []).filter(function(d){
+      return d && supprimees.indexOf(d.id) === -1;
+    });
+
+    // 4) AO + HDRI : valeurs réellement appliquées.
+    base.ao = st.ao || base.ao;
+    base.hdri = Object.assign({}, base.hdri || {}, {
+      intensity: (scene.environmentIntensity != null ? scene.environmentIntensity : 1),
+      rotationY: (window.__hdriRotationY != null ? window.__hdriRotationY : 0)
+    });
+
+    return base;
+  };
+
   // --- HDRI : orientation, intensité, remplacement ---
+  // L'orientation ne « prenait » pas : `rotationY` était posée sur la texture
+  // courante, mais (a) la sonde de repli (RenderTargetTexture) n'a pas cette
+  // propriété — l'appel était silencieusement perdu, et (b) quand la HDRi finit
+  // de charger elle REMPLACE l'environmentTexture, effaçant la rotation réglée
+  // avant. On mémorise donc la valeur et on la ré-applique à chaque texture.
+  window.__hdriRotationY = 0;
+  window.applyHdriRotation = function(){
+    var t = scene.environmentTexture;
+    if (!t || !('rotationY' in t)) return false;
+    t.rotationY = window.__hdriRotationY;
+    return true;
+  };
   window.getHdriParams = function(){
     var t = scene.environmentTexture;
     return {
       hasHdri: !!t,
+      canRotate: !!(t && ('rotationY' in t)),
       intensity: (scene.environmentIntensity != null ? scene.environmentIntensity : 1),
-      rotationY: (t && t.rotationY != null ? t.rotationY : 0)
+      rotationY: window.__hdriRotationY
     };
   };
   window.setHdriParams = function(p){
     if (p.intensity != null) scene.environmentIntensity = parseFloat(p.intensity);
-    if (p.rotationY != null && scene.environmentTexture) {
-      scene.environmentTexture.rotationY = parseFloat(p.rotationY);
+    if (p.rotationY != null) {
+      window.__hdriRotationY = parseFloat(p.rotationY);
+      window.applyHdriRotation();
     }
   };
   // Remplacer la HDRI par une URL/dataURL (.hdr ou .env)
@@ -1714,10 +1940,70 @@ async function init() {
       var tex = isEnv
         ? new BABYLON.CubeTexture(url, scene)
         : new BABYLON.HDRCubeTexture(url, scene, 512);
-      var apply = function(){ scene.environmentTexture = tex; console.log('✅ HDRI remplacée'); };
+      var apply = function(){
+        scene.environmentTexture = tex;
+        window.applyHdriRotation();                       // conserver l'orientation
+        if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
+        console.log('✅ HDRI remplacée');
+      };
       if (tex.onLoadObservable) tex.onLoadObservable.addOnce(apply); else apply();
       return true;
     } catch(e){ console.warn('⚠️ Remplacement HDRI échoué :', e.message); return false; }
+  };
+
+  /* --- MINIATURE HDRI ---------------------------------------------------------
+     Rendue par le moteur du viewer (la texture appartient à SON contexte WebGL,
+     elle ne peut pas être partagée avec un canvas de l'éditeur). On rend une
+     boîte-ciel dans une cible hors écran avec une caméra très grand-angle, puis
+     on renvoie les PIXELS — que l'éditeur peut dessiner dans son propre canvas.
+     Reflète l'intensité et l'orientation courantes, à la demande uniquement. */
+  window.__hdriPrev = null;
+  function construireApercuHdri(w, h){
+    if (window.__hdriPrev) return window.__hdriPrev;
+    var cam = new BABYLON.FreeCamera('hdriPrevCam', BABYLON.Vector3.Zero(), scene);
+    cam.fov = 2.2;                       // très grand-angle → aperçu panoramique
+    cam.minZ = 0.1; cam.maxZ = 1000;
+    cam.setTarget(new BABYLON.Vector3(0, 0, 1));
+    var box = BABYLON.MeshBuilder.CreateBox('hdriPrevBox', { size: 500 }, scene);
+    var mat = new BABYLON.StandardMaterial('hdriPrevMat', scene);
+    mat.backFaceCulling = false;
+    mat.disableLighting = true;
+    mat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+    box.material = mat;
+    box.isPickable = false;
+    box.setEnabled(false);               // invisible dans la scène principale
+    var rt = new BABYLON.RenderTargetTexture('hdriPrevRT', { width: w, height: h }, scene, false);
+    rt.renderList = [box];
+    rt.activeCamera = cam;
+    rt.refreshRate = BABYLON.RenderTargetTexture.REFRESHRATE_RENDER_ONCE;
+    window.__hdriPrev = { cam: cam, box: box, mat: mat, rt: rt, w: w, h: h };
+    return window.__hdriPrev;
+  }
+  // Renvoie { width, height, data } (RGBA), ou null si pas d'environnement.
+  window.getHdriPreviewPixels = function(w, h){
+    var env = scene.environmentTexture;
+    if (!env) return null;
+    w = w || 256; h = h || 96;
+    var P = construireApercuHdri(w, h);
+    try {
+      // Le reflet suit l'orientation et l'intensité réglées.
+      P.mat.reflectionTexture = env;
+      P.mat.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+      P.mat.emissiveColor = new BABYLON.Color3(1, 1, 1).scale(
+        Math.min(scene.environmentIntensity != null ? scene.environmentIntensity : 1, 4));
+      P.box.setEnabled(true);
+      P.rt.render();
+      P.box.setEnabled(false);
+      var px = P.rt.readPixels();
+      if (px && typeof px.then === 'function') return px.then(function(d){
+        return { width: w, height: h, data: d };
+      });
+      return px ? { width: w, height: h, data: px } : null;
+    } catch (e) {
+      try { P.box.setEnabled(false); } catch(_){}
+      console.warn('⚠️ Aperçu HDRI indisponible :', e.message);
+      return null;
+    }
   };
 
   // --- Gizmos position + rotation pour une lumière ---
@@ -3727,6 +4013,12 @@ function createPoiMarkers() {
     poiMat.useAlphaFromDiffuseTexture = true;   // transparence depuis la texture
     poiMat.emissiveColor = new BABYLON.Color3(1, 1, 1); // couleur déjà dans l'anneau
     poiMat.disableLighting = true;
+    // SSR : un StandardMaterial a par défaut une couleur spéculaire blanche, qui
+    // s'écrit dans le buffer de réflectivité → le SSR plaque des reflets sur les
+    // pastilles POV et change leur aspect. Réflectivité nulle = SSR sans effet
+    // sur elles, sans rien changer à leur rendu (disableLighting est déjà actif).
+    poiMat.specularColor = new BABYLON.Color3(0, 0, 0);
+    poiMat.specularPower = 0;
     poiMat.backFaceCulling = false;
     markerPlane.material = poiMat;
 
