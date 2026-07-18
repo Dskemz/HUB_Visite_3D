@@ -1703,7 +1703,6 @@ void main(void){
   c = max(c, 0.0);
   c = pow(c, vec3(1.0 / max(uGamma, 0.01)));
   c = pow(c, 1.0 / max(uCurve, vec3(0.01)));
-  if (uTonemap > 0.5) c = aces(c);
   gl_FragColor = vec4(clamp(c, 0.0, 1.0), src.a);
 }
 `;
@@ -1750,16 +1749,43 @@ void main(void){
     opts = opts || {};
     var s = window.__GRADE_STATE__;
     Object.keys(opts).forEach(function(k){
-      if (k === 'enabled' || k === 'tonemap') { s[k] = !!opts[k]; return; }
+      if (k === 'enabled') { s[k] = !!opts[k]; return; }
+      if (k === 'tonemap') { s[k] = false; return; } // Toujours false, tonemap désactivé
+      if (k === 'curves') { 
+        s.curves = opts[k];
+        var gammas = calculerGammasDepuisCourbes(opts[k]);
+        s.curveR = gammas.r;
+        s.curveG = gammas.g;
+        s.curveB = gammas.b;
+        return;
+      }
       if (k in s && opts[k] != null) s[k] = parseFloat(opts[k]);
     });
     if (opts.enabled != null) attacherImageGrade(s.enabled);
   };
+  
+  function calculerGammasDepuisCourbes(curves){
+    var calcGamma = function(points){
+      if (!points || !points.length) return 1;
+      var pts = [{x:0, y:0}, {x:1, y:1}].concat(points.map(p => ({x:p[0], y:p[1]})));
+      pts.sort((a,b) => a.x - b.x);
+      var mid = pts.find(p => Math.abs(p.x - 0.5) < 0.01) || {y: 0.5};
+      if (mid.y < 0.01) return 0.1;
+      if (mid.y > 0.99) return 10;
+      return Math.log(0.5) / Math.log(mid.y);
+    };
+    return {
+      r: calcGamma(curves.r || [[0, 0], [1, 1]]),
+      g: calcGamma(curves.g || [[0, 0], [1, 1]]),
+      b: calcGamma(curves.b || [[0, 0], [1, 1]])
+    };
+  }
   // Remise à zéro : toutes les valeurs neutres, rendu d'origine exact.
   window.resetImageGrade = function(){
     window.__GRADE_STATE__ = Object.assign(window.__GRADE_STATE__, {
       exposure:0, brightness:0, contrast:1, gamma:1, saturation:1, hue:0, value:1,
-      temperature:0, tint:0, lift:0, gain:1, curveR:1, curveG:1, curveB:1, tonemap:false
+      temperature:0, tint:0, lift:0, gain:1, curveR:1, curveG:1, curveB:1, tonemap:false,
+      curves: {r: [[0, 0], [1, 1]], g: [[0, 0], [1, 1]], b: [[0, 0], [1, 1]]}
     });
     return window.getImageGrade();
   };
