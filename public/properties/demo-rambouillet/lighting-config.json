@@ -14,7 +14,12 @@
     "angle": 1.256,
     "exponent": 2,
     "intensity": 1.2,
-    "range": 40
+    "range": 40,
+    "color": [
+      1,
+      1,
+      1
+    ]
   },
   "directionalLight": {
     "name": "shadowLight",
@@ -36,6 +41,11 @@
       0.3,
       0.3,
       0.35
+    ],
+    "color": [
+      1,
+      1,
+      1
     ]
   },
   "fillLight": {
@@ -44,6 +54,11 @@
       0.25,
       0.25,
       0.3
+    ],
+    "color": [
+      1,
+      1,
+      1
     ]
   },
   "shadows": {
@@ -55,24 +70,10 @@
     "url": "Hdrichaude_Viewer_3D.hdr",
     "intensity": 1,
     "exposure": 1.1,
-    "contrast": 1.2
+    "contrast": 1.2,
+    "rotationY": 0
   },
   "interiorLights": [
-    {
-      "name": "window-fill-1",
-      "position": [
-        5,
-        1.2,
-        2
-      ],
-      "intensity": 0.9,
-      "range": 15,
-      "color": [
-        1,
-        0.98,
-        0.95
-      ]
-    },
     {
       "name": "window-fill-2",
       "position": [
@@ -86,21 +87,6 @@
         1,
         0.98,
         0.95
-      ]
-    },
-    {
-      "name": "corner-fill",
-      "position": [
-        2,
-        1.5,
-        1
-      ],
-      "intensity": 0.4,
-      "range": 10,
-      "color": [
-        0.95,
-        0.95,
-        1
       ]
     }
   ],
