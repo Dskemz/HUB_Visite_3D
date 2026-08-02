@@ -466,6 +466,22 @@ const PONT = `
   let onPov = false;      // onglet POV en mode placement
   let undoStack = [];
 
+  /* Anti-double-placement. Les quatre ecouteurs (cotation, piece, POV, lumiere)
+     partagent le MEME evenement 'click' du hud-svg. Sans garde, un dispatch qui
+     touche deux handlers, ou un double-clic rapide, peut poser deux fois. On
+     marque l'evenement des qu'un handler agit (idempotence par clic) et on ignore
+     tout clic survenant moins de 250 ms apres un placement effectif (anti-rebond). */
+  let dernierPlacement = 0;
+  function placementVerrouille(ev){
+    if (ev && ev.__edHandled) return true;                 // deja traite ce clic
+    if (Date.now() - dernierPlacement < 250) return true;  // clic trop rapproche
+    return false;
+  }
+  function placementActe(ev){
+    if (ev) ev.__edHandled = true;
+    dernierPlacement = Date.now();
+  }
+
   /* Après un « Voir (orienter) », exitPanoramaCamera() repose l'ArcRotateCamera
      SUR le point de vue — ce qui laisse l'éditeur collé au sol. On restaure donc
      le cadrage orbite tel qu'il était avant d'entrer en orientation. */
@@ -510,15 +526,18 @@ const PONT = `
      qu'aucune piece n'attend d'etre placee. */
   function placerPov(ev){
     if (!onPov) return;
+    if (placementVerrouille(ev)) return;
     const svg = document.getElementById('hud-svg');
     const r = svg.getBoundingClientRect();
     const w = hudUnproject(ev.clientX - r.left, ev.clientY - r.top);
     if (!w) return;
+    placementActe(ev);
     parent.__ed.setCiblePov(w.x, w.z);
   }
 
   function clicPiece(ev){
     if (!onRooms || placeIdx < 0) return;
+    if (placementVerrouille(ev)) return;
     const svg = document.getElementById('hud-svg');
     const r = svg.getBoundingClientRect();
     const w = hudUnproject(ev.clientX - r.left, ev.clientY - r.top);
@@ -528,6 +547,7 @@ const PONT = `
     cible.position = [ Math.round(w.x*100)/100, w.y, Math.round(w.z*100)/100 ];
     ['x','y','z','coords','xz'].forEach(function(k){ delete cible[k]; });
     placeIdx = -1;
+    placementActe(ev);
     majCurseur();
     hudUpdate();
     parent.__edEvent('piece','placee');
@@ -536,12 +556,14 @@ const PONT = `
   let lightToPlace = null; // id de lumière en attente de placement (onglet Ambiance)
   function clicLight(ev){
     if (!lightToPlace) return;
+    if (placementVerrouille(ev)) return;
     const svg = document.getElementById('hud-svg');
     const r = svg.getBoundingClientRect();
     const w = hudUnproject(ev.clientX - r.left, ev.clientY - r.top);
     if (!w) return;
     if (window.__ed && window.__ed.placeLightAt) window.__ed.placeLightAt(lightToPlace, w.x, w.z);
     lightToPlace = null;
+    placementActe(ev);
     parent.__edEvent('light','placee');
   }
 
