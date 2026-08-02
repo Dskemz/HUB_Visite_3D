@@ -989,6 +989,23 @@ const PONT = `
         if (!propertyData.dimensions) propertyData.dimensions = {};
         propertyData.dimensions[cote] = [];
         hudUpdate();
+      },
+      /* Édition manuelle des segments d'un côté depuis le panneau.
+         Valide que chaque valeur est un nombre > 0.01 ; refuse tout le lot sinon
+         (pas de mutation partielle). Enregistre pour l'undo. */
+      setCotationSegs: function(cote, segs){
+        if (!Array.isArray(segs) || !segs.length) return false;
+        var clean = [];
+        for (var i=0;i<segs.length;i++){
+          var vv = parseFloat(segs[i]);
+          if (isNaN(vv) || vv <= 0.01) return false;
+          clean.push(Math.round(vv*100)/100);
+        }
+        sauvegarder();
+        propertyData.dimensions = propertyData.dimensions || {};
+        propertyData.dimensions[cote] = clean;
+        hudUpdate();
+        return true;
       }
     };
     parent.__edPret();
@@ -1401,6 +1418,13 @@ function undo(){
   else flash('Rien à annuler');
 }
 
+function updateCotFromEditor(cote, segs){
+  if (!ed || !ed.setCotationSegs) return false;
+  const ok = ed.setCotationSegs(cote, segs);
+  if (ok) flash('✏️ Cotation ' + cote + ' mise à jour');
+  return ok;
+}
+
 function resetCote(cote){
   if (!ed) return;
   const mani = JSON.parse(ed.manifest());
@@ -1615,11 +1639,17 @@ function refresh(){
         inp.style.cssText = 'flex:0 0 60px;margin-left:.3rem;font-size:.76rem;padding:.2rem;background:var(--bg-0);border:1px solid var(--bd-2);color:var(--tx-0);border-radius:4px;';
         inp.onchange = function(){
           const v = parseFloat(inp.value);
-          if (!isNaN(v) && v > 0.01){
-            c.segs[i] = v;
-            updateCotFromEditor(c.cote, c.segs);
-          } else {
+          if (isNaN(v) || v <= 0.01){
+            flash('⚠️ Cotation doit être un nombre > 0.01 m');
             inp.value = seg.toFixed(2);
+            return;
+          }
+          const prev = c.segs[i];
+          c.segs[i] = v;
+          if (!updateCotFromEditor(c.cote, c.segs)){
+            c.segs[i] = prev;                 // le viewer a refusé : on annule
+            inp.value = seg.toFixed(2);
+            flash('❌ Mise à jour refusée');
           }
         };
         row.appendChild(inp);
@@ -1731,13 +1761,32 @@ function refresh(){
 
 function download(){
   if (!ed) return;
-  const blob = new Blob([ed.manifest()], { type:'application/json' });
+  let jsonStr;
+  try {
+    jsonStr = ed.manifest();
+    const parsed = JSON.parse(jsonStr);            // valide la syntaxe JSON
+    if (!parsed || typeof parsed !== 'object'){
+      flash('❌ Manifest invalide — rien exporté');
+      return;
+    }
+    const nbPoi   = Array.isArray(parsed.poi) ? parsed.poi.length : 0;
+    const nbDims  = parsed.dimensions ? Object.keys(parsed.dimensions).length : 0;
+    const nbRooms = Array.isArray(parsed.roomLabels) ? parsed.roomLabels.length : 0;
+    if (nbPoi === 0 && nbDims === 0 && nbRooms === 0){
+      flash('⚠️ Rien à exporter (ajoutez POV, cotations ou pièces)');
+      return;
+    }
+  } catch(e){
+    flash('❌ Export échoué : ' + e.message);
+    return;
+  }
+  const blob = new Blob([jsonStr], { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'manifest.json';
   a.click();
   URL.revokeObjectURL(a.href);
-  flash('💾 manifest.json téléchargé');
+  flash('💾 manifest.json téléchargé (validé ✓)');
 }
 
 // Contrôles matériaux — liste dynamique groupée par catégorie (sections repliables)
