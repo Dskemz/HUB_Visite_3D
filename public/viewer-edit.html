@@ -963,7 +963,7 @@ const PONT = `
         enterPanoramaCamera(eye, eye.add(fwd));
         setHudVisible(false);
       },
-      validerPov: function(id,label,room,photos){
+      validerPov: function(id,label,room,photos,force){
         if (povEnAttenteX == null) return null;
         // Lire la pose sur la caméra RÉELLEMENT active (POV si on vient d'orienter).
         var enPov = !!(fpCamera && scene.activeCamera === fpCamera);
@@ -983,6 +983,23 @@ const PONT = `
         if (photos && photos.length) pov.photos = photos;
         propertyData.poi = propertyData.poi || [];
         const i = propertyData.poi.findIndex(p => p.id === pov.id);
+        /* Doublon spatial : un AUTRE POV a moins de 0,5 m en XZ. On ignore le POV
+           en cours d'édition (même id) et on ne bloque pas si force=true. Aucune
+           mutation avant ce test : si on renvoie le doublon, l'état en attente reste
+           intact pour une re-validation forcée après confirmation de l'utilisateur. */
+        if (!force){
+          var seuil = 0.5, doublon = null;
+          for (var k=0;k<propertyData.poi.length;k++){
+            if (k === i) continue;
+            var q = propertyData.poi[k];
+            if (!q || !q.camPos) continue;
+            var dx = q.camPos[0] - pov.camPos[0];
+            var dz = q.camPos[2] - pov.camPos[2];
+            var dd = Math.sqrt(dx*dx + dz*dz);
+            if (dd < seuil){ doublon = { label: q.label || q.id, dist: Math.round(dd*100)/100 }; break; }
+          }
+          if (doublon) return { duplicate:true, near:doublon.label, dist:doublon.dist };
+        }
         if (i >= 0) propertyData.poi[i] = pov; else propertyData.poi.push(pov);
         if (enPov) { isFirstPerson = false; exitPanoramaCamera(); restaurerVueOrbite(); }
         createPoiMarkers(); rebuildPoiList();
@@ -1538,14 +1555,22 @@ function editerPovExistant(id, label){
   flash('✏️ Édition de « ' + label + ' » — tu peux placer, ajuster la hauteur et voir');
 }
 
-function validerPov(){
+function validerPov(force){
   if (!ed) return;
   const id = (document.getElementById('f-id').value || '').trim();
   const label = (document.getElementById('f-label').value || '').trim();
   const room = (document.getElementById('f-room').value || '').trim();
   const photos = (document.getElementById('f-photos').value || '')
     .split(',').map(x=>x.trim()).filter(Boolean);
-  const nom = ed.validerPov(id, label, room, photos);
+  const res = ed.validerPov(id, label, room, photos, !!force);
+  if (res && res.duplicate){
+    const ok = confirm('Un POV « '+res.near+' » existe déjà à '+res.dist+' m d\'ici.\n\n'+
+                       'Créer quand même un second POV au même endroit ?');
+    if (ok) return validerPov(true);   // re-validation forcée
+    flash('POV non créé (doublon évité)');
+    return;
+  }
+  const nom = res;
   if (nom){
     ['f-id','f-label','f-room','f-photos'].forEach(k=>document.getElementById(k).value='');
     document.getElementById('f-height').value = 0;
