@@ -13,7 +13,7 @@
   /* ===== INLINE: Resolve agency from ?agency= param ASAP, before any CSS is parsed ===== */
   (function(){
     window.AGENCIES = {
-      'laforet':{id:'laforet',name:'Laforêt',navy:'#0B1B3F',navyRgb:'11,27,63',accent:'#0046FE',accentRgb:'0,70,254',accentDark:'#0038cc',logo:'laforet',property:'demo-rambouillet'},
+      'laforet':{id:'laforet',name:'Visite 3D',navy:'#2d2d2d',navyRgb:'45,45,45',accent:'#d97757',accentRgb:'217,119,87',accentDark:'#c66641',logo:null,property:'demo-rambouillet'},
       'era':{id:'era',name:'ERA Immobilier',navy:'#3A0E14',navyRgb:'58,14,20',accent:'#E2001A',accentRgb:'226,0,26',accentDark:'#B00016',logo:'era',property:'demo-rambouillet'},
       'sixieme-avenue':{id:'sixieme-avenue',name:'Sixième Avenue',navy:'#0C2C2B',navyRgb:'12,44,43',accent:'#2E7E7C',accentRgb:'46,126,124',accentDark:'#245F5C',logo:'sixieme',property:'demo-rambouillet'}
     };
@@ -29,7 +29,7 @@
   <script src="branding.js"></script>
   <script>
   (function(){
-    var A=(window.resolveAgency&&window.resolveAgency())||{name:'Laforêt',navy:'#0B1B3F',navyRgb:'11,27,63',accent:'#0046FE',accentRgb:'0,70,254',accentDark:'#0038cc',logo:'laforet'};
+    var A=(window.resolveAgency&&window.resolveAgency())||{name:'Visite 3D',navy:'#2d2d2d',navyRgb:'45,45,45',accent:'#d97757',accentRgb:'217,119,87',accentDark:'#c66641',logo:null};
     window.__BRAND__=A;
     var s=document.documentElement.style;
     s.setProperty('--brand-navy',A.navy); s.setProperty('--brand-navy-rgb',A.navyRgb);
@@ -44,9 +44,9 @@
   </script>
   <style>
     :root{
-      --brand-navy:#0B1B3F; --brand-navy-rgb:11,27,63;
-      --brand-accent:#0046FE; --brand-accent-rgb:0,70,254;
-      --brand-accent-dark:#0038cc;
+      --brand-navy:#2d2d2d; --brand-navy-rgb:45,45,45;
+      --brand-accent:#d97757; --brand-accent-rgb:217,119,87;
+      --brand-accent-dark:#c66641;
       /* Gabarit des miniatures photo du panneau POV. Une seule valeur à changer
          ici si l'on veut du 3/2 ou du 16/9. */
       --photo-ratio: 4 / 3;
