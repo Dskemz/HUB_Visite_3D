@@ -101,6 +101,12 @@
     /* L'onglet actif « avance » : même fond que le panneau, séparateur effacé. */
     .tabs > .tab.on{background:var(--bg-1);border-color:var(--bd-3);color:#fff;
             box-shadow:inset 3px 0 0 var(--ac);margin-right:-1px;padding-right:.4rem}
+    /* Étape validée : liseré vert à gauche de l'onglet. Placé APRÈS .on pour
+       gagner à spécificité égale → le vert prime même quand l'onglet est actif. */
+    .tabs > .tab.validated{box-shadow:inset 5px 0 0 #4ade80}
+    /* Séparateur horizontal entre le workflow (haut) et les presets (bas). */
+    .tabs > .tabsep{flex:0 0 auto;height:1px;margin:.45rem .18rem .45rem 0;
+            background:var(--bd-2);border:none;padding:0}
     .tabs > #b-expand{margin-top:auto;writing-mode:horizontal-tb;transform:none;
               padding:.5rem .3rem;font-size:.9rem;border-radius:8px;
               border-right:1px solid var(--bd-2);box-shadow:none}
@@ -121,6 +127,8 @@
     .btn.sec{background:var(--bg-0);border:1px solid var(--bd-3);color:var(--tx-1)}
     .btn.sec:hover{background:var(--bg-3);border-color:var(--bd-4);color:var(--tx-0)}
     .btn:disabled{opacity:.4;cursor:not-allowed}
+    .btn.on{background:#f59e0b;color:#1a1206}
+    .btn.on:hover{background:#e08c08}
 
     .list{margin-top:.9rem}
 
@@ -171,13 +179,16 @@
     <!-- Intercalaires : collés à la bordure du panneau, empilés verticalement.
          Les ids t-* et p-* ne bougent pas → la fonction tab() reste inchangée. -->
     <nav class="tabs" id="tabrail">
-      <button class="tab on" id="t-pov"   onclick="tab('pov')">POV</button>
-      <button class="tab"    id="t-cot"   onclick="tab('cot')">Cotations</button>
+      <!-- WORKFLOW (ordre créatif fixe) : Cotations → Pièces → POV → Branding -->
+      <button class="tab on" id="t-cot"   onclick="tab('cot')">Cotations</button>
       <button class="tab"    id="t-piece" onclick="tab('piece')">Pièces</button>
+      <button class="tab"    id="t-pov"   onclick="tab('pov')">POV</button>
+      <button class="tab"    id="t-brand" onclick="tab('brand')">Branding</button>
+      <div class="tabsep" aria-hidden="true"></div>
+      <!-- PRESETS globaux (rarement touchés, hors workflow principal) -->
+      <button class="tab"    id="t-light" onclick="tab('light')">Lighting</button>
       <button class="tab"    id="t-verre" onclick="tab('verre')">Matériaux</button>
       <button class="tab"    id="t-amb"   onclick="tab('amb')">Post-process</button>
-      <button class="tab"    id="t-light" onclick="tab('light')">Lighting</button>
-      <button class="tab"    id="t-brand" onclick="tab('brand')">Branding</button>
       <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein écran">⛶</button>
     </nav>
 
@@ -189,7 +200,7 @@
     </div>
 
     <div class="body">
-      <div id="p-pov">
+      <div id="p-pov" hidden>
         <p class="hint"><b>Placement interactif.</b> Clique « Placer POV » puis clique dans la vue 3D :
           le point se pose au sol. Règle la hauteur, oriente ta vue avec « Voir », puis « Valider ».</p>
         <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.7rem;">
@@ -227,7 +238,18 @@
         <div class="list" id="pov-list" style="margin-top:.9rem;"></div>
       </div>
 
-      <div id="p-cot" hidden>
+      <div id="p-cot">
+        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="display:flex;gap:.5rem;align-items:stretch;">
+            <button class="btn" id="b-regle" onclick="toggleRegle()" style="flex:1;">📏 Mesurer</button>
+          </div>
+          <p class="hint" style="margin:.55rem 0 0;">Clique <b>2 points</b> dans la vue 3D :
+            la distance s'affiche en direct. Marche dans n'importe quelle vue
+            (sol‑sol, sol‑plafond…). <b>Échap</b> ou <b>clic droit</b> pour annuler
+            le point en cours.</p>
+          <div class="list" id="mesure-list" style="margin-top:.6rem;"></div>
+        </div>
+
         <p class="hint">Passe le viewer en <b>vue de dessus</b>, puis :<br><br>
           · <b>clic sur un trait de cotation</b> → il se scinde à l'endroit cliqué,
             les cotes se recalculent seules ;<br>
@@ -473,7 +495,7 @@ const Q       = new URLSearchParams(location.search);
 const AGENCY  = Q.get('agency')   || 'laforet';
 const PROPERTY= Q.get('property') || 'demo-rambouillet';
 let   ed      = null;              // le pont, une fois greffé
-let   mode    = 'pov';
+let   mode    = 'cot';             // 1re étape du workflow : Cotations
 
 document.getElementById('h-prop').textContent = AGENCY + ' · ' + PROPERTY;
 const vw = document.getElementById('vw');
@@ -517,6 +539,18 @@ const PONT = `
   let onPov = false;      // onglet POV en mode placement
   let undoStack = [];
 
+  /* ===== RÈGLE LIBRE (mesure 3D point A → point B) =====================
+     Picking 3D via l'API armPickPlacement du viewer (mode 'ruler') : marche
+     dans toutes les vues, sans bloquer l'orbite. Le rendu se fait sur un
+     overlay SVG dédié, redessiné à chaque frame par projection 3D→écran, donc
+     rien à toucher dans viewer.html. Les mesures vivent le temps de la session
+     (aide au relevé) et ne partent pas dans le manifest client. */
+  let rulerActive = false;   // mode mesure armé
+  let rulerA = null;         // 1er point posé {x,y,z} en attente du 2e
+  let rulerLive = null;      // point courant sous le curseur (aperçu)
+  let mesuresLibres = [];    // [{a:[x,y,z], b:[x,y,z], d:number}]
+  let rulerMoveObs = null;   // observer onPointer (aperçu live)
+
   /* Anti-double-placement. Les quatre ecouteurs (cotation, piece, POV, lumiere)
      partagent le MEME evenement 'click' du hud-svg. Sans garde, un dispatch qui
      touche deux handlers, ou un double-clic rapide, peut poser deux fois. On
@@ -549,6 +583,14 @@ const PONT = `
 
   function majCurseur(){
     const s = document.getElementById('hud-svg');
+    const cv = document.getElementById('canvas');
+    if (rulerActive){
+      // Overlay HUD transparent aux clics → Babylon reçoit les picks 3D.
+      if (s){ s.style.pointerEvents = 'none'; s.style.cursor = ''; }
+      if (cv) cv.style.cursor = 'crosshair';
+      return;
+    }
+    if (cv) cv.style.cursor = '';
     if (!s) return;
     const actif = onCot || onRooms;
     s.style.pointerEvents = actif ? 'auto' : '';
@@ -624,7 +666,166 @@ const PONT = `
     if (undoStack.length > 20) undoStack.shift();   // garde les 20 derniers
   }
 
+  /* ---------- RÈGLE LIBRE : moteur ---------------------------------------- */
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  function rulerOverlay(){
+    let ov = document.getElementById('ruler-overlay');
+    if (ov) return ov;
+    ov = document.createElementNS(SVGNS, 'svg');
+    ov.setAttribute('id', 'ruler-overlay');
+    ov.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;' +
+                       'pointer-events:none;overflow:visible;z-index:6;';
+    // À côté du hud-svg, au-dessus du canvas.
+    const host = document.getElementById('hud-svg');
+    if (host && host.parentNode) host.parentNode.insertBefore(ov, host.nextSibling);
+    else document.body.appendChild(ov);
+    return ov;
+  }
+
+  function rulerFmt(len){
+    // Réutilise l'unité du HUD si dispo (m par défaut), sinon mètres bruts.
+    try { if (typeof hudFormat === 'function') return hudFormat(len); } catch(_){}
+    return (Math.round(len * 100) / 100).toFixed(2).replace('.', ',') + ' m';
+  }
+
+  function rulerDist(a, b){
+    const dx = a[0]-b[0], dy = a[1]-b[1], dz = a[2]-b[2];
+    return Math.sqrt(dx*dx + dy*dy + dz*dz);
+  }
+
+  function rulerSeg(g, pa, pb, dashed){
+    const ln = document.createElementNS(SVGNS, 'line');
+    ln.setAttribute('x1', pa.x); ln.setAttribute('y1', pa.y);
+    ln.setAttribute('x2', pb.x); ln.setAttribute('y2', pb.y);
+    ln.setAttribute('stroke', '#f59e0b');
+    ln.setAttribute('stroke-width', dashed ? '2' : '2.5');
+    ln.setAttribute('stroke-linecap', 'round');
+    if (dashed) ln.setAttribute('stroke-dasharray', '6 5');
+    g.appendChild(ln);
+  }
+
+  function rulerDot(g, p){
+    const c = document.createElementNS(SVGNS, 'circle');
+    c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); c.setAttribute('r', '4');
+    c.setAttribute('fill', '#f59e0b'); c.setAttribute('stroke', '#fff'); c.setAttribute('stroke-width', '1.5');
+    g.appendChild(c);
+  }
+
+  function rulerLabel(g, p, txt){
+    const t = document.createElementNS(SVGNS, 'text');
+    t.setAttribute('x', p.x + 10); t.setAttribute('y', p.y - 10);
+    t.setAttribute('font-family', 'system-ui, sans-serif');
+    t.setAttribute('font-size', '13'); t.setAttribute('font-weight', '700');
+    t.setAttribute('fill', '#fff'); t.setAttribute('stroke', 'rgba(0,0,0,.75)');
+    t.setAttribute('stroke-width', '3.5'); t.setAttribute('paint-order', 'stroke');
+    t.textContent = txt;
+    g.appendChild(t);
+  }
+
+  function rulerDraw(){
+    const ov = rulerOverlay();
+    while (ov.firstChild) ov.removeChild(ov.firstChild);
+    if (typeof hudProject !== 'function') return;
+    const g = document.createElementNS(SVGNS, 'g');
+
+    // Mesures finalisées (toujours visibles tant que l'onglet est ouvert).
+    mesuresLibres.forEach(function(m){
+      const pa = hudProject(new BABYLON.Vector3(m.a[0], m.a[1], m.a[2]));
+      const pb = hudProject(new BABYLON.Vector3(m.b[0], m.b[1], m.b[2]));
+      rulerSeg(g, pa, pb, false);
+      rulerDot(g, pa); rulerDot(g, pb);
+      rulerLabel(g, { x:(pa.x+pb.x)/2, y:(pa.y+pb.y)/2 }, rulerFmt(m.d));
+    });
+
+    // Mesure en cours : A posé + aperçu vers le curseur.
+    if (rulerActive && rulerA){
+      const pa = hudProject(new BABYLON.Vector3(rulerA[0], rulerA[1], rulerA[2]));
+      rulerDot(g, pa);
+      if (rulerLive){
+        const pl = hudProject(new BABYLON.Vector3(rulerLive[0], rulerLive[1], rulerLive[2]));
+        rulerSeg(g, pa, pl, true);
+        rulerLabel(g, { x:(pa.x+pl.x)/2, y:(pa.y+pl.y)/2 }, rulerFmt(rulerDist(rulerA, rulerLive)));
+      }
+    }
+    ov.appendChild(g);
+  }
+
+  function rulerClear(){
+    const ov = document.getElementById('ruler-overlay');
+    if (ov) while (ov.firstChild) ov.removeChild(ov.firstChild);
+  }
+
+  // Prédicat de picking : décor uniquement (ni POI, ni skybox).
+  function rulerPick(){
+    try {
+      const p = scene.pick(scene.pointerX, scene.pointerY, function(m){
+        return m.isPickable !== false && !m.poiId && m.name !== 'skybox';
+      });
+      if (p && p.hit && p.pickedPoint){
+        const q = p.pickedPoint;
+        return [ Math.round(q.x*1000)/1000, Math.round(q.y*1000)/1000, Math.round(q.z*1000)/1000 ];
+      }
+    } catch(_){}
+    return null;
+  }
+
+  function rulerPosePoint(w){
+    if (!w) return;
+    // armPickPlacement fournit {x,y,z} ; rulerPick fournit déjà [x,y,z].
+    const p = Array.isArray(w)
+      ? [ Math.round(w[0]*1000)/1000, Math.round(w[1]*1000)/1000, Math.round(w[2]*1000)/1000 ]
+      : [ Math.round(w.x*1000)/1000, Math.round(w.y*1000)/1000, Math.round(w.z*1000)/1000 ];
+    if (!rulerA){ rulerA = p; rulerLive = p; parent.__edReglePoint(1); return; }
+    const d = rulerDist(rulerA, p);
+    mesuresLibres.push({ a: rulerA, b: p, d: Math.round(d*100)/100 });
+    rulerA = null; rulerLive = null;
+    rulerDraw();
+    parent.__edReglePoint(2, Math.round(d*100)/100);
+  }
+
+  function rulerCancel(){
+    if (rulerA){ rulerA = null; rulerLive = null; rulerDraw(); parent.__edReglePoint(0); }
+  }
+
+  function rulerKey(e){ if (e.key === 'Escape') rulerCancel(); }
+  function rulerCtx(e){ if (rulerActive){ e.preventDefault(); rulerCancel(); } }
+
+  let rulerDrawn = false;
+  /* Redessine tant que l'onglet Cotations est ouvert ET qu'il y a matière
+     (mesure en cours ou mesures finalisées). Nettoie l'overlay dès qu'on
+     quitte l'onglet ou qu'il n'y a plus rien. Installé une seule fois. */
+  function rulerTick(){
+    if (onCot && (rulerActive || mesuresLibres.length)){ rulerDraw(); rulerDrawn = true; }
+    else if (rulerDrawn){ rulerClear(); rulerDrawn = false; }
+  }
+
+  function rulerArm(on){
+    rulerActive = !!on;
+    if (rulerActive){
+      rulerA = null; rulerLive = null;
+      if (typeof window.armPickPlacement === 'function') window.armPickPlacement('ruler', rulerPosePoint);
+      if (!rulerMoveObs && scene && scene.onPointerObservable)
+        rulerMoveObs = scene.onPointerObservable.add(function(pi){
+          if (!rulerActive || !rulerA) return;
+          if (pi.type !== BABYLON.PointerEventTypes.POINTERMOVE) return;
+          const w = rulerPick(); if (w) rulerLive = w;
+        });
+      window.addEventListener('keydown', rulerKey);
+      window.addEventListener('contextmenu', rulerCtx);
+      rulerDraw();
+    } else {
+      if (typeof window.disarmPickPlacement === 'function') window.disarmPickPlacement();
+      if (rulerMoveObs && scene){ scene.onPointerObservable.remove(rulerMoveObs); rulerMoveObs = null; }
+      window.removeEventListener('keydown', rulerKey);
+      window.removeEventListener('contextmenu', rulerCtx);
+      rulerA = null; rulerLive = null;
+    }
+    majCurseur();
+  }
+
   function clicCotation(ev){
+    if (rulerActive) return;                 // la règle a la priorité sur l'édition des cotes
     if (!onCot || typeof modelBounds==='undefined' || !modelBounds) return;
     const svg = document.getElementById('hud-svg');
     const r = svg.getBoundingClientRect();
@@ -687,6 +888,10 @@ const PONT = `
     if (svg) svg.addEventListener('click', placerPov);
     if (svg) svg.addEventListener('click', clicLight);
 
+    // Dessin de la règle libre : un seul observer, actif tant que l'onglet
+    // Cotations est ouvert (suit la caméra, se nettoie en sortie).
+    if (scene && scene.onAfterRenderObservable) scene.onAfterRenderObservable.add(rulerTick);
+
     window.__ed = {
       nom: function(){ return propertyData.name || 'Visite 3D'; },
 
@@ -730,8 +935,16 @@ const PONT = `
 
       editerCotations: function(on){
         onCot = !!on;
+        if (!on && rulerActive) rulerArm(false);   // quitter Cotations désarme la règle
         majCurseur();
       },
+
+      /* ===== RÈGLE LIBRE (API pour l'éditeur) ===== */
+      armerRegle:     function(on){ rulerArm(!!on); return rulerActive; },
+      regleActive:    function(){ return rulerActive; },
+      mesures:        function(){ return mesuresLibres.map(function(m){ return { a:m.a.slice(), b:m.b.slice(), d:m.d }; }); },
+      supprimerMesure:function(i){ if (i>=0 && i<mesuresLibres.length){ mesuresLibres.splice(i,1); if (mesuresLibres.length||rulerActive) rulerDraw(); else rulerClear(); } },
+      resetMesures:   function(){ mesuresLibres = []; rulerClear(); },
 
       editerPieces: function(on){
         onRooms = !!on;
@@ -1299,6 +1512,10 @@ function tab(m){
     ed.editerCotations(m==='cot');
     ed.editerPieces(m==='piece');
     if (m !== 'pov' && ed.setMode) ed.setMode(null);   // désarme le placement POV en quittant l'onglet
+    if (m !== 'cot'){                                  // quitter Cotations → règle désarmée
+      var br = document.getElementById('b-regle');
+      if (br){ br.classList.remove('on'); br.textContent = '📏 Mesurer'; }
+    }
     if (m==='piece') refresh();
     if (m==='amb') refreshPostProcess();
     if (m==='light') refreshLighting();
@@ -1607,6 +1824,7 @@ function brandPreview(){
   var lg = document.getElementById('brand-preview-logo');
   if (lg) lg.innerHTML = d.logoSvg || '';
   window.__edDirty = true;
+  if (typeof checkValidation === 'function') checkValidation();
 }
 function brandJSON(){
   return JSON.stringify(brandData(), null, 2);
@@ -1708,6 +1926,57 @@ function capture(){
 }
 
 let povEnCours = false;  // true si un POV est en cours de placement/édition
+
+/* ===== RÈGLE LIBRE (côté éditeur) ==================================== */
+function toggleRegle(){
+  if (!ed || !ed.armerRegle) return;
+  var on = ed.armerRegle(!ed.regleActive());
+  var b = document.getElementById('b-regle');
+  if (b){
+    b.classList.toggle('on', on);
+    b.textContent = on ? '📏 Mesure : clique le 1er point' : '📏 Mesurer';
+  }
+  flash(on ? 'Clique 2 points dans la vue 3D — Échap pour annuler'
+           : 'Mesure désactivée');
+  renderMesures();
+}
+
+/* Rappelé par le viewer à chaque étape de mesure (0=annulé, 1=1er point,
+   2=mesure finalisée). Met à jour le libellé du bouton et la liste. */
+window.__edReglePoint = function(step, dist){
+  var b = document.getElementById('b-regle');
+  if (b && ed && ed.regleActive && ed.regleActive()){
+    if (step === 1) b.textContent = '📏 Clique le 2e point';
+    else            b.textContent = '📏 Mesure : clique le 1er point';
+  }
+  if (step === 2){
+    flash('📏 ' + (dist != null ? String(dist).replace('.', ',') + ' m' : 'mesure ajoutée'));
+    renderMesures();
+    checkValidation();
+  }
+};
+
+function renderMesures(){
+  var box = document.getElementById('mesure-list');
+  if (!box || !ed || !ed.mesures) return;
+  var list = ed.mesures();
+  box.innerHTML = '';
+  list.forEach(function(m, i){
+    var row = document.createElement('div');
+    row.className = 'row';
+    var nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.innerHTML = '📏 <b>' + String(m.d).replace('.', ',') + ' m</b>';
+    row.appendChild(nm);
+    var del = document.createElement('button');
+    del.textContent = '✕';
+    del.title = 'Supprimer cette mesure';
+    del.style.cssText = 'margin-left:auto;';
+    del.onclick = function(){ ed.supprimerMesure(i); renderMesures(); checkValidation(); };
+    row.appendChild(del);
+    box.appendChild(row);
+  });
+}
 
 function setPovColor(hex){
   if (ed && ed.setPovColor) ed.setPovColor(hex);
@@ -1828,6 +2097,7 @@ function setDimGen(key, val){
   if (!ed) return;
   ed.setDimensionGeneral(key, val);
   flash('Dimension ' + key + ' mise à jour');
+  checkValidation();
 }
 
 function setRectangular(is){
@@ -2040,6 +2310,54 @@ function refresh(){
 
   document.getElementById('st').textContent =
     pois.length + ' POV · manifest a jour en memoire';
+
+  checkValidation();
+  renderMesures();
+}
+
+/* ===== VALIDATION DES 4 ÉTAPES DU WORKFLOW =========================
+   Chaque étape « validée » allume un liseré vert à gauche de son onglet.
+   Critères :
+     · Cotations = au moins une donnée dimensionnelle (périmètre, chaîne
+                   segmentée, ou mesure à la règle libre) ;
+     · Pièces    = au moins une pièce réellement placée sur le plan ;
+     · POV       = au moins un POV avec identifiant + libellé ;
+     · Branding  = nom d'agence renseigné.
+   Recalculé à chaque refresh(), à la saisie du branding, et après une
+   mesure libre. Aucun verrou : on peut revenir sur une étape à tout moment. */
+function checkValidation(){
+  if (!ed) return;
+
+  // --- Cotations ---
+  var cotOk = false;
+  try {
+    var dg = ed.dimensionsGeneral() || {};
+    cotOk = ['top','bottom','left','right'].some(function(k){ return parseFloat(dg[k]) > 0; });
+    if (!cotOk) cotOk = (ed.cotations() || []).some(function(c){ return c.segs && c.segs.length; });
+    if (!cotOk && ed.mesures) cotOk = (ed.mesures() || []).length > 0;
+  } catch(_){}
+
+  // --- Pièces (au moins une posée) ---
+  var pieceOk = false;
+  try { pieceOk = (ed.pieces() || []).some(function(p){ return p.placed; }); } catch(_){}
+
+  // --- POV (id + label non vides) ---
+  var povOk = false;
+  try { povOk = (ed.pois() || []).some(function(p){ return p.id && p.label; }); } catch(_){}
+
+  // --- Branding (nom d'agence) ---
+  var brandOk = false;
+  try { brandOk = ((document.getElementById('f-brand-name') || {}).value || '').trim() !== ''; } catch(_){}
+
+  markTab('t-cot',   cotOk);
+  markTab('t-piece', pieceOk);
+  markTab('t-pov',   povOk);
+  markTab('t-brand', brandOk);
+}
+
+function markTab(id, ok){
+  var el = document.getElementById(id);
+  if (el) el.classList.toggle('validated', !!ok);
 }
 
 function download(){
