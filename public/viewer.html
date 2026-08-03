@@ -1592,7 +1592,7 @@ async function init() {
 
   // --- AO (SSAO2) : créé détaché, attaché seulement quand activé --------------
   window.ssao2Pipeline   = null;
-  window.__AO_STATE__    = { enabled:false, strength:1.0, radius:1.2, base:0.2 };
+  window.__AO_STATE__    = { enabled:true, strength:1.0, radius:1.2, base:0.2 };
   window.__AO_STRENGTH__ = 1.0;
   if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
     try {
@@ -1605,10 +1605,11 @@ async function init() {
       ssao2.minZAspect    = 0.5;
       ssao2.expensiveBlur = false;
       window.ssao2Pipeline = ssao2;
-      // ⚠️ L'AO n'est PAS attachée au démarrage — elle reste désactivée jusqu'à ce que
-      // l'utilisateur la coche dans l'onglet Ambiance. Cela évite les vitres blanches.
-      // try { scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline('ssao2', [camera]); } catch(_){}
-      console.log('✅ AO (SSAO2) créée mais NON attachée au démarrage — activable dans Ambiance');
+      // ⚠️ L'AO n'est PAS attachée ICI (à la création) pour éviter les vitres
+      // blanches : l'attache se fait dans loadWalls, APRÈS le traitement du verre.
+      // Elle est activée par défaut (__AO_STATE__.enabled = true) et reste
+      // désactivable via l'onglet Ambiance.
+      console.log('✅ AO (SSAO2) créée — attachée après chargement du modèle (activée par défaut)');
     } catch (e) { console.warn('⚠️ SSAO2 non créé :', e.message); }
   }
   // API AO pour l'éditeur : attache/détache + règle en direct.
@@ -2176,6 +2177,38 @@ void main(void){
     engine.resize();
     relayout();
   });
+
+  // ── ROBUSTESSE ANTI-DÉFORMATION DU GLB ─────────────────────────────────────
+  // L'étirement aléatoire vient d'un aspect-ratio figé sur une taille de canvas
+  // pas encore stabilisée au 1er rendu. C'est fréquent en mode édition (le viewer
+  // est dans une iframe dont la taille se règle APRÈS coup) ou quand les polices/
+  // le layout se posent tardivement : l'événement 'resize' de la fenêtre ne se
+  // déclenche alors pas, donc le moteur garde un ratio erroné → modèle déformé
+  // jusqu'au refresh. Deux garde-fous complémentaires :
+  //  (1) ResizeObserver sur le canvas : TOUT changement de sa box resynchronise
+  //      le moteur (couvre iframe, chargement des polices, drag du panneau).
+  //  (2) plusieurs resize différés sur les premières frames : rattrapent la
+  //      course initiale même si la box ne change plus ensuite.
+  function forceResize() {
+    if (!engine) return;
+    const cv = engine.getRenderingCanvas && engine.getRenderingCanvas();
+    if (!cv || !cv.clientWidth || !cv.clientHeight) return;   // canvas masqué : ne rien toucher
+    engine.resize();                                          // aligne le back-buffer sur la taille réelle
+    if (typeof relayout === 'function') relayout();           // recadre la vue courante
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    let _rzRaf = 0;
+    const _ro = new ResizeObserver(() => {
+      cancelAnimationFrame(_rzRaf);                           // coalesce : un seul resize par frame
+      _rzRaf = requestAnimationFrame(forceResize);
+    });
+    try { _ro.observe(canvas); } catch (_) {}
+  }
+  // Rattrapage du tout premier rendu (aspect figé trop tôt) : quelques passes courtes.
+  requestAnimationFrame(forceResize);
+  requestAnimationFrame(() => requestAnimationFrame(forceResize));
+  setTimeout(forceResize, 200);
+  setTimeout(forceResize, 600);
 }
 
 /* ============================================================================
@@ -2650,6 +2683,20 @@ async function loadWalls() {
     // Vitres : réfraction alignée sur l'IOR du shader (~1.01), sinon défaut 1.5 = distorsion
     applyGlassTreatment(wallsRoot);
     if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(4);
+
+    // AO activée PAR DÉFAUT au lancement. On l'attache ICI (et pas à la création du
+    // pipeline) : après le traitement du verre + sa réfraction différée, pour éviter
+    // l'artefact de vitres blanches signalé quand l'AO était attachée trop tôt. Le
+    // toggle de l'onglet Ambiance reste pleinement fonctionnel (décocher appelle
+    // setAO({enabled:false}) → détache l'AO des caméras).
+    if (window.__AO_STATE__ && window.__AO_STATE__.enabled && window.setAO) {
+      let _aoFrame = 0;
+      const _armAO = () => {
+        if (++_aoFrame < 8) { requestAnimationFrame(_armAO); return; } // laisse le verre se stabiliser
+        try { window.setAO({ enabled: true }); } catch (_) {}
+      };
+      requestAnimationFrame(_armAO);
+    }
   } catch (err) {
     console.error('Échec chargement walls.glb :', err);
     document.querySelector('#loading-bar h3').textContent = 'Modèle introuvable (walls.glb)';
