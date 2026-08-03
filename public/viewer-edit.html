@@ -772,7 +772,25 @@ const PONT = `
 
       enVueDeDessus:  function(){ return !!(typeof hudVisible !== 'undefined' && hudVisible); },
 
-      manifest: function(){ return JSON.stringify(propertyData, null, 2); },
+      manifest: function(){
+        /* Garde defensif : un POI importe d'un vieux manifest peut avoir un
+           camPos/camTarget absent ou mal forme, ce qui casse le viewer au
+           chargement. On exporte une COPIE nettoyee sans muter propertyData :
+           tout POI dont la pose est invalide est ecarte (et signale en console). */
+        var estVec3 = function(a){
+          return Array.isArray(a) && a.length >= 3 &&
+                 isFinite(a[0]) && isFinite(a[1]) && isFinite(a[2]);
+        };
+        var out = Object.assign({}, propertyData);
+        if (Array.isArray(propertyData.poi)){
+          out.poi = propertyData.poi.filter(function(p){
+            var ok = p && estVec3(p.camPos) && estVec3(p.camTarget);
+            if (!ok) console.warn('[editeur] POI ignore a l\'export (pose invalide) :', p && p.id);
+            return ok;
+          });
+        }
+        return JSON.stringify(out, null, 2);
+      },
 
       /* ===== AMBIANCE : AO + LUMIÈRES (lighting-config.json) ===== */
       /* L'état d'ambiance vit dans window.__lightingState du viewer (initialisé au
@@ -1783,7 +1801,11 @@ function refresh(){
       const nom = document.createElement('input');
       nom.value = p.name;
       nom.style.cssText = 'flex:1 1 100%;margin-bottom:.35rem;';
-      nom.onchange = function(){ ed.renommer(p.i, nom.value); flash('✏️ Renommé'); };
+      nom.onchange = function(){
+        const v = (nom.value || '').trim();
+        if (!v){ flash('⚠️ Le nom de la pièce ne peut pas être vide'); nom.value = p.name; return; }
+        ed.renommer(p.i, v); flash('✏️ Renommé');
+      };
       row.appendChild(nom);
 
       const coords = document.createElement('div');
@@ -1820,7 +1842,11 @@ function refresh(){
       tail.value = p.size || 14;
       tail.title = 'Taille du texte (px)';
       tail.style.cssText = 'flex:0 0 58px;margin:0 .3rem;';
-      tail.onchange = function(){ ed.setTaille(p.i, tail.value); };
+      tail.onchange = function(){
+        const v = parseFloat(tail.value);
+        if (isNaN(v) || v < 6 || v > 48){ flash('⚠️ Taille entre 6 et 48 px'); tail.value = p.size || 14; return; }
+        ed.setTaille(p.i, v);
+      };
       row.appendChild(tail);
 
       const plc = document.createElement('button');
