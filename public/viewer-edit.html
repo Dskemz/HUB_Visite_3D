@@ -828,20 +828,55 @@ const PONT = `
         return (s.lights || []).map(function(l){ return Object.assign({}, l); });
       },
       addLight: function(kind){
+        // Validation du type : on refuse tout ce qui n'est pas connu.
+        var KINDS = { point:1, spot:1, directional:1 };
+        if (!KINDS[kind]) { console.warn('[editeur] type de lumiere inconnu :', kind); return null; }
         window.__lightingState = window.__lightingState || {};
         window.__lightingState.lights = window.__lightingState.lights || [];
+        var lights = window.__lightingState.lights;
         var c = modelBounds ? modelBounds.center : {x:0,y:2,z:0};
-        var id = kind + '-' + (window.__lightingState.lights.length + 1);
+
+        /* ID unique : plus petit suffixe libre. L'ancien schema (longueur+1)
+           recreait un id deja pris apres une suppression (retirer 'point-1' puis
+           rajouter redonnait 'point-2' en double), et applyEditableLights ecrasait
+           alors la mauvaise lampe. */
+        var n = 1, id;
+        do { id = kind + '-' + n; n++; } while (lights.some(function(l){ return l.id === id; }));
+
+        /* Anti-collision au spawn : sans decalage, chaque nouvelle lampe tombe au
+           centre exact, superposee aux precedentes et souvent noyee dans un meuble.
+           On repartit les lampes positionnees sur des couronnes concentriques de 8,
+           puis on borne le point a l'interieur de l'emprise du modele (marge 0,3 m).
+           L'utilisateur affine ensuite avec le bouton Placer ou le gizmo. */
+        var placed = lights.filter(function(l){ return l.position; }).length;
+        var spanX = modelBounds ? (modelBounds.max.x - modelBounds.min.x) : 4;
+        var spanZ = modelBounds ? (modelBounds.max.z - modelBounds.min.z) : 4;
+        var step  = Math.max(0.6, Math.min(spanX, spanZ) * 0.12);
+        var ang   = (placed % 8) * (Math.PI / 4);
+        var ring  = Math.floor(placed / 8) + 1;
+        var px = c.x + Math.cos(ang) * step * ring;
+        var pz = c.z + Math.sin(ang) * step * ring;
+        if (modelBounds){
+          px = Math.max(modelBounds.min.x + 0.3, Math.min(modelBounds.max.x - 0.3, px));
+          pz = Math.max(modelBounds.min.z + 0.3, Math.min(modelBounds.max.z - 0.3, pz));
+        }
+
+        /* Hauteur ancree au sol reel (min.y) et bornee sous le plafond : jamais
+           au-dessus du toit ni sous le plancher, quelle que soit l'origine du modele. */
+        var floorY = modelBounds ? modelBounds.min.y : 0;
+        var ceilY  = modelBounds ? modelBounds.max.y : 2.4;
+        var py = Math.min(ceilY - 0.2, floorY + (ceilY - floorY) * 0.85);
+
         var def = {
           id: id, kind: kind,
-          position: [r2(c.x), r2((modelBounds?modelBounds.max.y:2.4)*0.85), r2(c.z)],
+          position: [r2(px), r2(py), r2(pz)],
           color: [1.0, 0.95, 0.85], intensity: kind==='directional'?0.8:1.5,
           range: 40
         };
         if (kind === 'spot') { def.direction = [0,-1,0]; def.angle = 1.2; def.exponent = 2; }
         if (kind === 'directional') { def.direction = [0.7,-1,0.2]; delete def.position; delete def.range; }
-        window.__lightingState.lights.push(def);
-        if (typeof window.applyEditableLights === 'function') window.applyEditableLights(window.__lightingState.lights);
+        lights.push(def);
+        if (typeof window.applyEditableLights === 'function') window.applyEditableLights(lights);
         return def;
       },
       updateLight: function(id, patch){
@@ -1370,7 +1405,12 @@ function ambAddLight(kind){
   if (!ed) return;
   var def = ed.addLight(kind);
   refreshLightList();
-  flash('Lumière ' + kind + ' ajoutée');
+  if (def && def.kind === 'directional')
+    flash('☀️ ' + def.id + ' ajoutée (globale, sans position)');
+  else if (def)
+    flash('💡 ' + def.id + ' ajoutée — 📍 Placer ou 👁 axes pour la positionner');
+  else
+    flash('❌ Type de lumière inconnu : ' + kind);
 }
 
 function refreshLightList(){
