@@ -847,6 +847,21 @@
     @media (max-width: 480px) {
       html { font-size: 14px; }
     }
+
+    /* ===== MARQUEURS POI (overlay SVG vectoriel) =====================
+       Double anneau concentrique + point central. La couleur suit
+       currentColor (pilotée dynamiquement par la surcouche agence).
+       Survol : l'anneau intérieur grossit jusqu'à l'anneau externe,
+       le point central grossit légèrement. Transition 150 ms. */
+    #poi-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:5; }
+    .poi-mark { pointer-events:auto; cursor:pointer; }
+    .poi-mark .pm-outer,
+    .poi-mark .pm-inner { fill:none; stroke:currentColor; stroke-width:1.4; }
+    .poi-mark .pm-dot   { fill:currentColor; }
+    .poi-mark .pm-inner,
+    .poi-mark .pm-dot   { transform-box:fill-box; transform-origin:center; transition:transform .15s ease; }
+    .poi-mark:hover .pm-inner { transform:scale(1.636); }  /* r 5.5 → 9 : rejoint l'anneau externe */
+    .poi-mark:hover .pm-dot   { transform:scale(1.7); }    /* point central un peu plus présent */
   </style>
 </head>
 <body>
@@ -858,6 +873,11 @@
   <svg id="hud-svg" xmlns="http://www.w3.org/2000/svg"
        style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; opacity:0; transition:opacity .35s ease;">
     <g id="hud-content" style="pointer-events:none;"></g>
+  </svg>
+
+  <!-- MARQUEURS POI (overlay vectoriel, positionné par projection 3D→écran) -->
+  <svg id="poi-svg" xmlns="http://www.w3.org/2000/svg">
+    <g id="poi-markers"></g>
   </svg>
 
   <!-- HEADER (topbar) -->
@@ -4091,121 +4111,100 @@ function poiRank(poi) {
   return __poiOrder.has(poi.id) ? __poiOrder.get(poi.id) : 0;
 }
 
+/* Projette une position monde → coordonnées écran CSS + profondeur.
+   Réutilise la logique de hudProject (viewport décalé du panneau) en exposant
+   le z pour masquer les marqueurs passés derrière la caméra. */
+function poiProject(world) {
+  const w = engine.getRenderWidth(), h = engine.getRenderHeight();
+  const cam = scene.activeCamera || camera;
+  const vp = cam.viewport.toGlobal(w, h);
+  const p = BABYLON.Vector3.Project(
+    world, BABYLON.Matrix.Identity(), scene.getTransformMatrix(), vp);
+  const cv = document.getElementById('canvas');
+  return { x: p.x * (cv.clientWidth / w), y: p.y * (cv.clientHeight / h), z: p.z };
+}
+
+let _markersVisible = true;      // état demandé (visite = true, POV immersif = false)
+let _poiProjObs = null;          // observer unique de projection par frame
+
+/* Un seul observer projette TOUS les marqueurs à chaque frame. Taille écran
+   constante automatique (SVG en px fixes), net à toute distance caméra. */
+function ensurePoiProjLoop() {
+  if (_poiProjObs) return;
+  _poiProjObs = scene.onBeforeRenderObservable.add(function () {
+    if (!_markersVisible) return;
+    const phone = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+    if (phone) return;
+    const cam = scene.activeCamera || camera;
+    if (!cam) return;
+    Object.values(poiMarkers).forEach(m => {
+      if (!m.el) return;
+      const p = poiProject(m.world);
+      const onScreen = (p.z > 0 && p.z < 1);   // z hors [0,1] = derrière/au-delà
+      if (onScreen) {
+        m.el.setAttribute('transform', 'translate(' + p.x + ',' + p.y + ')');
+        m.el.style.display = '';
+      } else {
+        m.el.style.display = 'none';
+      }
+    });
+  });
+}
+
 function createPoiMarkers() {
   if (!propertyData || !propertyData.poi) return;
-  // Nettoyer d'éventuels anciens marqueurs
-  Object.values(poiMarkers).forEach(m => {
-    if (m.observer) scene.unregisterBeforeRender(m.observer);
-    if (m.plane) m.plane.dispose();
-    if (m.group) m.group.dispose();
-  });
+  const layer = document.getElementById('poi-markers');
+  if (!layer) return;
+  layer.innerHTML = '';
   poiMarkers = {};
 
+  const SVGNS = 'http://www.w3.org/2000/svg';
   const pois = propertyData.poi || [];
-  console.log('📍 Création marqueurs POV pour', pois.length, 'POI');
-
-  // Marqueur POV : anneau généré en procédural à la couleur POI_MARKER_COLOR
-  // (fond transparent). Indépendant de pov.png → couleur garantie, aucun souci de
-  // chargement/affichage de texture (fini le damier).
-  const base = CONFIG.assetsBase(CONFIG.propertyId);
-  const ringTex = new BABYLON.DynamicTexture('poi-ring', 256, scene, true);
-  ringTex.hasAlpha = true;
-  const rctx = ringTex.getContext();
-  rctx.clearRect(0, 0, 256, 256);
-  
-  // Convertir la couleur hex en RGB pour Canvas (qui n'accepte pas le hex directement)
-  const hexToRgb = (hex) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? `rgb(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)})` : 'blue';
-  };
-  const colorRgb = hexToRgb(POI_MARKER_COLOR);
-  
-  rctx.lineWidth = 26;
-  rctx.strokeStyle = colorRgb;     // anneau
-  rctx.beginPath();
-  rctx.arc(128, 128, 92, 0, Math.PI * 2);
-  rctx.stroke();
-  rctx.fillStyle = colorRgb;       // point central
-  rctx.beginPath();
-  rctx.arc(128, 128, 20, 0, Math.PI * 2);
-  rctx.fill();
-  ringTex.update();
+  console.log('📍 Création marqueurs POV (SVG) pour', pois.length, 'POI');
 
   pois.forEach(poi => {
     // L'ancre du marqueur = camPos si défini, sinon position (rétro-compat)
     const anchor = poi.camPos || poi.position;
-    if (!anchor) {
-      console.warn('⚠️ POI sans camPos/position:', poi.id);
-      return;
-    }
-    const [x, y, z] = anchor;
+    if (!anchor) { console.warn('⚠️ POI sans camPos/position:', poi.id); return; }
+    const world = new BABYLON.Vector3(anchor[0], anchor[1], anchor[2]);
 
-    const markerGroup = new BABYLON.TransformNode('poi-group-' + poi.id, scene);
-    markerGroup.position = new BABYLON.Vector3(x, y, z);
-
-    const markerPlane = BABYLON.MeshBuilder.CreatePlane('poi-plane-' + poi.id, {
-      size: 1,
-      sideOrientation: BABYLON.Mesh.DOUBLESIDE
-    }, scene);
-    markerPlane.parent = markerGroup;
-    markerPlane.position = BABYLON.Vector3.Zero();
-    // Billboard automatique : le plan fait toujours face à la caméra 
-    markerPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
-
-    const poiMat = new BABYLON.StandardMaterial('mat-poi-' + poi.id, scene);
-    poiMat.diffuseTexture = ringTex;
-    poiMat.emissiveTexture = ringTex;           // rendu lumineux → toujours bien visible
-    poiMat.useAlphaFromDiffuseTexture = true;   // transparence depuis la texture
-    poiMat.emissiveColor = new BABYLON.Color3(1, 1, 1); // couleur déjà dans l'anneau
-    poiMat.disableLighting = true;
-    // SSR : un StandardMaterial a par défaut une couleur spéculaire blanche, qui
-    // s'écrit dans le buffer de réflectivité → le SSR plaque des reflets sur les
-    // pastilles POV et change leur aspect. Réflectivité nulle = SSR sans effet
-    // sur elles, sans rien changer à leur rendu (disableLighting est déjà actif).
-    poiMat.specularColor = new BABYLON.Color3(0, 0, 0);
-    poiMat.specularPower = 0;
-    poiMat.backFaceCulling = false;
-    markerPlane.material = poiMat;
-
-    markerPlane.isPickable = true;
-    markerPlane.poiId = poi.id;
-    // Sur téléphone : masqué et non-cliquable dès la création (aucune interaction 3D).
-    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
-      markerPlane.setEnabled(false);
-    }
-    // Toujours rendu par-dessus la géométrie pour rester cliquable même derrière un mur proche
-    markerPlane.renderingGroupId = 1;
-
-    // Taille écran constante : on compense la distance caméra à chaque frame
-    const sizeObserver = scene.registerBeforeRender(() => {
-      if (!camera) return;
-      const dist = BABYLON.Vector3.Distance(camera.position, markerGroup.position);
-      const refRadius = (initialFraming && initialFraming.radius) ? initialFraming.radius : 10;
-      // échelle proportionnelle à la distance => taille apparente stable
-      const scale = dist * poiMarkerScreenSize() * (refRadius / 10);
-      markerPlane.scaling.set(scale, scale, scale);
+    const g = document.createElementNS(SVGNS, 'g');
+    g.setAttribute('class', 'poi-mark');
+    g.style.color = POI_MARKER_COLOR;          // pilote currentColor (stroke + fill)
+    g.style.display = 'none';                  // affiché à la 1re projection valide
+    g.innerHTML =
+      '<circle class="pm-hit"   r="16" fill="transparent"/>' +   // zone de clic généreuse
+      '<circle class="pm-outer" r="9"/>' +                       // anneau externe
+      '<circle class="pm-inner" r="5.5"/>' +                     // anneau interne (anime au survol)
+      '<circle class="pm-dot"   r="1.4"/>';                      // point central
+    g.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      goToPOI(poi.id);
     });
+    layer.appendChild(g);
 
-    poiMarkers[poi.id] = {
-      group: markerGroup,
-      plane: markerPlane,
-      observer: sizeObserver
-    };
+    poiMarkers[poi.id] = { world: world, el: g };
   });
 
-  console.log('✅ Marqueurs POV créés :', Object.keys(poiMarkers).length);
+  ensurePoiProjLoop();
+  applyMarkerVisibility();      // respecte l'état courant (mobile / POV immersif)
+  console.log('✅ Marqueurs POV (SVG) créés :', Object.keys(poiMarkers).length);
+}
+
+/* Applique la visibilité effective : masqué sur téléphone et hors visite. */
+function applyMarkerVisibility() {
+  const phone = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  const show = _markersVisible && !phone;
+  const svg = document.getElementById('poi-svg');
+  if (svg) svg.style.display = show ? '' : 'none';
 }
 
 function setMarkersVisible(visible) {
   // Sur TÉLÉPHONE : jamais de pastilles dans le viewer 3D (trop petites, cassent la
-  // lecture). L'accès aux pièces se fait uniquement via le menu déroulant. Le viewer
-  // reste dédié à la navigation et à la vue de dessus (cotations). Aucune autre
-  // interaction dans la scène. Tablette et desktop : comportement inchangé.
-  const phone = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
-  if (phone) visible = false;
-  Object.values(poiMarkers).forEach(m => {
-    if (m.plane) m.plane.setEnabled(visible);
-  });
+  // lecture). L'accès aux pièces se fait uniquement via le menu déroulant. Tablette
+  // et desktop : comportement inchangé.
+  _markersVisible = visible;
+  applyMarkerVisibility();
 }
 
 /* ============================================================================

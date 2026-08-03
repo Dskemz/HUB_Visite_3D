@@ -64,7 +64,7 @@
 
     /* Panneau d'edition, HORS du viewer.
        Deux colonnes : le rail d'intercalaires collé au bord, puis le contenu. */
-    #side{width:330px;flex:0 0 330px;background:var(--bg-1);border-left:1px solid var(--bd-1);
+    #side{width:33vw;flex:0 0 33vw;min-width:320px;max-width:60vw;background:var(--bg-1);border-left:1px solid var(--bd-1);
           display:flex;flex-direction:row;overflow:hidden;transition:width .05s linear}
     #side-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
     #resize-handle{width:12px;flex:0 0 12px;cursor:ew-resize;background:var(--bg-0);
@@ -1273,8 +1273,8 @@ function toggleExpand(){
     b.style.color = '#fff';
     b.textContent = '⛶';
   } else {
-    side.style.width = '330px';
-    side.style.flex = '0 0 330px';
+    side.style.width = '33vw';
+    side.style.flex = '0 0 33vw';
     stage.style.flex = '1';
     b.style.background = '';
     b.style.color = '';
