@@ -397,6 +397,7 @@
     <div class="warn" id="warn" hidden></div>
 
     <div class="ft">
+      <button class="btn" id="b-dl-all" onclick="downloadTout()">📦 Tout télécharger (manifest + lighting)</button>
       <button class="btn sec" id="b-dl" onclick="download()">💾 Télécharger manifest.json</button>
       <button class="btn sec" id="b-dl-light" onclick="downloadLighting()">💡 Télécharger lighting-config.json</button>
       <div class="st" id="st">Chargement du viewer…</div>
@@ -585,7 +586,8 @@ const PONT = `
       const d = distToSeg(P, e.p0, e.p1);
       if (!best || d.dist < best.dist) best = { name:name, e:e, dist:d.dist, t:d.t };
     });
-    if (!best || best.dist > 70) return;
+    if (!best) return;
+    if (best.dist > 70){ if (parent.__edEvent) parent.__edEvent('cot','tropLoin'); return; }
 
     const dims = propertyData.dimensions = propertyData.dimensions || {};
     const worldLen = BABYLON.Vector3.Distance(best.e.w0, best.e.w1);
@@ -1134,6 +1136,8 @@ window.__edPret = function(){
   try { var pc = document.getElementById('f-pov-color'); if (pc && ed.povColor) pc.value = ed.povColor(); } catch(_){}
 };
 window.__edEvent = function(kind, what){
+  if (kind === 'cot' && what === 'tropLoin'){ flash('Trop loin d\'une arête — clique plus près'); return; }
+  window.__edDirty = true;   // toute mutation marque la session comme non enregistrée
   if (kind === 'pov'){ flash('📍 POV placé sur le plan'); refresh(); return; }
   if (kind === 'piece'){ flash('📍 Libellé déplacé'); refresh(); return; }
   if (kind === 'cot'){
@@ -1142,6 +1146,18 @@ window.__edEvent = function(kind, what){
     refresh();
   }
 };
+
+/* #14 — Garde-fou contre la perte de travail : si des modifications n'ont pas
+   été exportées (window.__edDirty) ou si un placement POV est en cours, on
+   déclenche le dialogue natif de confirmation avant fermeture/rechargement. Le
+   drapeau est remis à zéro dès qu'un export (manifest ou lighting) réussit. */
+window.addEventListener('beforeunload', function(e){
+  if (window.__edDirty || (typeof povEnCours !== 'undefined' && povEnCours)){
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+});
 /* Resize du panneau lateral */
 /* Resize du panneau.
    Piege : pendant le glissement le curseur survole l'IFRAME du viewer ; les
@@ -1423,6 +1439,7 @@ function ambAddLight(kind){
   if (!ed) return;
   var def = ed.addLight(kind);
   refreshLightList();
+  if (def) window.__edDirty = true;
   if (def && def.kind === 'directional')
     flash('☀️ ' + def.id + ' ajoutée (globale, sans position)');
   else if (def)
@@ -1505,6 +1522,16 @@ function downloadLighting(){
   a.download = 'lighting-config.json';
   a.click();
   flash('lighting-config.json téléchargé');
+  window.__edDirty = false;
+}
+
+/* #15 — Export unifie : le manifest et le lighting sont deux fichiers separes ;
+   on evitait mal l'oubli du second. Ce bouton lance les deux d'affilee (petit
+   delai pour ne pas que le navigateur bloque le 2e telechargement). */
+function downloadTout(){
+  if (!ed){ flash('Éditeur non prêt'); return; }
+  download();                          // manifest.json (valide + efface le drapeau modifie)
+  setTimeout(downloadLighting, 500);   // lighting-config.json juste apres
 }
 
 function v(id){ return (document.getElementById(id).value || '').trim(); }
@@ -1518,7 +1545,7 @@ function undo(){
 function updateCotFromEditor(cote, segs){
   if (!ed || !ed.setCotationSegs) return false;
   const ok = ed.setCotationSegs(cote, segs);
-  if (ok) flash('✏️ Cotation ' + cote + ' mise à jour');
+  if (ok){ flash('✏️ Cotation ' + cote + ' mise à jour'); window.__edDirty = true; }
   return ok;
 }
 
@@ -1630,6 +1657,7 @@ function validerPov(force){
   }
   const nom = res;
   if (nom){
+    window.__edDirty = true;
     ['f-id','f-label','f-room','f-photos'].forEach(k=>document.getElementById(k).value='');
     document.getElementById('f-height').value = 0;
     povEnCours = false;
@@ -1900,6 +1928,7 @@ function download(){
   a.click();
   URL.revokeObjectURL(a.href);
   flash('💾 manifest.json téléchargé (validé ✓)');
+  window.__edDirty = false;
 }
 
 // Contrôles matériaux — liste dynamique groupée par catégorie (sections repliables)
