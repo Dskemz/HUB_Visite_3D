@@ -398,6 +398,7 @@
 
     <div class="ft">
       <button class="btn" id="b-dl-all" onclick="downloadTout()">📦 Tout télécharger (manifest + lighting)</button>
+      <button class="btn sec" id="b-preview" onclick="apercuManifest()">👁️ Aperçu manifest.json</button>
       <button class="btn sec" id="b-dl" onclick="download()">💾 Télécharger manifest.json</button>
       <button class="btn sec" id="b-dl-light" onclick="downloadLighting()">💡 Télécharger lighting-config.json</button>
       <div class="st" id="st">Chargement du viewer…</div>
@@ -547,6 +548,7 @@ const PONT = `
     if (!cible) return;
     cible.position = [ Math.round(w.x*100)/100, w.y, Math.round(w.z*100)/100 ];
     ['x','y','z','coords','xz'].forEach(function(k){ delete cible[k]; });
+    cible._place = true;   // #12 : desormais posee
     placeIdx = -1;
     placementActe(ev);
     majCurseur();
@@ -696,6 +698,7 @@ const PONT = `
                    name:  r.name || r.label || r.id || '',
                    color: r.color || '',
                    size:  r.fontSize || 0,
+                   placed: r._place !== false,   // #12 : true sauf pieces fraiches non posees
                    pos:   [ p[0], p[2] ] };
         });
       },
@@ -721,7 +724,8 @@ const PONT = `
         propertyData.roomLabels.push({
           id: 'piece-' + (propertyData.roomLabels.length + 1),
           name: nom || 'NOUVELLE PIECE',
-          position: [ Math.round(cx*100)/100, yF, Math.round(cz*100)/100 ]
+          position: [ Math.round(cx*100)/100, yF, Math.round(cz*100)/100 ],
+          _place: false   // #12 : cree au centre, pas encore pose deliberement
         });
         hudUpdate();
         return propertyData.roomLabels.length - 1;
@@ -735,6 +739,7 @@ const PONT = `
           propertyData.roomLabels[i].position[1],
           Math.round(parseFloat(z)*100)/100
         ];
+        propertyData.roomLabels[i]._place = true;   // #12 : coords manuelles = pose deliberee
         hudUpdate();
       },
 
@@ -789,6 +794,11 @@ const PONT = `
             var ok = p && estVec3(p.camPos) && estVec3(p.camTarget);
             if (!ok) console.warn('[editeur] POI ignore a l\'export (pose invalide) :', p && p.id);
             return ok;
+          });
+        }
+        if (Array.isArray(propertyData.roomLabels)){
+          out.roomLabels = propertyData.roomLabels.map(function(r){
+            var cp = Object.assign({}, r); delete cp._place; return cp;   // champ interne, hors export
           });
         }
         return JSON.stringify(out, null, 2);
@@ -1534,6 +1544,23 @@ function downloadTout(){
   setTimeout(downloadLighting, 500);   // lighting-config.json juste apres
 }
 
+/* #18 — Apercu du manifest avant export : ouvre le JSON dans un nouvel onglet
+   (declenche par un clic utilisateur, donc pas bloque par le navigateur). Permet
+   de verifier POV/cotations/pieces avant d'envoyer au client. */
+function apercuManifest(){
+  if (!ed){ flash('Éditeur non prêt'); return; }
+  var json;
+  try { json = ed.manifest(); JSON.parse(json); }
+  catch(e){ flash('❌ Manifest invalide : ' + e.message); return; }
+  var w = window.open('', '_blank');
+  if (!w){ flash('Autorise les pop-ups pour l\'apercu'); return; }
+  w.document.title = 'Apercu manifest.json';
+  var pre = w.document.createElement('pre');
+  pre.textContent = json;
+  pre.style.cssText = 'white-space:pre-wrap;font:12px/1.5 monospace;padding:16px;';
+  w.document.body.appendChild(pre);
+}
+
 function v(id){ return (document.getElementById(id).value || '').trim(); }
 
 function undo(){
@@ -1684,6 +1711,7 @@ function ajouterPiece(){
 
 function supprimerPiece(i, nom){
   if (!ed) return;
+  if (!confirm('Supprimer la pièce « ' + nom + ' » ?')) return;
   ed.supprimerPiece(i);
   refresh();
   flash('🗑️ « ' + nom + ' » supprimée');
@@ -1748,7 +1776,7 @@ function refresh(){
     const ed_btn = document.createElement('button');
     ed_btn.textContent = '✏️'; ed_btn.title = 'Éditer ce POV'; ed_btn.onclick = function(){ editerPovExistant(p.id, p.label); };
     const b = document.createElement('button');
-    b.textContent = '✕';    b.onclick = function(){ ed.supprimer(p.id); refresh(); };
+    b.textContent = '✕';    b.onclick = function(){ if (!confirm('Supprimer le POV « ' + (p.label||p.id) + ' » ?')) return; ed.supprimer(p.id); refresh(); };
     row.appendChild(a); row.appendChild(ed_btn); row.appendChild(b);
     pl.appendChild(row);
   });
@@ -1825,6 +1853,13 @@ function refresh(){
       const row = document.createElement('div');
       row.className = 'row';
       row.style.flexWrap = 'wrap';
+
+      if (!p.placed){   // #12 : piece creee mais jamais posee (encore au centre)
+        const warn = document.createElement('div');
+        warn.textContent = '⚠️ Pièce non placée — utilise 📍 Placer';
+        warn.style.cssText = 'flex:1 1 100%;font-size:.68rem;color:#c47f00;margin-bottom:.25rem;';
+        row.appendChild(warn);
+      }
 
       const nom = document.createElement('input');
       nom.value = p.name;
