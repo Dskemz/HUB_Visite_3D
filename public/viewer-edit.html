@@ -177,6 +177,7 @@
       <button class="tab"    id="t-verre" onclick="tab('verre')">Matériaux</button>
       <button class="tab"    id="t-amb"   onclick="tab('amb')">Post-process</button>
       <button class="tab"    id="t-light" onclick="tab('light')">Lighting</button>
+      <button class="tab"    id="t-brand" onclick="tab('brand')">Branding</button>
       <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein écran">⛶</button>
     </nav>
 
@@ -391,6 +392,54 @@
           <button class="btn" onclick="ambAddLight('directional')" style="flex:1;">➕ Soleil</button>
         </div>
         <div class="list" id="light-list"></div>
+      </div>
+
+      <div id="p-brand" hidden>
+        <p class="hint"><b>Surcouche agence.</b> Ces réglages n'affectent pas la scène 3D :
+          ils habillent le viewer aux couleurs de l'agence une fois la visite intégrée.
+          Exporte le fichier <b>branding-config.json</b> et place-le à côté du manifest.</p>
+
+        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:block;font-size:.72rem;color:var(--tx-4);margin-bottom:.3rem;">Nom de l'agence</label>
+          <input id="f-brand-name" placeholder="ex: Themeis Immobilier" oninput="brandPreview()" style="margin-bottom:.7rem;">
+
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.6rem;">
+            <label style="font-size:.74rem;color:var(--tx-2);flex:1;">🎨 Couleur du fond (navy)</label>
+            <input type="color" id="f-brand-navy" value="#2d2d2d" oninput="brandPreview()"
+                   style="flex:0 0 auto;width:44px;height:28px;padding:0;border:none;background:none;cursor:pointer;">
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.6rem;">
+            <label style="font-size:.74rem;color:var(--tx-2);flex:1;">🎨 Couleur d'accent (boutons)</label>
+            <input type="color" id="f-brand-accent" value="#d97757" oninput="brandPreview()"
+                   style="flex:0 0 auto;width:44px;height:28px;padding:0;border:none;background:none;cursor:pointer;">
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.2rem;">
+            <label style="font-size:.74rem;color:var(--tx-2);flex:1;">🎨 Accent foncé (survol)</label>
+            <input type="color" id="f-brand-accent-dark" value="#c66641" oninput="brandPreview()"
+                   style="flex:0 0 auto;width:44px;height:28px;padding:0;border:none;background:none;cursor:pointer;">
+          </div>
+        </div>
+
+        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:block;font-size:.72rem;color:var(--tx-4);margin-bottom:.3rem;">Logo (SVG optionnel)</label>
+          <p class="hint" style="margin-bottom:.5rem;">Colle un SVG complet, ou laisse vide pour afficher juste le nom.</p>
+          <textarea id="f-brand-logo" placeholder="&lt;svg viewBox=&quot;0 0 24 24&quot;&gt;…&lt;/svg&gt;"
+                    oninput="brandPreview()"
+                    style="width:100%;min-height:70px;background:var(--bg-0);border:1px solid var(--bd-2);color:var(--tx-0);border-radius:8px;padding:.55rem .7rem;font:inherit;font-size:.74rem;font-family:ui-monospace,monospace;resize:vertical;outline:none;"></textarea>
+        </div>
+
+        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="font-size:.72rem;color:var(--tx-4);margin-bottom:.5rem;">Aperçu du bandeau</div>
+          <div id="brand-preview" style="border-radius:8px;padding:.7rem .9rem;display:flex;align-items:center;gap:.5rem;background:#2d2d2d;color:#fff;font-weight:800;">
+            <span id="brand-preview-logo" style="display:inline-flex;width:20px;height:20px;"></span>
+            <span id="brand-preview-name">Visite 3D</span>
+            <span style="flex:1;"></span>
+            <span id="brand-preview-btn" style="background:#d97757;color:#fff;font-size:.72rem;padding:.35rem .7rem;border-radius:7px;">Vue de dessus</span>
+          </div>
+        </div>
+
+        <button class="btn" onclick="downloadBranding()" style="margin-bottom:.5rem;">🎨 Télécharger branding-config.json</button>
+        <button class="btn sec" onclick="apercuBranding()">👁️ Aperçu branding-config.json</button>
       </div>
     </div>
 
@@ -1240,7 +1289,7 @@ document.addEventListener('keydown', function(e){
 /* -------- UI ------------------------------------------------------------- */
 function tab(m){
   mode = m;
-  ['pov','cot','piece','verre','amb','light'].forEach(function(k){
+  ['pov','cot','piece','verre','amb','light','brand'].forEach(function(k){
     var tb = document.getElementById('t-'+k);
     var pb = document.getElementById('p-'+k);
     if (tb) tb.classList.toggle('on', m===k);
@@ -1253,6 +1302,7 @@ function tab(m){
     if (m==='piece') refresh();
     if (m==='amb') refreshPostProcess();
     if (m==='light') refreshLighting();
+    if (m==='brand') brandPreview();
   }
   if (m==='verre') inspectorRefresh();
 }
@@ -1522,6 +1572,63 @@ function rgbToHex(rgb){
 function hexToRgb(hex){
   hex = hex.replace('#','');
   return [parseInt(hex.slice(0,2),16)/255, parseInt(hex.slice(2,4),16)/255, parseInt(hex.slice(4,6),16)/255];
+}
+
+/* ============================ BRANDING (surcouche agence) ==================
+   Ces réglages ne touchent PAS la scène 3D. Ils produisent un branding-config.json
+   que l'intégration lit pour habiller le viewer aux couleurs de l'agence.
+   Structure alignée sur branding.js (navy/accent/accentDark/name/logo). */
+function hexToRgbStr(hex){
+  hex = (hex||'').replace('#','');
+  if (hex.length !== 6) return '45,45,45';
+  return parseInt(hex.slice(0,2),16)+','+parseInt(hex.slice(2,4),16)+','+parseInt(hex.slice(4,6),16);
+}
+function brandData(){
+  var name   = (document.getElementById('f-brand-name').value || '').trim();
+  var navy   = document.getElementById('f-brand-navy').value || '#2d2d2d';
+  var accent = document.getElementById('f-brand-accent').value || '#d97757';
+  var accentDark = document.getElementById('f-brand-accent-dark').value || '#c66641';
+  var logo   = (document.getElementById('f-brand-logo').value || '').trim();
+  return {
+    name: name || 'Visite 3D',
+    navy: navy, navyRgb: hexToRgbStr(navy),
+    accent: accent, accentRgb: hexToRgbStr(accent), accentDark: accentDark,
+    logoSvg: logo || null
+  };
+}
+function brandPreview(){
+  var d = brandData();
+  var bar = document.getElementById('brand-preview');
+  if (bar) bar.style.background = d.navy;
+  var nm = document.getElementById('brand-preview-name');
+  if (nm) nm.textContent = d.name;
+  var btn = document.getElementById('brand-preview-btn');
+  if (btn) btn.style.background = d.accent;
+  var lg = document.getElementById('brand-preview-logo');
+  if (lg) lg.innerHTML = d.logoSvg || '';
+  window.__edDirty = true;
+}
+function brandJSON(){
+  return JSON.stringify(brandData(), null, 2);
+}
+function downloadBranding(){
+  var blob = new Blob([brandJSON()], { type:'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'branding-config.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  flash('🎨 branding-config.json téléchargé');
+  window.__edDirty = false;
+}
+function apercuBranding(){
+  var w = window.open('', '_blank');
+  if (!w){ flash('Autorise les pop-ups pour l\'apercu'); return; }
+  w.document.title = 'Apercu branding-config.json';
+  var pre = w.document.createElement('pre');
+  pre.textContent = brandJSON();
+  pre.style.cssText = 'white-space:pre-wrap;font:12px/1.5 monospace;padding:16px;';
+  w.document.body.appendChild(pre);
 }
 
 function downloadLighting(){
