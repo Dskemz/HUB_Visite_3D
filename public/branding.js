@@ -7,9 +7,9 @@
 (function () {
   window.AGENCIES = {
     'laforet': {
-      id: 'laforet', name: 'Laforêt',
-      navy: '#0B1B3F', navyRgb: '11,27,63',
-      accent: '#0046FE', accentRgb: '0,70,254', accentDark: '#0038cc',
+      id: 'laforet', name: 'Visite 3D',
+      navy: '#2d2d2d', navyRgb: '45,45,45',
+      accent: '#d97757', accentRgb: '217,119,87', accentDark: '#c66641',
       logo: 'laforet', property: 'demo-rambouillet',
       site: {
         nav: ['Acheter', 'Vendre', 'Louer', 'Estimer', 'Gérer'],
@@ -215,7 +215,7 @@
         '<path d="M12 3L3 20h18L12 3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>' +
         '<path d="M9 14h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
       laforet:
-        '<svg class="tree" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 12h3l-2 4h4l-2 4h10l-2-4h4l-2-4h3L12 2z" fill="currentColor"/><rect x="11" y="18" width="2" height="4" fill="currentColor"/></svg>',
+        '<svg class="tree" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" fill="currentColor" rx="2"/><text x="12" y="17" font-size="12" font-weight="bold" fill="#2d2d2d" text-anchor="middle" font-family="system-ui">V</text></svg>',
 
       /* --- Nouvelles enseignes ---
          Marques SVG ABSTRAITES : elles évoquent l'identité de chaque enseigne
