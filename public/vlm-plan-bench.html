@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bench VLM — Plan 2D → JSON · Visite3D</title>
+<style>
+  :root{
+    --bg:#17191c; --panel:#1f2226; --panel2:#25292e; --line:#33383e;
+    --tx:#e7e9ec; --tx2:#a3a9b2; --tx3:#6d747d;
+    --acc:#f2701e; --acc-soft:#f2701e22; --ok:#3fbf7f; --warn:#e0b341; --err:#e5604d;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+  .app{display:grid;grid-template-columns:1.1fr .9fr;gap:1px;background:var(--line);height:100vh;}
+  @media(max-width:880px){ .app{grid-template-columns:1fr;height:auto} }
+  .col{background:var(--bg);overflow:auto;padding:18px;}
+  h1{font-size:15px;margin:0 0 2px;letter-spacing:.2px}
+  h1 span{color:var(--acc)}
+  .sub{color:var(--tx3);font-size:12px;margin:0 0 16px}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--tx2);margin:20px 0 8px;font-weight:600}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px;}
+  .drop{border:1.5px dashed var(--line);border-radius:10px;padding:26px 14px;text-align:center;color:var(--tx3);cursor:pointer;transition:.15s;font-size:13px}
+  .drop:hover,.drop.over{border-color:var(--acc);color:var(--tx2);background:var(--acc-soft)}
+  canvas{display:block;max-width:100%;border-radius:8px;background:#0e0f11;cursor:crosshair}
+  .canvas-wrap{position:relative}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .row + .row{margin-top:8px}
+  label{font-size:12px;color:var(--tx2)}
+  input[type=number],input[type=text]{background:var(--panel2);border:1px solid var(--line);color:var(--tx);border-radius:7px;padding:7px 9px;font:13px var(--mono);width:100%}
+  input:focus{outline:none;border-color:var(--acc)}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:9px 13px;font-size:13px;cursor:pointer;transition:.12s;font-weight:500}
+  .btn:hover{border-color:var(--acc);color:#fff}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.primary{background:var(--acc);border-color:var(--acc);color:#1a1205;font-weight:600}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.ghost{background:transparent}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 9px;border-radius:20px;background:var(--panel2);border:1px solid var(--line);color:var(--tx2)}
+  .pill b{color:var(--acc);font-family:var(--mono)}
+  .hint{font-size:11.5px;color:var(--tx3);margin:6px 0 0;line-height:1.45}
+  .step{display:flex;gap:9px;align-items:baseline;margin-bottom:10px}
+  .step .n{flex:0 0 20px;height:20px;border-radius:5px;background:var(--acc-soft);color:var(--acc);font:600 11px var(--mono);display:grid;place-items:center;margin-top:1px}
+  .step .b{flex:1}
+  .step .b .t{font-size:12.5px;color:var(--tx);font-weight:600}
+  .step .b .d{font-size:11.5px;color:var(--tx3)}
+  pre{background:#0e0f11;border:1px solid var(--line);border-radius:8px;padding:12px;font:12px/1.5 var(--mono);color:#cdd3da;overflow:auto;max-height:46vh;margin:0;white-space:pre-wrap;word-break:break-word}
+  .status{font-size:12px;padding:8px 11px;border-radius:8px;margin-top:10px;display:none}
+  .status.show{display:block}
+  .status.err{background:#e5604d1a;border:1px solid #e5604d55;color:#f0a99e}
+  .status.ok{background:#3fbf7f1a;border:1px solid #3fbf7f55;color:#a3ddc0}
+  .status.info{background:var(--acc-soft);border:1px solid var(--acc)55;color:#f2b482}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--tx2)}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .spin{width:13px;height:13px;border:2px solid #1a1205;border-top-color:transparent;border-radius:50%;display:inline-block;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .mut{color:var(--tx3);font-size:11px}
+  .tag{font:11px var(--mono);color:var(--acc)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= COLONNE GAUCHE : PLAN + CALIBRATION ================= -->
+  <div class="col">
+    <h1>Bench VLM · <span>Plan 2D → JSON</span></h1>
+    <p class="sub">De-risk Phase B — vérifier si l'IA lit correctement pièces, murs, ouvertures et matériaux d'un plan.</p>
+
+    <div class="card" id="dropCard">
+      <div class="drop" id="drop">
+        <div style="font-size:22px;margin-bottom:4px">🗺️</div>
+        Dépose un plan 2D ici, ou clique pour choisir<br>
+        <span class="mut">PNG / JPG — plan d'étage résidentiel</span>
+      </div>
+      <input type="file" id="file" accept="image/*" hidden>
+    </div>
+
+    <div id="stage" style="display:none">
+      <div class="canvas-wrap">
+        <canvas id="cv"></canvas>
+      </div>
+      <div class="legend">
+        <span><i style="background:#f2701e"></i>Pièce détectée</span>
+        <span><i style="background:#3fbf7f"></i>Porte</span>
+        <span><i style="background:#4aa3ff"></i>Fenêtre</span>
+        <span><i style="background:#e0b341"></i>Règle calibration</span>
+      </div>
+
+      <h2>Calibration de l'échelle</h2>
+      <div class="card">
+        <div class="step">
+          <div class="n">1</div>
+          <div class="b">
+            <div class="t">Trace une distance connue</div>
+            <div class="d">Active le mode, puis clique 2 points sur le plan (ex. un mur dont tu connais la longueur).</div>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn" id="calBtn">📐 Activer la règle</button>
+          <span class="pill">px mesurés : <b id="calPx">—</b></span>
+        </div>
+        <div class="row">
+          <label style="flex:0 0 auto">Longueur réelle (m)</label>
+          <input type="number" id="calM" step="0.01" min="0.1" placeholder="ex. 4.20" style="flex:1;min-width:90px">
+        </div>
+        <div class="row">
+          <span class="pill">échelle : <b id="calScale">—</b> m/px</span>
+        </div>
+        <p class="hint">Sans échelle, l'IA renverra la géométrie en pixels seulement (surfaces non métriques).</p>
+      </div>
+
+      <h2>Photos (optionnel)</h2>
+      <div class="card">
+        <div class="row">
+          <button class="btn ghost" id="photoBtn">＋ Ajouter des photos</button>
+          <span class="mut" id="photoCount">0 photo</span>
+        </div>
+        <input type="file" id="photoFile" accept="image/*" multiple hidden>
+        <p class="hint">Aident l'IA à détecter les matériaux (parquet, carrelage…). Jusqu'à 3 conseillé.</p>
+      </div>
+
+      <button class="btn primary" id="run" style="width:100%;margin-top:6px">Analyser le plan avec l'IA</button>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <!-- ================= COLONNE DROITE : RÉSULTAT JSON ================= -->
+  <div class="col">
+    <h2 style="margin-top:0">Sortie JSON (Étape 2)</h2>
+    <p class="hint" style="margin-top:0">Le contrat de données que l'Étape 3 (assemblage Blender) consommera. Vérifie l'overlay à gauche pour juger la précision.</p>
+
+    <div class="row" style="margin:10px 0">
+      <button class="btn ghost" id="copy" disabled>Copier le JSON</button>
+      <span class="pill" id="metaRooms">pièces : <b>—</b></span>
+      <span class="pill" id="metaModel">modèle : <b>sonnet</b></span>
+    </div>
+
+    <pre id="out">// En attente d'un plan.
+//
+// Flux :
+//   1. Dépose un plan 2D
+//   2. Calibre l'échelle (2 clics + longueur réelle)
+//   3. « Analyser » → l'IA renvoie ce JSON
+//   4. Les pièces détectées se dessinent sur le plan (gauche)
+//
+// Ce harnais tourne dans l'artifact Claude.ai (API intégrée).
+// Pour la prod sur Vercel : reprendre la même requête côté
+// serverless avec ta propre clé API.</pre>
+
+    <h2>Prompt d'extraction</h2>
+    <p class="hint" style="margin-top:0">Modifiable si l'IA se trompe — c'est le cœur du de-risking. Re-analyse après édition.</p>
+    <textarea id="prompt" style="width:100%;height:150px;background:#0e0f11;border:1px solid var(--line);color:#cdd3da;border-radius:8px;padding:12px;font:12px/1.5 var(--mono);resize:vertical"></textarea>
+  </div>
+</div>
+
+<script>
+// ---------- État ----------
+const S = { img:null, natW:0, natH:0, dispScale:1, mPerPx:null,
+            calMode:false, calPts:[], photos:[], result:null };
+
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+
+// ---------- Prompt d'extraction par défaut ----------
+const DEFAULT_PROMPT =
+`Tu es un expert en lecture de plans d'architecture résidentiels.
+On te donne l'image d'un PLAN 2D d'un logement (dimensions {W}x{H} px).
+{SCALE_LINE}
+
+Analyse le plan et renvoie UNIQUEMENT un objet JSON (aucun texte, aucun backtick) :
+{
+  "rooms": [
+    { "name": "<nom, ex. Séjour>", "bbox_px": [x, y, w, h],
+      "area_m2": <nombre ou null>, "floor": "<parquet|carrelage|béton|moquette|inconnu>" }
+  ],
+  "walls": [ { "from_px": [x,y], "to_px": [x,y], "bearing": <true|false|null> } ],
+  "openings": [ { "type": "door|window", "at_px": [x,y], "width_m": <nombre ou null> } ],
+  "notes": "<incertitudes, pièces ambiguës, hypothèses>"
+}
+
+Règles :
+- bbox_px et coordonnées en PIXELS de l'image fournie (origine coin haut-gauche).
+- Si l'échelle est donnée, calcule area_m2 et width_m ; sinon mets null.
+- Nomme les pièces en français. N'invente pas d'ouvertures non visibles.
+- Un doute vaut mieux signalé dans "notes" qu'une hallucination.`;
+$('prompt').value = DEFAULT_PROMPT;
+
+// ---------- Chargement image ----------
+function loadImage(fileOrUrl){
+  const url = (typeof fileOrUrl === 'string') ? fileOrUrl : URL.createObjectURL(fileOrUrl);
+  const im = new Image();
+  im.onload = ()=>{
+    S.img = im; S.natW = im.naturalWidth; S.natH = im.naturalHeight;
+    const maxW = 620;
+    S.dispScale = Math.min(1, maxW / S.natW);
+    cv.width = Math.round(S.natW * S.dispScale);
+    cv.height = Math.round(S.natH * S.dispScale);
+    S.calPts = []; S.mPerPx = null; S.result = null;
+    $('calPx').textContent = '—'; $('calScale').textContent = '—'; $('calM').value = '';
+    $('dropCard').style.display = 'none'; $('stage').style.display = 'block';
+    draw();
+  };
+  im.onerror = ()=> setStatus('err','Image illisible.');
+  im.src = url;
+}
+
+// ---------- Rendu canvas (plan + overlay) ----------
+function n2c(x,y){ return [x*S.dispScale, y*S.dispScale]; } // natif -> canvas
+function c2n(x,y){ return [x/S.dispScale, y/S.dispScale]; } // canvas -> natif
+
+function draw(){
+  if(!S.img) return;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.drawImage(S.img,0,0,cv.width,cv.height);
+
+  // Overlay résultat
+  if(S.result && Array.isArray(S.result.rooms)){
+    S.result.rooms.forEach(r=>{
+      if(!Array.isArray(r.bbox_px)) return;
+      const [x,y,w,h] = r.bbox_px;
+      const [cx,cy]=n2c(x,y), cw=w*S.dispScale, ch=h*S.dispScale;
+      ctx.strokeStyle='#f2701e'; ctx.lineWidth=2; ctx.strokeRect(cx,cy,cw,ch);
+      ctx.fillStyle='rgba(242,112,30,.12)'; ctx.fillRect(cx,cy,cw,ch);
+      const lbl = r.name + (r.area_m2? '  '+(+r.area_m2).toFixed(1)+' m²':'');
+      ctx.font='600 12px system-ui'; const tw=ctx.measureText(lbl).width;
+      ctx.fillStyle='#f2701e'; ctx.fillRect(cx, cy-16, tw+10, 16);
+      ctx.fillStyle='#1a1205'; ctx.fillText(lbl, cx+5, cy-4);
+    });
+  }
+  if(S.result && Array.isArray(S.result.openings)){
+    S.result.openings.forEach(o=>{
+      if(!Array.isArray(o.at_px)) return;
+      const [cx,cy]=n2c(o.at_px[0],o.at_px[1]);
+      ctx.fillStyle = o.type==='window' ? '#4aa3ff' : '#3fbf7f';
+      ctx.beginPath(); ctx.arc(cx,cy,5,0,7); ctx.fill();
+      ctx.strokeStyle='#0e0f11'; ctx.lineWidth=1.5; ctx.stroke();
+    });
+  }
+  // Règle de calibration
+  if(S.calPts.length){
+    ctx.strokeStyle='#e0b341'; ctx.lineWidth=2; ctx.fillStyle='#e0b341';
+    S.calPts.forEach(p=>{ ctx.beginPath(); ctx.arc(p.cx,p.cy,4,0,7); ctx.fill(); });
+    if(S.calPts.length===2){
+      ctx.beginPath(); ctx.moveTo(S.calPts[0].cx,S.calPts[0].cy);
+      ctx.lineTo(S.calPts[1].cx,S.calPts[1].cy); ctx.stroke();
+    }
+  }
+}
+
+// ---------- Calibration ----------
+cv.addEventListener('click', e=>{
+  if(!S.calMode) return;
+  const r = cv.getBoundingClientRect();
+  const cx = (e.clientX-r.left)*(cv.width/r.width);
+  const cy = (e.clientY-r.top)*(cv.height/r.height);
+  if(S.calPts.length>=2) S.calPts=[];
+  S.calPts.push({cx,cy});
+  if(S.calPts.length===2){
+    const [a,b]=S.calPts;
+    const [ax,ay]=c2n(a.cx,a.cy), [bx,by]=c2n(b.cx,b.cy);
+    const dpx = Math.hypot(bx-ax, by-ay);
+    S.calPxDist = dpx; $('calPx').textContent = dpx.toFixed(1);
+    S.calMode=false; $('calBtn').textContent='📐 Activer la règle';
+    updateScale();
+  }
+  draw();
+});
+$('calBtn').onclick = ()=>{
+  S.calMode=!S.calMode; S.calPts=[];
+  $('calBtn').textContent = S.calMode ? '⏳ Clique 2 points…' : '📐 Activer la règle';
+  draw();
+};
+$('calM').oninput = updateScale;
+function updateScale(){
+  const m = parseFloat($('calM').value);
+  if(S.calPxDist && m>0){
+    S.mPerPx = m / S.calPxDist;
+    $('calScale').textContent = S.mPerPx.toExponential(3);
+  } else { S.mPerPx=null; $('calScale').textContent='—'; }
+}
+
+// ---------- Photos ----------
+$('photoBtn').onclick = ()=> $('photoFile').click();
+$('photoFile').onchange = async e=>{
+  for(const f of e.target.files){ if(S.photos.length>=3) break; S.photos.push(await toB64(f)); }
+  $('photoCount').textContent = S.photos.length + (S.photos.length>1?' photos':' photo');
+};
+
+// ---------- Drag & drop ----------
+const drop=$('drop');
+drop.onclick=()=>$('file').click();
+$('file').onchange=e=>{ if(e.target.files[0]) loadImage(e.target.files[0]); };
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f&&f.type.startsWith('image/')) loadImage(f); });
+
+// ---------- Helpers ----------
+function toB64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res({ media:file.type||'image/png', data:r.result.split(',')[1] });
+    r.onerror=()=>rej(new Error('lecture échouée')); r.readAsDataURL(file);
+  });
+}
+function setStatus(kind,msg){
+  const s=$('status'); s.className='status show '+kind; s.innerHTML=msg;
+}
+function planToB64(){
+  return new Promise(res=>{
+    const c=document.createElement('canvas'); c.width=S.natW; c.height=S.natH;
+    c.getContext('2d').drawImage(S.img,0,0);
+    res({ media:'image/png', data:c.toDataURL('image/png').split(',')[1] });
+  });
+}
+
+// ---------- Analyse VLM ----------
+$('run').onclick = async ()=>{
+  if(!S.img){ setStatus('err','Charge d\'abord un plan.'); return; }
+  $('run').disabled=true;
+  setStatus('info','<span class="spin"></span>Analyse du plan en cours…');
+
+  const scaleLine = S.mPerPx
+    ? `Échelle connue : 1 pixel = ${S.mPerPx.toExponential(4)} mètre.`
+    : `Échelle inconnue : renvoie les surfaces à null.`;
+  const promptTxt = $('prompt').value
+    .replace('{W}',S.natW).replace('{H}',S.natH).replace('{SCALE_LINE}',scaleLine);
+
+  try{
+    const plan = await planToB64();
+    const content = [ { type:'image', source:{ type:'base64', media_type:plan.media, data:plan.data } } ];
+    S.photos.forEach(p=> content.push({ type:'image', source:{ type:'base64', media_type:p.media, data:p.data } }));
+    content.push({ type:'text', text: promptTxt + (S.photos.length? '\n\nDes photos du bien sont jointes après le plan : sers-t\'en pour les matériaux.' : '') });
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:2000, messages:[{role:'user',content}] })
+    });
+    const data = await resp.json();
+    const txt = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const clean = txt.replace(/```json/gi,'').replace(/```/g,'').trim();
+    let parsed;
+    try{ parsed = JSON.parse(clean); }
+    catch(_){
+      // tente d'isoler le 1er objet JSON
+      const m = clean.match(/\{[\s\S]*\}/);
+      if(!m) throw new Error('Réponse non-JSON');
+      parsed = JSON.parse(m[0]);
+    }
+    S.result = parsed;
+    $('out').textContent = JSON.stringify(parsed,null,2);
+    $('copy').disabled = false;
+    const nr = Array.isArray(parsed.rooms)?parsed.rooms.length:0;
+    $('metaRooms').innerHTML = 'pièces : <b>'+nr+'</b>';
+    setStatus('ok','✓ '+nr+' pièce(s) détectée(s) — vérifie l\'overlay sur le plan.');
+    draw();
+  }catch(err){
+    setStatus('err','Échec : '+err.message+' — réessaie ou ajuste le prompt.');
+  }finally{
+    $('run').disabled=false;
+  }
+};
+
+// ---------- Copie ----------
+$('copy').onclick = ()=>{
+  navigator.clipboard.writeText($('out').textContent).then(()=>{
+    $('copy').textContent='✓ Copié'; setTimeout(()=>$('copy').textContent='Copier le JSON',1400);
+  });
+};
+</script>
+</body>
+</html>
