@@ -65,6 +65,7 @@
     .back-btn:hover { background: rgba(255,255,255,.18); transform: translateX(-2px); }
     .back-btn svg { width: 16px; height: 16px; }
     .brand-logo { display: none; }
+    .brand-logo { display: flex; align-items: center; gap: 0.5rem; font-weight: 800; letter-spacing: 0.02em; font-size: 1.05rem; }
     .brand-logo .tree { width: 20px; height: 20px; }
     .ttl { display: none; }
     .ttl .property-title { font-weight: 700; font-size: 0.9rem; letter-spacing: 0.01em; }
@@ -626,7 +627,7 @@
       }
       .property-title { font-size: 0.9rem; }
       /* Header compacté (bouton retour + titre). */
-      .brand-logo { display: none; }
+      .brand-logo { display: flex; }
       .ttl small { display: none; }
       .ttl { margin-left: 0; }
       /* Bouton retour : icône seule (l'écran est trop étroit pour un libellé). */
@@ -867,8 +868,8 @@
         Annonce
       </a>
       <div class="brand-logo">
-        <svg class="tree" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 12h3l-2 4h4l-2 4h10l-2-4h4l-2-4h3L12 2z" fill="#fff"/><rect x="11" y="18" width="2" height="4" fill="#fff"/></svg>
-        LAFORÊT
+        <svg class="tree" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" fill="#fff" rx="2"/><text x="12" y="16" font-size="14" font-weight="bold" fill="#2d2d2d" text-anchor="middle">V</text></svg>
+        Visite 3D
       </div>
       <div class="ttl">
         <span class="property-title" id="header-title">Chargement…</span>
@@ -4048,7 +4049,7 @@ const _poiTouchMQL = (typeof window !== 'undefined' && window.matchMedia)
 function poiMarkerScreenSize() {
   return POI_MARKER_SCREEN_SIZE * ((_poiTouchMQL && _poiTouchMQL.matches) ? POI_MARKER_TOUCH_BOOST : 1);
 }
-let POI_MARKER_COLOR = (window.__BRAND__ && window.__BRAND__.navy) || '#0B1B3F';    // couleur du marqueur POV
+let POI_MARKER_COLOR = (window.__BRAND__ && window.__BRAND__.navy) || '#2d2d2d';    // couleur du marqueur POV
 window.__povColor = function(){ return POI_MARKER_COLOR; };
 // Change la couleur de TOUS les POV (marqueurs définitifs + marqueur de placement).
 window.setPovColor = function(hex){
@@ -4363,10 +4364,10 @@ const HUD = {
   globalSides: ['top', 'left'],
   // Couleurs (identité Laforêt)
   navy: '#ffffff', accent: '#ffffff', halo: 'transparent',
-  roomColor: (window.__BRAND__ && window.__BRAND__.accent) || '#0046FE',   // couleur des NOMS de pièces sur le plan (bleu Laforêt)
+  roomColor: (window.__BRAND__ && window.__BRAND__.accent) || '#d97757',   // couleur des NOMS de pièces sur le plan
   dimFont: 12, roomFont: 14,
   // Isolation de pièce (vue de dessus) : assombrissement des autres pièces
-  maskColor: (window.__BRAND__ && window.__BRAND__.navy) || '#0B1B3F', maskOpacity: 0.5,
+  maskColor: (window.__BRAND__ && window.__BRAND__.navy) || '#2d2d2d', maskOpacity: 0.5,
 };
 let hudVisible = false;
 let hudObserver = null;
@@ -5067,7 +5068,7 @@ function ensurePov3DMarker(){
     tex.hasAlpha = true;
     var ctx = tex.getContext();
     ctx.clearRect(0, 0, 256, 256);
-    var col = (typeof POI_MARKER_COLOR !== 'undefined') ? POI_MARKER_COLOR : '#0046FE';
+    var col = (typeof POI_MARKER_COLOR !== 'undefined') ? POI_MARKER_COLOR : '#d97757';
     var m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(col);
     var rgb = m ? ('rgb('+parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16)+')') : 'blue';
     ctx.lineWidth = 26; ctx.strokeStyle = rgb;
