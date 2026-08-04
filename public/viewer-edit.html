@@ -422,6 +422,15 @@
           Exporte le fichier <b>branding-config.json</b> et place-le à côté du manifest.</p>
 
         <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:block;font-size:.72rem;color:var(--tx-4);margin-bottom:.3rem;">⚡ Pré-remplir depuis un réseau</label>
+          <select id="f-brand-preset" onchange="applyBrandPreset(this.value)" style="margin-bottom:.35rem;">
+            <option value="">— choisir une enseigne —</option>
+          </select>
+          <p class="hint" style="margin:0;">Charge les couleurs de marque du réseau. <b>Point de départ</b> :
+            ajuste à la pipette sur le vrai site, et colle le logo officiel ci-dessous.</p>
+        </div>
+
+        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
           <label style="display:block;font-size:.72rem;color:var(--tx-4);margin-bottom:.3rem;">Nom de l'agence</label>
           <input id="f-brand-name" placeholder="ex: Themeis Immobilier" oninput="brandPreview()" style="margin-bottom:.7rem;">
 
@@ -592,10 +601,26 @@ const PONT = `
     }
     if (cv) cv.style.cursor = '';
     if (!s) return;
-    const actif = onCot || onRooms;
+    // Le HUD ne doit intercepter les clics QUE quand le plan est affiché
+    // (vue de dessus). Sinon, invisible mais plein écran, il avalerait les
+    // clics de navigation/POV dans la scène 3D.
+    const shown = (typeof hudVisible === 'undefined') ? true : !!hudVisible;
+    const actif = (onCot || onRooms) && shown;
     s.style.pointerEvents = actif ? 'auto' : '';
     s.style.cursor        = (onRooms && placeIdx >= 0) ? 'crosshair'
-                          : (onCot ? 'crosshair' : '');
+                          : (onCot && shown ? 'crosshair' : '');
+  }
+
+  /* Maintient l'état cliquable du HUD frame par frame : quand on entre/sort de
+     la vue de dessus, hudVisible bascule sans repasser par majCurseur — on
+     resynchronise ici. Appelé depuis l'observer permanent (rulerTick). */
+  function syncHudPointer(){
+    if (rulerActive) return;                 // géré par majCurseur (none)
+    const s = document.getElementById('hud-svg');
+    if (!s) return;
+    const shown = (typeof hudVisible === 'undefined') ? true : !!hudVisible;
+    const want = ((onCot || onRooms) && shown) ? 'auto' : '';
+    if (s.style.pointerEvents !== want) s.style.pointerEvents = want;
   }
 
   /* Les libelles peuvent etre absents du manifest (deduits des meubles).
@@ -796,6 +821,7 @@ const PONT = `
      (mesure en cours ou mesures finalisées). Nettoie l'overlay dès qu'on
      quitte l'onglet ou qu'il n'y a plus rien. Installé une seule fois. */
   function rulerTick(){
+    syncHudPointer();   // maintient hud-svg cliquable ⇔ vue de dessus
     if (onCot && (rulerActive || mesuresLibres.length)){ rulerDraw(); rulerDrawn = true; }
     else if (rulerDrawn){ rulerClear(); rulerDrawn = false; }
   }
@@ -1040,6 +1066,20 @@ const PONT = `
       },
 
       enVueDeDessus:  function(){ return !!(typeof hudVisible !== 'undefined' && hudVisible); },
+
+      /* Entre en vue de dessus SI on n'y est pas déjà (ne bascule jamais en
+         sens inverse). Utilisé par les étapes Cotations/Pièces, qui n'ont de
+         sens qu'en plan. Sans effet si le viewer n'expose pas la fonction. */
+      assurerVueDeDessus: function(){
+        try {
+          var enPlan = (typeof hudVisible !== 'undefined' && hudVisible) ||
+                       (typeof isTopView !== 'undefined' && isTopView);
+          var occupe = (typeof isAnimating !== 'undefined' && isAnimating);
+          if (!enPlan && !occupe && typeof playTopViewAnimation === 'function') {
+            playTopViewAnimation();
+          }
+        } catch(_){}
+      },
 
       manifest: function(){
         /* Garde defensif : un POI importe d'un vieux manifest peut avoir un
@@ -1404,6 +1444,21 @@ window.__edPret = function(){
   warn('');
   refresh();
   ed.editerCotations(mode === 'cot');
+  // L'étape par défaut (Cotations) est un travail « en plan » → on monte en vue
+  // de dessus dès que le cadrage initial du modèle est terminé. Le cadrage peut
+  // prendre plus ou moins de temps selon le GLB : on réessaie (borné) jusqu'à ce
+  // que le plan soit réellement affiché, au lieu d'un seul essai qui échoue en
+  // silence sur les gros modèles (→ l'utilisateur croirait les cotations mortes).
+  if ((mode === 'cot' || mode === 'piece') && ed.assurerVueDeDessus){
+    var essais = 0;
+    (function monter(){
+      try {
+        if (ed.enVueDeDessus && ed.enVueDeDessus()) return;   // déjà en plan
+        ed.assurerVueDeDessus();
+      } catch(_){}
+      if (++essais < 12) setTimeout(monter, 700);             // ~8 s max
+    })();
+  }
   // Synchronise le sélecteur de couleur POV avec la couleur courante du viewer
   try { var pc = document.getElementById('f-pov-color'); if (pc && ed.povColor) pc.value = ed.povColor(); } catch(_){}
 };
@@ -1516,6 +1571,8 @@ function tab(m){
       var br = document.getElementById('b-regle');
       if (br){ br.classList.remove('on'); br.textContent = '📏 Mesurer'; }
     }
+    // Cotations & Pièces n'ont de sens qu'en plan → on y monte automatiquement.
+    if ((m==='cot' || m==='piece') && ed.assurerVueDeDessus) ed.assurerVueDeDessus();
     if (m==='piece') refresh();
     if (m==='amb') refreshPostProcess();
     if (m==='light') refreshLighting();
@@ -1800,6 +1857,62 @@ function hexToRgbStr(hex){
   if (hex.length !== 6) return '45,45,45';
   return parseInt(hex.slice(0,2),16)+','+parseInt(hex.slice(2,4),16)+','+parseInt(hex.slice(4,6),16);
 }
+/* ===== PRESETS DE MARQUE — grands réseaux immobiliers français ==========
+   Couleurs de MARQUE reconnaissables (bonne famille), pensées comme POINT DE
+   DÉPART : à affiner à la pipette sur le vrai site de l'agence, et à compléter
+   avec le logo officiel. On ne stocke pas les logos déposés. Les enseignes
+   couvrent l'essentiel du parc (franchises nationales + gros mandataires) ;
+   les indépendants hors réseau restent en saisie manuelle.
+   navy = fond/bandeau ; accent = boutons ; accentDark = survol. */
+const BRAND_PRESETS = [
+  { id:'orpi',            name:'Orpi',                     navy:'#7A0E15', accent:'#E2001A', accentDark:'#B30015' },
+  { id:'century21',       name:'Century 21',               navy:'#1A1A1A', accent:'#C6A15B', accentDark:'#A5854A' },
+  { id:'laforet',         name:'Laforêt',                  navy:'#14361F', accent:'#4CA22F', accentDark:'#3A7E24' },
+  { id:'guy-hoquet',      name:'Guy Hoquet',               navy:'#000033', accent:'#E94E24', accentDark:'#C23A15' },
+  { id:'ladresse',        name:"L'Adresse",                navy:'#1B2A4A', accent:'#E2001A', accentDark:'#B30015' },
+  { id:'era',             name:'ERA Immobilier',           navy:'#3A0E14', accent:'#E2001A', accentDark:'#B00016' },
+  { id:'nestenn',         name:'Nestenn',                  navy:'#204858', accent:'#00A8B8', accentDark:'#00808C' },
+  { id:'stephane-plaza',  name:'Stéphane Plaza Immobilier',navy:'#3A0B2E', accent:'#E6007E', accentDark:'#B80063' },
+  { id:'human',           name:'Human Immobilier',         navy:'#002F5F', accent:'#0071BC', accentDark:'#005A96' },
+  { id:'square-habitat',  name:'Square Habitat',           navy:'#0A4D34', accent:'#4C9C2D', accentDark:'#3A7A22' },
+  { id:'citya',           name:'Citya Immobilier',         navy:'#1B1D56', accent:'#1C5DEB', accentDark:'#1447B8' },
+  { id:'foncia',          name:'Foncia',                   navy:'#0E3E42', accent:'#2FB5B5', accentDark:'#238E8E' },
+  { id:'avis',            name:'Avis Immobilier',          navy:'#2A0A0F', accent:'#E2001A', accentDark:'#B30015' },
+  { id:'arthurimmo',      name:'Arthurimmo.com',           navy:'#003C71', accent:'#F39200', accentDark:'#C4750B' },
+  { id:'iad',             name:'iad France',               navy:'#2A0A1E', accent:'#E6007E', accentDark:'#B80063' },
+  { id:'safti',           name:'SAFTI',                    navy:'#3A0A0F', accent:'#E30613', accentDark:'#B4040F' },
+  { id:'capifrance',      name:'Capifrance',               navy:'#1D2A4A', accent:'#8DC63F', accentDark:'#6FA02E' },
+  { id:'optimhome',       name:'Optimhome',                navy:'#2A2115', accent:'#F39200', accentDark:'#C4750B' },
+  { id:'efficity',        name:'Efficity',                 navy:'#14213D', accent:'#E6007E', accentDark:'#B80063' },
+  { id:'keller-williams', name:'Keller Williams',          navy:'#1A1A1A', accent:'#CC0000', accentDark:'#A30000' }
+];
+
+function populateBrandPresets(){
+  var sel = document.getElementById('f-brand-preset');
+  if (!sel) return;
+  BRAND_PRESETS.forEach(function(p){
+    var o = document.createElement('option');
+    o.value = p.id; o.textContent = p.name;
+    sel.appendChild(o);
+  });
+}
+
+function applyBrandPreset(id){
+  if (!id) return;
+  var p = null;
+  for (var i=0;i<BRAND_PRESETS.length;i++){ if (BRAND_PRESETS[i].id===id){ p = BRAND_PRESETS[i]; break; } }
+  if (!p) return;
+  document.getElementById('f-brand-name').value        = p.name;
+  document.getElementById('f-brand-navy').value        = p.navy;
+  document.getElementById('f-brand-accent').value      = p.accent;
+  document.getElementById('f-brand-accent-dark').value = p.accentDark;
+  brandPreview();
+  flash('🎨 ' + p.name + ' chargé — ajuste à la pipette si besoin');
+}
+
+/* Remplit la liste dès le chargement (les éléments du panneau existent déjà). */
+try { populateBrandPresets(); } catch(_){}
+
 function brandData(){
   var name   = (document.getElementById('f-brand-name').value || '').trim();
   var navy   = document.getElementById('f-brand-navy').value || '#2d2d2d';
