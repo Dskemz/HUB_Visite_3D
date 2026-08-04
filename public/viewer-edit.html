@@ -482,6 +482,7 @@
       <button class="btn sec" id="b-dl" onclick="download()">💾 Télécharger manifest.json</button>
       <button class="btn sec" id="b-dl-light" onclick="downloadLighting()">💡 Télécharger lighting-config.json</button>
       <div class="st" id="st">Chargement du viewer…</div>
+      <div class="st" id="diag" style="opacity:.75;font-size:.68rem;margin-top:.15rem;">état : —</div>
     </div>
     </div>
   </aside>
@@ -590,6 +591,17 @@ const PONT = `
     window.__edOrbitSave = null;
   }
 
+  /* Sommes-nous en vue de dessus ? On accepte les DEUX signaux du viewer
+     (hudVisible ET isTopView) : selon le chemin d'entrée en plan, l'un peut
+     être posé avant l'autre. Si aucun n'existe (vieux viewer), on suppose oui
+     pour ne pas bloquer l'édition. */
+  function enPlan(){
+    var a = (typeof hudVisible !== 'undefined') ? !!hudVisible : null;
+    var b = (typeof isTopView  !== 'undefined') ? !!isTopView  : null;
+    if (a === null && b === null) return true;
+    return !!(a || b);
+  }
+
   function majCurseur(){
     const s = document.getElementById('hud-svg');
     const cv = document.getElementById('canvas');
@@ -604,11 +616,26 @@ const PONT = `
     // Le HUD ne doit intercepter les clics QUE quand le plan est affiché
     // (vue de dessus). Sinon, invisible mais plein écran, il avalerait les
     // clics de navigation/POV dans la scène 3D.
-    const shown = (typeof hudVisible === 'undefined') ? true : !!hudVisible;
+    const shown = enPlan();
     const actif = (onCot || onRooms) && shown;
     s.style.pointerEvents = actif ? 'auto' : '';
     s.style.cursor        = (onRooms && placeIdx >= 0) ? 'crosshair'
                           : (onCot && shown ? 'crosshair' : '');
+  }
+
+  /* Témoin d'état d'interaction (aide au diagnostic). Ne touche le DOM parent
+     que lorsque l'état change, pas à chaque frame. */
+  var _diagLast = '';
+  function majDiag(){
+    try {
+      var s = document.getElementById('hud-svg');
+      var pe = s ? (s.style.pointerEvents || 'none') : '?';
+      var str = (enPlan() ? 'plan' : 'perspective')
+              + ' · cotes:' + (onCot ? 'on' : 'off')
+              + ' · pièces:' + (onRooms ? 'on' : 'off')
+              + ' · clic HUD:' + (pe === 'auto' ? 'ACTIF' : 'inactif');
+      if (str !== _diagLast){ _diagLast = str; if (parent.__edDiag) parent.__edDiag(str); }
+    } catch(_){}
   }
 
   /* Maintient l'état cliquable du HUD frame par frame : quand on entre/sort de
@@ -618,9 +645,9 @@ const PONT = `
     if (rulerActive) return;                 // géré par majCurseur (none)
     const s = document.getElementById('hud-svg');
     if (!s) return;
-    const shown = (typeof hudVisible === 'undefined') ? true : !!hudVisible;
-    const want = ((onCot || onRooms) && shown) ? 'auto' : '';
+    const want = ((onCot || onRooms) && enPlan()) ? 'auto' : '';
     if (s.style.pointerEvents !== want) s.style.pointerEvents = want;
+    majDiag();                               // témoin d'état visible (bas de l'éditeur)
   }
 
   /* Les libelles peuvent etre absents du manifest (deduits des meubles).
@@ -858,13 +885,20 @@ const PONT = `
     const P = { x: ev.clientX-r.left, y: ev.clientY-r.top };
 
     let best=null;
+    var aretesPretes = 0;
     ['top','bottom','left','right'].forEach(function(name){
       const e = hudEdges[name];
       if (!e || !e.p0 || !e.p1 || !e.w0 || !e.w1) return;   // arete non encore projetee
+      aretesPretes++;
       const d = distToSeg(P, e.p0, e.p1);
       if (!best || d.dist < best.dist) best = { name:name, e:e, dist:d.dist, t:d.t };
     });
-    if (!best) return;
+    if (!best){
+      // Clic bien reçu par le HUD, mais aucune arête projetée : on est
+      // probablement hors vue de dessus. On le signale pour lever l'ambiguïté.
+      if (parent.__edFlash) parent.__edFlash(aretesPretes ? 'Clic hors du plan' : 'Passe en vue de dessus pour coter');
+      return;
+    }
     if (best.dist > 70){ if (parent.__edEvent) parent.__edEvent('cot','tropLoin'); return; }
 
     const dims = propertyData.dimensions = propertyData.dimensions || {};
@@ -1435,6 +1469,14 @@ vw.addEventListener('load', function(){
   sc.textContent = PONT;
   doc.body.appendChild(sc);
 });
+
+/* Témoin d'état d'interaction poussé par le pont (diagnostic clic cotations). */
+window.__edDiag = function(txt){
+  var el = document.getElementById('diag');
+  if (el) el.textContent = 'état : ' + txt;
+};
+/* Flash générique déclenchable depuis le pont (iframe). */
+window.__edFlash = function(msg){ try { flash(msg); } catch(_){} };
 
 /* Le pont nous rappelle quand il est prêt. */
 window.__edPret = function(){
