@@ -6,10 +6,27 @@
    ========================================================================== */
 (function () {
   window.AGENCIES = {
-    'laforet': {
-      id: 'laforet', name: 'Visite 3D',
+    /* ===== IDENTITÉ NEUTRE DE L'ÉDITEUR (indépendante du hub) =====
+       L'éditeur (viewer-edit.html) charge cette identité : gris neutre, aucun
+       nom d'agence, logo « V ». hubHidden:true → n'apparaît PAS comme une
+       déclinaison dans le hub. C'est la source à partir de laquelle on décline
+       ensuite chaque agence — elle ne doit jamais se substituer à une agence. */
+    'neutre': {
+      id: 'neutre', name: 'Visite 3D', hubHidden: true,
       navy: '#2d2d2d', navyRgb: '45,45,45',
       accent: '#d97757', accentRgb: '217,119,87', accentDark: '#c66641',
+      logo: 'laforet', property: 'demo-rambouillet',
+      site: {
+        nav: ['Acheter', 'Vendre', 'Louer', 'Estimer', 'Gérer'],
+        phone: '', agency: 'Visite 3D', agent: '',
+        editedBy: 'Aperçu éditeur', footer: 'clean', headStyle: 'light'
+      }
+    },
+
+    'laforet': {
+      id: 'laforet', name: 'Laforêt',
+      navy: '#0B1B3F', navyRgb: '11,27,63',
+      accent: '#0046FE', accentRgb: '0,70,254', accentDark: '#0038cc',
       logo: 'laforet', property: 'demo-rambouillet',
       site: {
         nav: ['Acheter', 'Vendre', 'Louer', 'Estimer', 'Gérer'],

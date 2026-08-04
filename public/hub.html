@@ -220,7 +220,8 @@
     }
     function agences(){
       var ag = window.AGENCIES || {};
-      return Object.keys(ag).map(function(k){ return ag[k]; });
+      return Object.keys(ag).map(function(k){ return ag[k]; })
+               .filter(function(A){ return A && !A.hubHidden; });
     }
     function svgDe(A){
       var l = (window.brandLogoHTML && window.brandLogoHTML(A)) || '';
