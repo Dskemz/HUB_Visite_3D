@@ -6,13 +6,12 @@
    ========================================================================== */
 (function () {
   window.AGENCIES = {
-    /* ===== IDENTITÉ NEUTRE DE L'ÉDITEUR (indépendante du hub) =====
-       L'éditeur (viewer-edit.html) charge cette identité : gris neutre, aucun
-       nom d'agence, logo « V ». hubHidden:true → n'apparaît PAS comme une
-       déclinaison dans le hub. C'est la source à partir de laquelle on décline
-       ensuite chaque agence — elle ne doit jamais se substituer à une agence. */
-    'neutre': {
-      id: 'neutre', name: 'Visite 3D', hubHidden: true,
+    /* ===== IDENTITÉ NEUTRE DE L'ÉDITEUR =====
+       L'éditeur (viewer-edit.html) charge l'id 'laforet' : gris neutre, logo
+       « V », pas de vraie agence. hubHidden:true → n'apparaît PAS dans le hub.
+       C'est la base neutre d'où découlent les déclinaisons — jamais une agence. */
+    'laforet': {
+      id: 'laforet', name: 'Visite 3D', hubHidden: true,
       navy: '#2d2d2d', navyRgb: '45,45,45',
       accent: '#d97757', accentRgb: '217,119,87', accentDark: '#c66641',
       logo: 'laforet', property: 'demo-rambouillet',
@@ -23,11 +22,12 @@
       }
     },
 
-    'laforet': {
-      id: 'laforet', name: 'Laforêt',
+    /* ===== DÉCLINAISON LAFORÊT (agence du hub, comme les autres) ===== */
+    'laforet-immo': {
+      id: 'laforet-immo', name: 'Laforêt',
       navy: '#0B1B3F', navyRgb: '11,27,63',
       accent: '#0046FE', accentRgb: '0,70,254', accentDark: '#0038cc',
-      logo: 'laforet', property: 'demo-rambouillet',
+      logo: 'laforetimmo', property: 'demo-rambouillet',
       site: {
         nav: ['Acheter', 'Vendre', 'Louer', 'Estimer', 'Gérer'],
         phone: '01 34 57 12 00',
@@ -233,6 +233,12 @@
         '<path d="M9 14h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
       laforet:
         '<svg class="tree" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" fill="currentColor" rx="2"/><text x="12" y="17" font-size="12" font-weight="bold" fill="#2d2d2d" text-anchor="middle" font-family="system-ui">V</text></svg>',
+
+      /* Laforêt — pin stylisé (évoque « la forêt », sans le logo déposé) */
+      laforetimmo:
+        '<svg class="tree" viewBox="0 0 24 24" fill="none">' +
+        '<path d="M12 3l4.5 6H14l3.5 5H15l3 4H6l3-4H6.5L10 9H7.5L12 3z" fill="currentColor"/>' +
+        '<rect x="11" y="17" width="2" height="4" fill="currentColor"/></svg>',
 
       /* --- Nouvelles enseignes ---
          Marques SVG ABSTRAITES : elles évoquent l'identité de chaque enseigne
