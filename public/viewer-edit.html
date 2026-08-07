@@ -477,6 +477,7 @@
     <div class="warn" id="warn" hidden></div>
 
     <div class="ft">
+      <button class="btn" id="b-export-complet" onclick="exportComplet()" style="background:#16a34a;">✅ Export complet (4 étapes validées)</button>
       <button class="btn" id="b-dl-all" onclick="downloadTout()">📦 Tout télécharger (manifest + lighting)</button>
       <button class="btn sec" id="b-preview" onclick="apercuManifest()">👁️ Aperçu manifest.json</button>
       <button class="btn sec" id="b-dl" onclick="download()">💾 Télécharger manifest.json</button>
@@ -2023,6 +2024,62 @@ function downloadTout(){
   download();                          // manifest.json (valide + efface le drapeau modifie)
   setTimeout(downloadLighting, 500);   // lighting-config.json juste apres
 }
+
+/* ===== EXPORT COMPLET @✓✓✓✓ =========================================
+   Ne se déclenche que si les 4 étapes du workflow sont validées (mêmes
+   critères que les liserés verts). Sinon, indique précisément ce qui manque
+   et n'exporte rien. Quand tout est vert : télécharge le package complet
+   (manifest + branding + lighting), fichiers échelonnés pour ne pas que le
+   navigateur bloque les téléchargements successifs.
+   100% additif : ne modifie aucune fonction existante. */
+function validationState(){
+  var st = { cot:false, piece:false, pov:false, brand:false };
+  if (!ed) return st;
+  try {
+    var dg = ed.dimensionsGeneral() || {};
+    st.cot = ['top','bottom','left','right'].some(function(k){ return parseFloat(dg[k]) > 0; });
+    if (!st.cot) st.cot = (ed.cotations() || []).some(function(c){ return c.segs && c.segs.length; });
+    if (!st.cot && ed.mesures) st.cot = (ed.mesures() || []).length > 0;
+  } catch(_){}
+  try { st.piece = (ed.pieces() || []).some(function(p){ return p.placed; }); } catch(_){}
+  try { st.pov   = (ed.pois()   || []).some(function(p){ return p.id && p.label; }); } catch(_){}
+  try { st.brand = ((document.getElementById('f-brand-name') || {}).value || '').trim() !== ''; } catch(_){}
+  return st;
+}
+
+function exportComplet(){
+  if (!ed){ flash('Éditeur non prêt'); return; }
+  var s = validationState();
+  var manque = [];
+  if (!s.cot)   manque.push('Cotations');
+  if (!s.piece) manque.push('Pièces');
+  if (!s.pov)   manque.push('POV');
+  if (!s.brand) manque.push('Branding');
+  if (manque.length){
+    flash('⚠️ Étapes à compléter avant l\'export : ' + manque.join(', '));
+    return;
+  }
+  flash('✅ Export complet — manifest + branding + lighting');
+  download();                            // manifest.json
+  setTimeout(downloadBranding, 450);     // branding-config.json
+  setTimeout(downloadLighting, 900);     // lighting-config.json
+}
+
+/* Reflète l'état de préparation sur le bouton (vert « prêt » si les 4 étapes
+   sont validées, gris sinon). Purement visuel, purement additif. */
+function majBoutonExport(){
+  var b = document.getElementById('b-export-complet');
+  if (!b) return;
+  var s = validationState();
+  var ok = s.cot && s.piece && s.pov && s.brand;
+  b.style.opacity    = ok ? '1' : '.55';
+  b.style.background  = ok ? '#16a34a' : '#4b5563';
+  b.textContent = ok ? '✅ Export complet — prêt'
+                     : '✅ Export complet (' +
+                       [s.cot,s.piece,s.pov,s.brand].filter(Boolean).length + '/4 étapes)';
+}
+setInterval(majBoutonExport, 800);
+try { majBoutonExport(); } catch(_){}
 
 /* #18 — Apercu du manifest avant export : ouvre le JSON dans un nouvel onglet
    (declenche par un clic utilisateur, donc pas bloque par le navigateur). Permet
