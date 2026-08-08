@@ -503,7 +503,7 @@
    ========================================================================== */
 
 const Q       = new URLSearchParams(location.search);
-const AGENCY  = Q.get('agency')   || 'editeur';
+const AGENCY  = Q.get('agency')   || 'laforet';
 const PROPERTY= Q.get('property') || 'demo-rambouillet';
 let   ed      = null;              // le pont, une fois greffé
 let   mode    = 'cot';             // 1re étape du workflow : Cotations
@@ -1594,7 +1594,28 @@ function toggleExpand(){
 }
 
 document.addEventListener('keydown', function(e){
-  if ((e.ctrlKey || e.metaKey) && e.key==='z') { e.preventDefault(); undo(); }
+  var ctrl = e.ctrlKey || e.metaKey;
+  if (!ctrl) return;
+  var k = (e.key || '').toLowerCase();
+
+  if (k === 'z') { e.preventDefault(); undo(); return; }
+
+  // Ctrl+S : télécharger manifest.json — Ctrl+Shift+S : export complet (4 étapes).
+  if (k === 's') {
+    e.preventDefault();
+    if (e.shiftKey) { if (typeof exportComplet === 'function') exportComplet(); }
+    else           { if (typeof download === 'function')      download(); }
+    return;
+  }
+
+  // Ctrl+E : ouvrir le viewer public du bien dans un nouvel onglet (test rapide).
+  if (k === 'e') {
+    e.preventDefault();
+    var url = 'viewer.html?agency=' + encodeURIComponent(AGENCY) +
+              '&property=' + encodeURIComponent(PROPERTY);
+    window.open(url, '_blank');
+    return;
+  }
 });
 
 /* -------- UI ------------------------------------------------------------- */
