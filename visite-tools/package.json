@@ -1,0 +1,14 @@
+{
+  "name": "visite-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Outils locaux Visite3D V1 — generation manifest, hub, et optimisation GLB (Draco + KTX2 WASM).",
+  "dependencies": {
+    "@gltf-transform/core": "4.4.2",
+    "@gltf-transform/extensions": "4.4.2",
+    "@gltf-transform/functions": "4.4.2",
+    "draco3dgltf": "1.5.7",
+    "ktx2-encoder": "0.6.0",
+    "sharp": "0.35.3"
+  }
+}

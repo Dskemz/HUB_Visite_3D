@@ -419,7 +419,7 @@
       <div id="p-brand" hidden>
         <p class="hint"><b>Surcouche agence.</b> Ces réglages n'affectent pas la scène 3D :
           ils habillent le viewer aux couleurs de l'agence une fois la visite intégrée.
-          Exporte le fichier <b>branding-config.json</b> et place-le à côté du manifest.</p>
+          Exporte le fichier <b>branding.json</b> et place-le à côté du manifest.</p>
 
         <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
           <label style="display:block;font-size:.72rem;color:var(--tx-4);margin-bottom:.3rem;">⚡ Pré-remplir depuis un réseau</label>
@@ -469,8 +469,8 @@
           </div>
         </div>
 
-        <button class="btn" onclick="downloadBranding()" style="margin-bottom:.5rem;">🎨 Télécharger branding-config.json</button>
-        <button class="btn sec" onclick="apercuBranding()">👁️ Aperçu branding-config.json</button>
+        <button class="btn" onclick="downloadBranding()" style="margin-bottom:.5rem;">🎨 Télécharger branding.json</button>
+        <button class="btn sec" onclick="apercuBranding()">👁️ Aperçu branding.json</button>
       </div>
     </div>
 
@@ -1913,7 +1913,7 @@ function hexToRgb(hex){
 }
 
 /* ============================ BRANDING (surcouche agence) ==================
-   Ces réglages ne touchent PAS la scène 3D. Ils produisent un branding-config.json
+   Ces réglages ne touchent PAS la scène 3D. Ils produisent un branding.json
    que l'intégration lit pour habiller le viewer aux couleurs de l'agence.
    Structure alignée sur branding.js (navy/accent/accentDark/name/logo). */
 function hexToRgbStr(hex){
@@ -2010,16 +2010,16 @@ function downloadBranding(){
   var blob = new Blob([brandJSON()], { type:'application/json' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'branding-config.json';
+  a.download = 'branding.json';
   a.click();
   URL.revokeObjectURL(a.href);
-  flash('🎨 branding-config.json téléchargé');
+  flash('🎨 branding.json téléchargé');
   window.__edDirty = false;
 }
 function apercuBranding(){
   var w = window.open('', '_blank');
   if (!w){ flash('Autorise les pop-ups pour l\'apercu'); return; }
-  w.document.title = 'Apercu branding-config.json';
+  w.document.title = 'Apercu branding.json';
   var pre = w.document.createElement('pre');
   pre.textContent = brandJSON();
   pre.style.cssText = 'white-space:pre-wrap;font:12px/1.5 monospace;padding:16px;';
@@ -2082,7 +2082,7 @@ function exportComplet(){
   }
   flash('✅ Export complet — manifest + branding + lighting');
   download();                            // manifest.json
-  setTimeout(downloadBranding, 450);     // branding-config.json
+  setTimeout(downloadBranding, 450);     // branding.json
   setTimeout(downloadLighting, 900);     // lighting-config.json
 }
 
