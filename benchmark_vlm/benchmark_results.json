@@ -1,0 +1,228 @@
+[
+  {
+    "plan_id": "studio-28",
+    "title": "Studio 28 m²",
+    "extracted": {
+      "rooms": [
+        {
+          "name": "Séjour",
+          "estimated_m2": 12,
+          "type": "living",
+          "doors": 0,
+          "windows": 1
+        },
+        {
+          "name": "Cuisine",
+          "estimated_m2": 16,
+          "type": "kitchen",
+          "doors": 0,
+          "windows": 1
+        }
+      ],
+      "layout_type": "semi_open",
+      "detected_materials": [],
+      "total_estimated_m2": 28,
+      "confidence_score": 0.55,
+      "hallucination_risk": "medium",
+      "notes": "Plan de studio 28 m² avec une seule cloison séparant Séjour et Cuisine. Deux fenêtres indiquées en bleu (haut et bas du plan). Trois cercles rouges non identifiés (peut-être des points de mesure, prises ou mobilier ponctuel). Pas d'indication claire de portes intérieures ni de matériaux de sol/mur."
+    },
+    "score": 75,
+    "status": "success"
+  },
+  {
+    "plan_id": "t2-45",
+    "title": "T2 45 m²",
+    "extracted": {
+      "rooms": [
+        {
+          "name": "Séjour/Cuisine",
+          "estimated_m2": 27,
+          "type": "living",
+          "doors": 1,
+          "windows": 1
+        },
+        {
+          "name": "Chambre",
+          "estimated_m2": 18,
+          "type": "bedroom",
+          "doors": 1,
+          "windows": 1
+        }
+      ],
+      "layout_type": "semi_open",
+      "detected_materials": [],
+      "total_estimated_m2": 45,
+      "confidence_score": 0.55,
+      "hallucination_risk": "medium",
+      "notes": "Plan minimaliste sans échelle graphique claire, seule la mention 'T2 45 m²' fournit la surface totale. Les cercles rouges pourraient indiquer des points lumineux ou mobilier non identifiable. Cloison partielle entre Séjour/Cuisine et Chambre avec ouverture visible. Deux segments bleus en façade suggèrent fenêtres ou entrées."
+    },
+    "score": 75,
+    "status": "success"
+  },
+  {
+    "plan_id": "t3-75",
+    "title": "T3 75 m²",
+    "extracted": {
+      "rooms": [
+        {
+          "name": "Séjour",
+          "estimated_m2": 28,
+          "type": "living",
+          "doors": 1,
+          "windows": 1
+        },
+        {
+          "name": "Chambre 1",
+          "estimated_m2": 15,
+          "type": "bedroom",
+          "doors": 1,
+          "windows": 0
+        },
+        {
+          "name": "Chambre 2",
+          "estimated_m2": 14,
+          "type": "bedroom",
+          "doors": 1,
+          "windows": 0
+        },
+        {
+          "name": "Cuisine",
+          "estimated_m2": 12,
+          "type": "kitchen",
+          "doors": 1,
+          "windows": 1
+        }
+      ],
+      "layout_type": "separated",
+      "detected_materials": [
+        "peinture"
+      ],
+      "total_estimated_m2": 75,
+      "confidence_score": 0.55,
+      "hallucination_risk": "medium",
+      "notes": "Plan de type T3 de 75 m² annoncé en légende. Les pièces sont clairement séparées par des cloisons verticales. Deux segments bleus en haut-gauche et bas-droite suggèrent des fenêtres, mais leur nombre exact par pièce est incertain. Les cercles rouges pourraient représenter des zones de porte, des points lumineux ou des éléments mobiliers non identifiés avec certitude. Les dimensions exactes ne sont pas indiquées sur le plan, donc les surfaces par pièce sont des estimations proportionnelles basées sur la surface totale de 75 m² mentionnée en légende et les proportions visuelles du plan."
+    },
+    "score": 70,
+    "status": "success"
+  },
+  {
+    "plan_id": "t4-100",
+    "title": "T4 100 m²",
+    "extracted": {
+      "rooms": [
+        {
+          "name": "Séjour",
+          "estimated_m2": 32,
+          "type": "living",
+          "doors": 0,
+          "windows": 1
+        },
+        {
+          "name": "Ch.1",
+          "estimated_m2": 12,
+          "type": "bedroom",
+          "doors": 1,
+          "windows": 0
+        },
+        {
+          "name": "Ch.2",
+          "estimated_m2": 12,
+          "type": "bedroom",
+          "doors": 1,
+          "windows": 0
+        },
+        {
+          "name": "Ch.3",
+          "estimated_m2": 14,
+          "type": "bedroom",
+          "doors": 1,
+          "windows": 0
+        },
+        {
+          "name": "Cuisine",
+          "estimated_m2": 10,
+          "type": "kitchen",
+          "doors": 1,
+          "windows": 0
+        },
+        {
+          "name": "S.d.eau",
+          "estimated_m2": 8,
+          "type": "bathroom",
+          "doors": 1,
+          "windows": 1
+        }
+      ],
+      "layout_type": "semi_open",
+      "detected_materials": [
+        "non déterminé"
+      ],
+      "total_estimated_m2": 88,
+      "confidence_score": 0.55,
+      "hallucination_risk": "medium",
+      "notes": "Plan schématique sans échelle claire ni symboles standards de portes/fenêtres. Titre indique '4 pièces 100 m²' mais les proportions dessinées ne correspondent pas exactement à cette surface. Les cercles rouges pourraient représenter des points de mesure ou des éléments non identifiés (luminaires ?). Estimations de surfaces basées sur proportions visuelles, à confirmer avec échelle réelle."
+    },
+    "score": 60,
+    "status": "success"
+  },
+  {
+    "plan_id": "maison-120",
+    "title": "Maison 120 m² plain-pied",
+    "extracted": {
+      "rooms": [
+        {
+          "name": "Séjour",
+          "estimated_m2": 35,
+          "type": "living",
+          "doors": 1,
+          "windows": 1
+        },
+        {
+          "name": "Ch.1",
+          "estimated_m2": 15,
+          "type": "bedroom",
+          "doors": 1,
+          "windows": 0
+        },
+        {
+          "name": "Ch.2",
+          "estimated_m2": 14,
+          "type": "bedroom",
+          "doors": 1,
+          "windows": 0
+        },
+        {
+          "name": "Ch.3",
+          "estimated_m2": 14,
+          "type": "bedroom",
+          "doors": 1,
+          "windows": 0
+        },
+        {
+          "name": "Cuisine",
+          "estimated_m2": 12,
+          "type": "kitchen",
+          "doors": 1,
+          "windows": 0
+        },
+        {
+          "name": "S.d.eau",
+          "estimated_m2": 10,
+          "type": "bathroom",
+          "doors": 1,
+          "windows": 0
+        }
+      ],
+      "layout_type": "semi_open",
+      "detected_materials": [
+        "peinture"
+      ],
+      "total_estimated_m2": 120,
+      "confidence_score": 0.55,
+      "hallucination_risk": "medium",
+      "notes": "Plan simplifié en traits noirs sans indication claire de portes/fenêtres détaillées (seulement deux segments bleus en haut et bas pouvant représenter des ouvertures extérieures). Les cercles rouges semblent être des symboles annotatifs (peut-être luminaires ou points de mesure) sans légende explicite. Les surfaces sont estimées proportionnellement à la surface totale annoncée de 120 m² et à la disposition visuelle des pièces. Aucune échelle métrique précise n'est fournie sur le plan, ce qui limite la fiabilité des dimensions exactes."
+    },
+    "score": 70,
+    "status": "success"
+  }
+]

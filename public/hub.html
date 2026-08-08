@@ -198,19 +198,40 @@
   <script>
     var HUB_PASSWORD = 'visite2026';   /* a changer */
 
+    /* Registre des visites créées avec l'outil visite-tools (properties-index.json).
+       Rempli en asynchrone au démarrage ; fusionné dans projetsDe(). branding.js
+       reste la source de vérité du branding, ce registre ne porte que le
+       rattachement projet -> agence/ville. */
+    var PROPERTIES_INDEX = {};
+
     var PIN = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/></svg>';
     var CUBE = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 7l9 5 9-5M12 12v10" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
 
     /* ---------- Donnees ---------- */
     function projetsDe(A){
+      var base;
       if (A.properties && A.properties.length) {
-        return A.properties.map(function(p){
+        base = A.properties.map(function(p){
           return { id:p.id, name:p.name || p.id, city:p.city || 'Autres',
                    page:p.page || ('index-' + A.id + '.html') };
         });
+      } else {
+        base = [{ id:A.property || 'demo-rambouillet', name:'Appartement 2 pièces',
+                  city:'Rambouillet', page:'index-' + A.id + '.html' }];
       }
-      return [{ id:A.property || 'demo-rambouillet', name:'Appartement 2 pièces',
-                city:'Rambouillet', page:'index-' + A.id + '.html' }];
+      /* Fusion des visites enregistrées via properties-index.json (append seul,
+         dédoublonné par id — branding.js garde la priorité). */
+      var extra = PROPERTIES_INDEX[A.id];
+      if (extra && extra.length) {
+        var vus = {}; base.forEach(function(p){ vus[p.id] = true; });
+        extra.forEach(function(p){
+          if (!p || !p.id || vus[p.id]) return;
+          base.push({ id:p.id, name:p.name || p.id, city:p.city || 'Autres',
+                      page:p.page || ('index-' + A.id + '.html') });
+          vus[p.id] = true;
+        });
+      }
+      return base;
     }
     function villesDe(A){
       var par = {};
@@ -392,6 +413,15 @@
     }
     document.getElementById('go').addEventListener('click',tryPwd);
     document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')tryPwd();});
+    /* Charge le registre des visites créées via visite-tools, puis rafraîchit
+       la vue courante si le hub est déjà affiché. Échec silencieux (fichier
+       absent = simplement aucune visite enregistrée par l'outil). */
+    fetch('properties-index.json', { cache: 'no-cache' })
+      .then(function(r){ return r.ok ? r.json() : {}; })
+      .then(function(j){ PROPERTIES_INDEX = (j && typeof j === 'object') ? j : {};
+        if (document.getElementById('app').style.display === 'block') route(); })
+      .catch(function(){});
+
     try{if(sessionStorage.getItem('hub_ok')==='1')unlock();}catch(e){}
 
     document.getElementById('q').addEventListener('input',function(e){

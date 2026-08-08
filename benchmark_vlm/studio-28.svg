@@ -1,0 +1,18 @@
+<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Murs extérieurs -->
+  <rect x="20" y="20" width="260" height="160" fill="none" stroke="black" stroke-width="3"/>
+  <!-- Cloison cuisine -->
+  <line x1="20" y1="100" x2="100" y2="100" stroke="black" stroke-width="2"/>
+  <!-- Cloison salle d'eau -->
+  <line x1="220" y1="20" x2="220" y2="100" stroke="black" stroke-width="2"/>
+  <!-- Portes -->
+  <circle cx="110" cy="100" r="8" fill="none" stroke="red" stroke-width="1"/>
+  <circle cx="220" cy="110" r="8" fill="none" stroke="red" stroke-width="1"/>
+  <!-- Fenêtres -->
+  <rect x="40" y="20" width="40" height="3" fill="blue"/>
+  <rect x="200" y="180" width="50" height="3" fill="blue"/>
+  <!-- Labels -->
+  <text x="60" y="60" font-size="10">Séjour</text>
+  <text x="60" y="140" font-size="10">Cuisine</text>
+  <text x="230" y="60" font-size="9">S.d.eau</text>
+</svg>

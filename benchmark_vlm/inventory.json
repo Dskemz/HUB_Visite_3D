@@ -1,0 +1,31 @@
+{
+  "generated": "2026-08-07",
+  "total": 5,
+  "plans": [
+    {
+      "id": "studio-28",
+      "title": "Studio 28 m²",
+      "description": "Studio compact - chambre/séjour ouvert, cuisine, salle d'eau"
+    },
+    {
+      "id": "t2-45",
+      "title": "T2 45 m²",
+      "description": "2 pièces - chambre, séjour-cuisine ouvert, salle d'eau"
+    },
+    {
+      "id": "t3-75",
+      "title": "T3 75 m²",
+      "description": "3 pièces - 2 chambres, séjour, cuisine séparée, salle d'eau"
+    },
+    {
+      "id": "t4-100",
+      "title": "T4 100 m²",
+      "description": "4 pièces - 3 chambres, séjour, cuisine, salle d'eau, dégagement"
+    },
+    {
+      "id": "maison-120",
+      "title": "Maison 120 m² plain-pied",
+      "description": "Maison individual - 3 chambres, séjour, cuisine, salle d'eau, dégagement"
+    }
+  ]
+}

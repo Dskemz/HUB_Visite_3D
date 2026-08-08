@@ -18,7 +18,36 @@
       'sixieme-avenue':{id:'sixieme-avenue',name:'Sixième Avenue',navy:'#0C2C2B',navyRgb:'12,44,43',accent:'#2E7E7C',accentRgb:'46,126,124',accentDark:'#245F5C',logo:'sixieme',property:'demo-rambouillet'}
     };
     window.resolveAgency=function(){var id=new URLSearchParams(location.search).get('agency')||'laforet';return window.AGENCIES[id]||window.AGENCIES['laforet'];};
-    var A=window.resolveAgency();
+    /* ===== Override de marque PAR BIEN (optionnel) : properties/<id>/branding.json =====
+       Chargé UNE seule fois, en synchrone, AVANT tout calcul de couleur du viewer,
+       pour que skybox / marqueurs POV / plan héritent tous des mêmes teintes.
+       Fichier absent ou illisible → on garde la marque de l'agence (échec silencieux). */
+    window.__hexToRgb=function(h){h=String(h).replace('#','');if(h.length===3)h=h.split('').map(function(c){return c+c;}).join('');var n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255];};
+    window.__darken=function(h,f){var r=window.__hexToRgb(h);f=(f==null?0.8:f);function p(v){v=Math.max(0,Math.min(255,Math.round(v*f)));return ('0'+v.toString(16)).slice(-2);}return '#'+p(r[0])+p(r[1])+p(r[2]);};
+    window.__loadPropBrand=function(){
+      if(window.__propBrand!==undefined) return window.__propBrand;
+      window.__propBrand=null;
+      try{
+        var id=new URLSearchParams(location.search).get('property');
+        if(!id) return null;
+        var x=new XMLHttpRequest();
+        x.open('GET','properties/'+id+'/branding.json',false);
+        x.send(null);
+        if(x.status>=200&&x.status<300){var o=JSON.parse(x.responseText);if(o&&typeof o==='object')window.__propBrand=o;}
+      }catch(e){}
+      return window.__propBrand;
+    };
+    window.__mergePropBrand=function(A){
+      var o=window.__loadPropBrand(); if(!o) return A;
+      var B={}; for(var k in A) B[k]=A[k];
+      if(o.navy){B.navy=o.navy;B.navyRgb=o.navyRgb||window.__hexToRgb(o.navy).join(',');}
+      if(o.navyRgb) B.navyRgb=o.navyRgb;
+      if(o.accent){B.accent=o.accent;B.accentRgb=o.accentRgb||window.__hexToRgb(o.accent).join(',');B.accentDark=o.accentDark||window.__darken(o.accent,0.8);}
+      if(o.accentRgb) B.accentRgb=o.accentRgb;
+      if(o.accentDark) B.accentDark=o.accentDark;
+      return B;
+    };
+    var A=window.__mergePropBrand(window.resolveAgency());
     window.__BRAND__=A;
     var s=document.documentElement.style;
     s.setProperty('--brand-navy',A.navy);s.setProperty('--brand-navy-rgb',A.navyRgb);
@@ -30,6 +59,7 @@
   <script>
   (function(){
     var A=(window.resolveAgency&&window.resolveAgency())||{name:'Visite 3D',navy:'#2d2d2d',navyRgb:'45,45,45',accent:'#d97757',accentRgb:'217,119,87',accentDark:'#c66641',logo:null};
+    if(window.__mergePropBrand) A=window.__mergePropBrand(A);
     window.__BRAND__=A;
     var s=document.documentElement.style;
     s.setProperty('--brand-navy',A.navy); s.setProperty('--brand-navy-rgb',A.navyRgb);
