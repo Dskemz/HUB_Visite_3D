@@ -426,6 +426,46 @@
       font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 150;
     }
     .measure-clear:hover { background: var(--brand-accent); color: #fff; border-color: var(--brand-accent); }
+
+    /* ============ VIEWER 2.0 — Incrément 1 : orientation, vignettes, aide ============ */
+    /* Fil d'Ariane dans le header : Bien / Pièce courante (orientation permanente) */
+    .breadcrumb { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+    .breadcrumb .bc-prop { font-size: 0.92rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; letter-spacing: 0.01em; }
+    .breadcrumb .bc-sep { color: rgba(255,255,255,0.4); font-weight: 400; }
+    .breadcrumb .bc-room { font-size: 0.82rem; font-weight: 500; color: rgba(255,255,255,0.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+    @media (max-width: 900px){ .breadcrumb .bc-prop { max-width: 40vw; } .breadcrumb .bc-room { max-width: 30vw; } }
+
+    /* Carte de pièce enrichie (desktop) : vignette photo réelle + nom + coche visité */
+    .poi-btn.poi-card { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.5rem 0.6rem; }
+    .poi-card .pc-thumb { width: 58px; height: 44px; flex: 0 0 auto; border-radius: 7px; overflow: hidden; background: rgba(255,255,255,0.08); position: relative; }
+    .poi-card .pc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 0.45s ease; }
+    .poi-card .pc-thumb img.loaded { opacity: 1; }
+    .poi-card .pc-thumb .sk { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.14), rgba(255,255,255,0.05)); background-size: 200% 100%; animation: pcSkeleton 1.3s ease-in-out infinite; }
+    @keyframes pcSkeleton { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .poi-card .pc-name { flex: 1; min-width: 0; font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .poi-card .pc-check { width: 17px; height: 17px; flex: 0 0 auto; opacity: 0; transition: opacity 0.2s ease; }
+    .poi-btn.visited .pc-check { opacity: 1; }
+    .poi-card .pc-check svg { width: 100%; height: 100%; stroke: var(--brand-accent); stroke-width: 2.6; fill: none; }
+    .poi-btn.active.poi-card { background: rgba(var(--brand-accent-rgb),0.16); border-color: rgba(var(--brand-accent-rgb),0.42); }
+
+    /* Bouton d'action header générique (icône SVG) — mesure & aide */
+    .hdr-icon-btn { display: inline-flex; align-items: center; gap: 0.45rem; flex: 0 0 auto; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 9px; padding: 0.55rem 0.95rem; font-size: 0.86rem; font-weight: 700; font-family: inherit; line-height: 1; cursor: pointer; transition: background .18s, border-color .18s, transform .12s; }
+    .hdr-icon-btn:hover { background: rgba(255,255,255,0.24); transform: translateY(-1px); }
+    .hdr-icon-btn:active { transform: translateY(1px); }
+    .hdr-icon-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+    /* Overlay d'aide (raccourcis) */
+    .vhelp { position: fixed; inset: 0; z-index: 500; display: none; place-items: center; background: rgba(10,8,6,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+    .vhelp.on { display: grid; }
+    .vhelp-card { width: min(92vw, 430px); background: rgba(var(--brand-navy-rgb),0.86); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.22); border-radius: 16px; padding: 22px 24px; color: #fff; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+    .vhelp-card h3 { font-size: 1.02rem; font-weight: 700; margin: 0 0 14px; }
+    .vhelp-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.86rem; }
+    .vhelp-row:last-child { border-bottom: none; }
+    .vhelp-row .d { color: rgba(255,255,255,0.72); }
+    .vhelp-row .keys { display: flex; gap: 5px; }
+    .vhelp-row kbd { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.74rem; padding: 3px 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.24); border-radius: 6px; color: #fff; }
+    .vhelp-close { margin-top: 16px; width: 100%; height: 40px; border-radius: 9px; background: var(--brand-accent); color: #fff; font-weight: 700; font-size: 0.86rem; cursor: pointer; }
+    :focus-visible { outline: 2.5px solid var(--brand-accent); outline-offset: 2px; }
     
     .loading-bar { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; }
     .loading-bar h3 { font-size: 1rem; color: #333; margin-bottom: 1rem; font-weight: 500; }
@@ -757,9 +797,9 @@
       .lightbox img { max-width: 96%; max-height: 82%; }
 
       /* Bouton Mesurer : icône seule dans le bandeau (comme les autres). */
-      .measure-btn { min-height: 44px; padding: 0.45rem 0.7rem; }
-      .measure-btn .measure-lbl { display: none; }
-      .measure-btn { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+      .measure-btn, .hdr-icon-btn { min-height: 44px; padding: 0.45rem 0.6rem; }
+      .measure-btn .measure-lbl, .hdr-icon-btn .measure-lbl { display: none; }
+      .measure-btn, .hdr-icon-btn { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
       /* --- COUCHE FEUILLE --- */
       .right-panel-wrapper {
@@ -957,10 +997,18 @@
         <span class="property-title" id="header-title">Chargement…</span>
         <small>Visite virtuelle 3D</small>
       </div>
+      <nav class="breadcrumb" id="breadcrumb" aria-label="Fil d'Ariane">
+        <span class="bc-prop" id="bc-prop">Visite 3D</span>
+        <span class="bc-sep">/</span>
+        <span class="bc-room" id="bc-room">Vue d'ensemble</span>
+      </nav>
     </div>
     <div class="header-spacer"></div>
-    <button class="measure-btn" id="btn-measure" onclick="toggleMeasure()" title="Mesurer une distance (ex : mon canapé rentre-t-il ?)">
-      <span aria-hidden="true">📏</span><span class="measure-lbl">Mesurer</span>
+    <button class="hdr-icon-btn" id="btn-measure" onclick="toggleMeasure()" title="Mesurer une distance (ex : mon canapé rentre-t-il ?)" aria-label="Mesurer une distance">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12l10-10 10 10-10 10z"/><path d="M8 12h1M12 8v1M12 15v1M15 12h1"/></svg><span class="measure-lbl">Mesurer</span>
+    </button>
+    <button class="hdr-icon-btn" id="btn-help" onclick="toggleHelp()" title="Aide et raccourcis" aria-label="Aide et raccourcis clavier">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 013.5 2.3c0 1.5-2 1.7-2 3M12 17h.01"/></svg><span class="measure-lbl">Aide</span>
     </button>
     <button class="toggle-view-btn" id="btn-toggle-view" onclick="toggleViewMode()">
       <span class="btn-icon" id="btn-icon"></span>
@@ -993,6 +1041,20 @@
        style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:120;"></svg>
   <div class="measure-hint" id="measure-hint"></div>
   <button class="measure-clear" id="measure-clear" onclick="clearMeasures()" title="Effacer les mesures">✕ Effacer les mesures</button>
+
+  <!-- OVERLAY AIDE (raccourcis) -->
+  <div class="vhelp" id="vhelp" onclick="if(event.target===this)toggleHelp()">
+    <div class="vhelp-card" role="dialog" aria-label="Raccourcis clavier">
+      <h3>Raccourcis</h3>
+      <div class="vhelp-row"><span class="d">Pièce suivante / précédente</span><span class="keys"><kbd>→</kbd><kbd>←</kbd></span></div>
+      <div class="vhelp-row"><span class="d">Basculer vue de dessus</span><span class="keys"><kbd>P</kbd></span></div>
+      <div class="vhelp-row"><span class="d">Mesurer une distance</span><span class="keys"><kbd>M</kbd></span></div>
+      <div class="vhelp-row"><span class="d">Ouvrir / fermer le panneau</span><span class="keys"><kbd>L</kbd></span></div>
+      <div class="vhelp-row"><span class="d">Fermer / annuler</span><span class="keys"><kbd>Échap</kbd></span></div>
+      <div class="vhelp-row"><span class="d">Cette aide</span><span class="keys"><kbd>?</kbd></span></div>
+      <button class="vhelp-close" onclick="toggleHelp()">Compris</button>
+    </div>
+  </div>
 
   <!-- INDICATION "REGARDER AUTOUR" (vue 1ère personne) -->
   <div class="fp-look-hint" id="fp-look-hint">Cliquez-glissez horizontalement pour balayer la pièce du regard</div>
@@ -3013,6 +3075,7 @@ function resetView() {
     exitPanoramaCamera();               // rebascule sur l'ArcRotate, alignée sur la vue panorama
     isFirstPerson = false;
     currentPoiId = null;
+    if (typeof updateBreadcrumb==='function') updateBreadcrumb();
     setMarkersVisible(true);
     rebuildPoiList();
     camera.panningSensibility = 300;    // translation au clic droit réactivée
@@ -3290,6 +3353,7 @@ async function loadManifest() {
   }
 
   (function(){var _pn=propertyData.name||'Visite 3D';if(window.__BRAND__&&window.__BRAND__.id&&window.__BRAND__.id!=='laforet'){_pn=_pn.replace(/^\s*la\s*for[e\u00EA]t\s*[-\u2013\u2014:]\s*/i,'');}document.getElementById('header-title').textContent=_pn;})();
+  if (typeof updateBreadcrumb==='function') updateBreadcrumb();
   // Si le manifest ne contient aucun POI, on les génère après le chargement des murs
   // (generateDefaultPOIs a besoin de modelBounds, donc appelé depuis loadWalls())
 }
@@ -3607,6 +3671,7 @@ function enterFirstPerson(poi) {
   isTopView = false;
   isFirstPerson = true;
   currentPoiId = poi.id;
+  if (typeof updateBreadcrumb==='function') updateBreadcrumb(poi.id);
   setHudVisible(false); // masque le HUD plan si on partait de la vue de dessus
 
   // Stopper tout observer d'animation en cours
@@ -3721,6 +3786,7 @@ function travelBetweenPovs(poi) {
   isTopView = false;
   isFirstPerson = true;
   currentPoiId = poi.id;
+  if (typeof updateBreadcrumb==='function') updateBreadcrumb(poi.id);
 
   // On rend la main au moteur pendant le vol : ni contrôle souris/tactile, ni
   // clamp de tangage, ni zoom — tout est rétabli à l'arrivée par
@@ -3940,14 +4006,29 @@ function rebuildPoiList() {
   const pois = poisInStableOrder();
   const phone = isPhoneUI();
 
-  // Cartes de pièce — identiques sur les deux plateformes.
+  // Cartes de pièce — desktop : vignette photo réelle + nom + coche « visité ».
+  // Téléphone : titre seul (inchangé ; la passe mobile viendra ensuite).
+  const base = CONFIG.assetsBase(CONFIG.propertyId);
   const itemsHTML = pois.map(poi => {
     const hasPhotos = (Array.isArray(poi.photos) && poi.photos.length) || !!poi.image;
-    // .poi-btn : titre (desktop = bouton POV inchangé ; téléphone = titre de carte).
+    const isActive  = poi.id === currentPoiId;
+    const isVisited = window.__visited && window.__visited.has(poi.id);
+    const cls = `poi-btn${phone ? '' : ' poi-card'}${isActive ? ' active' : ''}${isVisited ? ' visited' : ''}`;
+    let inner;
+    if (phone) {
+      inner = poiLabel(poi);
+    } else {
+      const img = poi.image || (Array.isArray(poi.photos) && poi.photos[0]) || '';
+      const thumb = img
+        ? `<span class="pc-thumb"><span class="sk"></span><img src="${base + encodeURIComponent(img) + '?v=' + CONFIG.photoVersion}" alt="" loading="lazy" onload="this.classList.add('loaded');var s=this.previousElementSibling;if(s&&s.classList.contains('sk'))s.remove()"></span>`
+        : `<span class="pc-thumb"></span>`;
+      inner = `${thumb}<span class="pc-name">${poiLabel(poi)}</span><span class="pc-check"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></span>`;
+    }
+    // .poi-btn : titre (desktop = carte vignette ; téléphone = titre de carte).
     // .poi-item-acts : visible UNIQUEMENT sur téléphone (bouton Photos).
     return `
       <div class="poi-item" style="order:${poiRank(poi)}">
-        <button class="poi-btn" id="poi-${poi.id}" data-poi="${poi.id}" onclick="onPoiNameClick('${poi.id}')">${poiLabel(poi)}</button>
+        <button class="${cls}" id="poi-${poi.id}" data-poi="${poi.id}" onclick="onPoiNameClick('${poi.id}')">${inner}</button>
         <div class="poi-item-acts">
           ${hasPhotos ? `<button class="poi-mini poi-mini-photo" onclick="event.stopPropagation(); openPhotosFromMenu('${poi.id}')" title="Photos de la pièce">
             <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="10" r="1.6" fill="currentColor"/><path d="M21 16l-5-5-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -4429,6 +4510,59 @@ function poiProject(world) {
   window.clearMeasures = clear;
 })();
 
+/* ============================================================================
+   VIEWER 2.0 — Incrément 1 : orientation (fil d'Ariane), navigation clavier, aide
+   ========================================================================== */
+window.__visited = new Set();
+
+function updateBreadcrumb(markId){
+  try{
+    if (markId) window.__visited.add(markId);
+    const propEl = document.getElementById('bc-prop');
+    const roomEl = document.getElementById('bc-room');
+    if (propEl){
+      const ht = document.getElementById('header-title');
+      const fromHeader = ht && ht.textContent && ht.textContent !== 'Chargement…' ? ht.textContent : null;
+      propEl.textContent = fromHeader || ((typeof propertyData!=='undefined' && propertyData && propertyData.name) || 'Visite 3D');
+    }
+    if (roomEl){
+      let label = "Vue d'ensemble";
+      if (typeof currentPoiId!=='undefined' && currentPoiId && typeof propertyData!=='undefined' && propertyData){
+        const p = (propertyData.poi||[]).find(x=>x.id===currentPoiId);
+        if (p) label = (typeof poiLabel==='function') ? poiLabel(p) : (p.label||p.id);
+      }
+      roomEl.textContent = label;
+    }
+  }catch(_){}
+}
+
+function toggleHelp(){ const h=document.getElementById('vhelp'); if(h) h.classList.toggle('on'); }
+
+function navStep(dir){
+  if (typeof propertyData==='undefined' || !propertyData) return;
+  if (typeof poisInStableOrder!=='function' || typeof goToPOI!=='function') return;
+  const list = poisInStableOrder(); if (!list.length) return;
+  let i = list.findIndex(p=>p.id===currentPoiId);
+  if (i<0) i = (dir>0 ? -1 : 0);
+  const ni = (i + dir + list.length) % list.length;
+  goToPOI(list[ni].id);
+}
+
+window.addEventListener('keydown', function(e){
+  // Raccourcis réservés au viewer PUBLIC (jamais dans l'éditeur embarqué)
+  if (typeof EDIT_MODE!=='undefined' && EDIT_MODE) return;
+  const t = e.target;
+  if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+  const k = e.key;
+  if (k==='ArrowRight'){ e.preventDefault(); navStep(1); }
+  else if (k==='ArrowLeft'){ e.preventDefault(); navStep(-1); }
+  else if (k==='?'){ e.preventDefault(); toggleHelp(); }
+  else if (k==='Escape'){ const h=document.getElementById('vhelp'); if(h && h.classList.contains('on')) h.classList.remove('on'); }
+  else if (k && k.toLowerCase()==='m'){ if (typeof toggleMeasure==='function') toggleMeasure(); }
+  else if (k && k.toLowerCase()==='p'){ const b=document.getElementById('btn-toggle-view'); if(b) b.click(); }
+  else if (k && k.toLowerCase()==='l'){ if (typeof togglePoiPanel==='function') togglePoiPanel(); }
+});
+
 let _markersVisible = true;      // état demandé (visite = true, POV immersif = false)
 let _poiProjObs = null;          // observer unique de projection par frame
 
@@ -4524,6 +4658,7 @@ function playTopViewAnimation() {
     exitPanoramaCamera();               // rebascule sur l'ArcRotate, alignée sur la vue panorama
     isFirstPerson = false;
     currentPoiId = null;
+    if (typeof updateBreadcrumb==='function') updateBreadcrumb();
     setMarkersVisible(true);
     rebuildPoiList();
     camera.panningSensibility = 300;    // translation au clic droit réactivée
@@ -5498,6 +5633,8 @@ if (EDIT_MODE) {
   // le viewer embarqué par l'éditeur (viewer-edit.html charge ?edit=1).
   var _mBtn = document.getElementById('btn-measure');
   if (_mBtn) _mBtn.style.display = 'none';
+  var _hBtn = document.getElementById('btn-help');
+  if (_hBtn) _hBtn.style.display = 'none';
 }
 
 /* ============================================================================
