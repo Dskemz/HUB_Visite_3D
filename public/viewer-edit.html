@@ -239,7 +239,10 @@
       </div>
 
       <div id="p-cot">
-        <div style="background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+        <!-- Outil « Mesurer » (règle libre) DÉPLACÉ vers le viewer public
+             (viewer.html) : c'est une fonctionnalité visiteur, pas éditeur.
+             Bloc masqué ici ; le moteur de règle reste en place mais dormant. -->
+        <div style="display:none;background:var(--bg-0);padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
           <div style="display:flex;gap:.5rem;align-items:stretch;">
             <button class="btn" id="b-regle" onclick="toggleRegle()" style="flex:1;">📏 Mesurer</button>
           </div>

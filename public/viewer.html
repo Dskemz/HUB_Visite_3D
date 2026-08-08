@@ -399,6 +399,33 @@
     
     .reset-btn { position: absolute; bottom: 1rem; right: 1rem; pointer-events: auto; background: rgba(255,255,255,0.95); border: 1px solid #ddd; border-radius: 999px; padding: 0.6rem 1.1rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 0.4rem; font-family: inherit; }
     .reset-btn:hover { background: var(--brand-accent); color: white; border-color: var(--brand-accent); }
+
+    /* ----- OUTIL MESURE (visiteur) ----- */
+    .measure-btn {
+      display: inline-flex; align-items: center; gap: 0.45rem; flex: 0 0 auto;
+      background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 9px; padding: 0.6rem 1.0rem; font-size: 0.86rem; font-weight: 700;
+      font-family: inherit; line-height: 1; cursor: pointer; pointer-events: auto;
+      transition: background .2s ease, border-color .2s ease, transform .15s ease;
+    }
+    .measure-btn:hover { background: rgba(255,255,255,0.26); transform: translateY(-1px); }
+    .measure-btn.active { background: var(--brand-accent); border-color: var(--brand-accent);
+      box-shadow: 0 4px 14px rgba(var(--brand-accent-rgb),0.45); }
+    .measure-hint {
+      position: absolute; bottom: 1.2rem; left: 50%; transform: translateX(-50%);
+      background: rgba(var(--brand-navy-rgb),0.9); color: #fff; padding: 0.5rem 1.1rem;
+      border-radius: 999px; font-size: 0.82rem; font-weight: 600; pointer-events: none;
+      white-space: nowrap; max-width: calc(100vw - 2rem); text-align: center;
+      opacity: 0; transition: opacity 0.3s; z-index: 150;
+    }
+    .measure-hint.show { opacity: 1; }
+    .measure-clear {
+      position: absolute; bottom: 1rem; left: 1rem; display: none; align-items: center; gap: 0.4rem;
+      pointer-events: auto; background: rgba(255,255,255,0.95); color: #333; border: 1px solid #ddd;
+      border-radius: 999px; padding: 0.55rem 1rem; cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 150;
+    }
+    .measure-clear:hover { background: var(--brand-accent); color: #fff; border-color: var(--brand-accent); }
     
     .loading-bar { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; }
     .loading-bar h3 { font-size: 1rem; color: #333; margin-bottom: 1rem; font-weight: 500; }
@@ -729,6 +756,11 @@
       .info-panel { max-width: calc(100vw - 2rem); left: 1rem; right: 1rem; bottom: auto; top: calc(var(--hdr-top) + 8px); }
       .lightbox img { max-width: 96%; max-height: 82%; }
 
+      /* Bouton Mesurer : icône seule dans le bandeau (comme les autres). */
+      .measure-btn { min-height: 44px; padding: 0.45rem 0.7rem; }
+      .measure-btn .measure-lbl { display: none; }
+      .measure-btn { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
       /* --- COUCHE FEUILLE --- */
       .right-panel-wrapper {
         top: auto; left: 0; right: 0; bottom: 0;
@@ -927,6 +959,9 @@
       </div>
     </div>
     <div class="header-spacer"></div>
+    <button class="measure-btn" id="btn-measure" onclick="toggleMeasure()" title="Mesurer une distance (ex : mon canapé rentre-t-il ?)">
+      <span aria-hidden="true">📏</span><span class="measure-lbl">Mesurer</span>
+    </button>
     <button class="toggle-view-btn" id="btn-toggle-view" onclick="toggleViewMode()">
       <span class="btn-icon" id="btn-icon"></span>
       <span class="btn-label" id="btn-label">Vue de dessus</span>
@@ -952,6 +987,12 @@
   </div>
 
   <button class="reset-btn" onclick="resetView()" title="Recentrer la vue"><span class="reset-ico">⟳</span><span class="reset-lbl">Recentrer</span></button>
+
+  <!-- OUTIL MESURE (visiteur) : overlay des tracés + astuce + effacer -->
+  <svg id="ruler-overlay" xmlns="http://www.w3.org/2000/svg"
+       style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:120;"></svg>
+  <div class="measure-hint" id="measure-hint"></div>
+  <button class="measure-clear" id="measure-clear" onclick="clearMeasures()" title="Effacer les mesures">✕ Effacer les mesures</button>
 
   <!-- INDICATION "REGARDER AUTOUR" (vue 1ère personne) -->
   <div class="fp-look-hint" id="fp-look-hint">Cliquez-glissez horizontalement pour balayer la pièce du regard</div>
@@ -4201,6 +4242,193 @@ function poiProject(world) {
   return { x: p.x * (cv.clientWidth / w), y: p.y * (cv.clientHeight / h), z: p.z };
 }
 
+/* ============================================================================
+   OUTIL MESURE (visiteur) — règle 3D point A → point B
+   ----------------------------------------------------------------------------
+   Permet au visiteur de vérifier une dimension dans le bien (ex : « mon canapé
+   de 3,24 m rentre-t-il ici ? »). On clique un 1er point sur le décor, puis un
+   2e : la distance réelle s'affiche. Réutilise l'infra du viewer :
+     • armPickPlacement('ruler') pose __pickPlaceMode → la navigation POI est
+       automatiquement suspendue pendant la mesure (voir handler de clic POI) ;
+     • poiProject() projette les points 3D→écran, comme les marqueurs POV ;
+     • le picking ignore les marqueurs POV et le skybox (décor uniquement).
+   Rendu sur un overlay SVG dédié (#ruler-overlay), redessiné à chaque frame.
+   Les mesures restent visibles (et projetées) jusqu'au bouton « Effacer », même
+   après avoir quitté le mode mesure. Rien n'est écrit dans le manifest.
+   ========================================================================== */
+(function(){
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  let mActive = false;      // mode mesure armé
+  let mA = null;            // 1er point posé [x,y,z] en attente du 2e
+  let mLive = null;         // point courant sous le curseur (aperçu)
+  let mList = [];           // [{a:[x,y,z], b:[x,y,z], d:number}]
+  let mMoveObs = null, mTapObs = null, mFrameObs = null;
+
+  function r3(v){ return Math.round(v*1000)/1000; }
+  function v3(a){ return new BABYLON.Vector3(a[0], a[1], a[2]); }
+  function dist(a,b){ const dx=a[0]-b[0], dy=a[1]-b[1], dz=a[2]-b[2]; return Math.sqrt(dx*dx+dy*dy+dz*dz); }
+  function fmt(len){ return (Math.round(len*100)/100).toFixed(2).replace('.', ',') + ' m'; }
+
+  function overlay(){
+    let ov = document.getElementById('ruler-overlay');
+    if (!ov){
+      ov = document.createElementNS(SVGNS, 'svg');
+      ov.id = 'ruler-overlay';
+      ov.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:120;';
+      const host = document.getElementById('ui-overlay') || document.body;
+      host.appendChild(ov);
+    }
+    return ov;
+  }
+  function seg(g, pa, pb, dashed){
+    const ln = document.createElementNS(SVGNS,'line');
+    ln.setAttribute('x1', pa.x); ln.setAttribute('y1', pa.y);
+    ln.setAttribute('x2', pb.x); ln.setAttribute('y2', pb.y);
+    ln.setAttribute('stroke', 'var(--brand-accent, #f59e0b)');
+    ln.setAttribute('stroke-width', dashed ? '2.5' : '3');
+    ln.setAttribute('stroke-linecap', 'round');
+    if (dashed) ln.setAttribute('stroke-dasharray', '7 6');
+    g.appendChild(ln);
+  }
+  function dot(g, p){
+    const c = document.createElementNS(SVGNS,'circle');
+    c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); c.setAttribute('r', '5');
+    c.setAttribute('fill', 'var(--brand-accent, #f59e0b)');
+    c.setAttribute('stroke', '#fff'); c.setAttribute('stroke-width', '2');
+    g.appendChild(c);
+  }
+  function label(g, p, txt){
+    const t = document.createElementNS(SVGNS,'text');
+    t.setAttribute('x', p.x + 12); t.setAttribute('y', p.y - 12);
+    t.setAttribute('font-family', 'system-ui, sans-serif');
+    t.setAttribute('font-size', '15'); t.setAttribute('font-weight', '800');
+    t.setAttribute('fill', '#fff'); t.setAttribute('stroke', 'rgba(0,0,0,.8)');
+    t.setAttribute('stroke-width', '4'); t.setAttribute('paint-order', 'stroke');
+    t.textContent = txt;
+    g.appendChild(t);
+  }
+  // Un point est affichable s'il est devant la caméra (z dans ]0,1[).
+  function proj(a){ const p = poiProject(v3(a)); p._ok = (p.z > 0 && p.z < 1); return p; }
+
+  function draw(){
+    const ov = overlay();
+    while (ov.firstChild) ov.removeChild(ov.firstChild);
+    if (typeof poiProject !== 'function') return;
+    const g = document.createElementNS(SVGNS,'g');
+    mList.forEach(function(m){
+      const pa = proj(m.a), pb = proj(m.b);
+      if (!pa._ok && !pb._ok) return;      // segment entièrement derrière la caméra
+      seg(g, pa, pb, false); dot(g, pa); dot(g, pb);
+      label(g, { x:(pa.x+pb.x)/2, y:(pa.y+pb.y)/2 }, fmt(m.d));
+    });
+    if (mActive && mA){
+      const pa = proj(mA); dot(g, pa);
+      if (mLive){
+        const pl = proj(mLive);
+        seg(g, pa, pl, true);
+        label(g, { x:(pa.x+pl.x)/2, y:(pa.y+pl.y)/2 }, fmt(dist(mA, mLive)));
+      }
+    }
+    ov.appendChild(g);
+  }
+
+  // Picking décor (ni POV, ni skybox), sous le curseur.
+  function pickPoint(){
+    try {
+      const pk = scene.pick(scene.pointerX, scene.pointerY, function(m){
+        return m.isPickable !== false && !m.poiId && m.name !== 'skybox';
+      });
+      if (pk && pk.hit && pk.pickedPoint){
+        const q = pk.pickedPoint; return [ r3(q.x), r3(q.y), r3(q.z) ];
+      }
+    } catch(_){}
+    return null;
+  }
+
+  function hint(txt){
+    const h = document.getElementById('measure-hint');
+    if (!h) return;
+    if (txt){ h.textContent = txt; h.classList.add('show'); }
+    else h.classList.remove('show');
+  }
+  function majClear(){
+    const b = document.getElementById('measure-clear');
+    if (b) b.style.display = mList.length ? 'inline-flex' : 'none';
+  }
+
+  function place(){
+    const p = pickPoint(); if (!p) return;
+    if (!mA){ mA = p; mLive = p; hint('Cliquez le second point'); }
+    else {
+      const d = dist(mA, p);
+      mList.push({ a: mA, b: p, d: Math.round(d*100)/100 });
+      mA = null; mLive = null;
+      hint('Mesure ajoutée — cliquez un point pour en mesurer une autre');
+      majClear();
+    }
+    draw();
+  }
+
+  function ensureFrame(){
+    if (mFrameObs || !scene) return;
+    mFrameObs = scene.onBeforeRenderObservable.add(function(){
+      if (mActive || mList.length) draw();
+    });
+  }
+
+  function toggle(){
+    mActive = !mActive;
+    const btn = document.getElementById('btn-measure');
+    const cv  = document.getElementById('canvas');
+    if (btn) btn.classList.toggle('active', mActive);
+    if (mActive){
+      ensureFrame();
+      mA = null; mLive = null;
+      // Suspend la navigation POI (via __pickPlaceMode) sans utiliser son
+      // callback : on gère nous-mêmes la pose au POINTERTAP (fiable en orbite
+      // ET en 1ère personne, contrairement au POINTERPICK qui part au drag).
+      if (typeof window.armPickPlacement === 'function') window.armPickPlacement('ruler', null);
+      else window.__pickPlaceMode = 'ruler';
+      if (cv) cv.style.cursor = 'crosshair';
+      mTapObs = scene.onPointerObservable.add(function(pi){
+        if (pi.type === BABYLON.PointerEventTypes.POINTERTAP) place();
+      });
+      mMoveObs = scene.onPointerObservable.add(function(pi){
+        if (pi.type !== BABYLON.PointerEventTypes.POINTERMOVE) return;
+        if (!mA) return;
+        const w = pickPoint(); if (w) mLive = w;
+      });
+      window.addEventListener('keydown', onKey);
+      hint('Cliquez un premier point sur la pièce');
+    } else {
+      if (typeof window.disarmPickPlacement === 'function') window.disarmPickPlacement();
+      else window.__pickPlaceMode = null;
+      if (mTapObs){ scene.onPointerObservable.remove(mTapObs); mTapObs = null; }
+      if (mMoveObs){ scene.onPointerObservable.remove(mMoveObs); mMoveObs = null; }
+      window.removeEventListener('keydown', onKey);
+      if (cv) cv.style.cursor = '';
+      mA = null; mLive = null;
+      hint('');
+    }
+    majClear();
+    draw();
+  }
+  function onKey(e){
+    if (e.key === 'Escape'){
+      if (mA){ mA = null; mLive = null; hint('Cliquez un premier point sur la pièce'); draw(); }
+      else toggle();
+    }
+  }
+  function clear(){
+    mList = []; mA = null; mLive = null;
+    majClear(); draw();
+    if (mActive) hint('Cliquez un premier point sur la pièce');
+  }
+
+  window.toggleMeasure = toggle;
+  window.clearMeasures = clear;
+})();
+
 let _markersVisible = true;      // état demandé (visite = true, POV immersif = false)
 let _poiProjObs = null;          // observer unique de projection par frame
 
@@ -5266,6 +5494,10 @@ function showTopViewZoomCtrl(show) {
 // Afficher les contrôles de zoom UNIQUEMENT en mode édition
 if (EDIT_MODE) {
   showTopViewZoomCtrl(true);
+  // L'outil Mesure est une fonctionnalité VISITEUR : on masque son bouton dans
+  // le viewer embarqué par l'éditeur (viewer-edit.html charge ?edit=1).
+  var _mBtn = document.getElementById('btn-measure');
+  if (_mBtn) _mBtn.style.display = 'none';
 }
 
 /* ============================================================================
