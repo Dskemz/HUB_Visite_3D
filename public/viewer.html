@@ -509,7 +509,7 @@
     .cine-entry-in h1 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: clamp(2.4rem, 6.5vw, 5rem); line-height: .96; letter-spacing: -.02em; color: #fff; text-shadow: 0 4px 50px rgba(0,0,0,.6); }
     .cine-entry-in .rule { display: none; }
     .cine-entry-in .sub { font-size: 1rem; color: rgba(255,255,255,.8); margin-bottom: 30px; }
-    .cine-enter-btn { display: inline-flex; align-items: center; gap: 11px; padding: 15px 30px; border-radius: 14px; background: var(--brand-accent); color: #fff; font-weight: 600; font-size: .98rem; font-family: inherit; box-shadow: 0 14px 44px rgba(var(--brand-accent-rgb),.5); transition: transform .15s, background .2s; }
+    .cine-enter-btn { display: inline-flex; align-items: center; gap: 11px; margin-top: 18px; padding: 15px 30px; border-radius: 14px; background: var(--brand-accent); color: #fff; font-weight: 600; font-size: .98rem; font-family: inherit; box-shadow: 0 14px 44px rgba(var(--brand-accent-rgb),.5); transition: transform .15s, background .2s; }
     .cine-enter-btn:hover { background: var(--brand-accent-dark, #c15f3c); transform: translateY(-2px); }
     .cine-enter-btn svg { width: 18px; height: 18px; fill: #fff; }
     /* En mode éditeur, aucune couche cinématique ne doit apparaître */
@@ -1296,10 +1296,10 @@
     .cine-enter-btn > *{ position: relative; z-index: 1; }
     .cine-enter-btn::before{ display: none; }
     .cine-enter-btn:hover{
-      background: rgba(255,255,255,0.08) !important;
-      border-color: rgba(255,255,255,0.28) !important;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.4) !important;
-      transform: translateY(-1px);
+      background: var(--glass-bg-strong) !important;
+      border-color: rgba(var(--brand-accent-rgb),0.65) !important;
+      box-shadow: 0 0 28px rgba(var(--brand-accent-rgb),0.55), var(--glass-shadow) !important;
+      transform: translateY(-2px);
     }
     .cine-enter-btn svg{ fill: #fff; }
     /* Ecrin dark glassmorphism autour du bloc titre+bouton de la cover.
