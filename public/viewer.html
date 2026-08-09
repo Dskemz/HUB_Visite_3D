@@ -86,7 +86,9 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--brand-navy); }
     
-    #canvas { width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+    #canvas { width: 100%; height: 100%; display: block; outline: none; touch-action: none; transition: opacity .9s ease; }
+    /* V2 : le canvas demarre invisible et se revele en fondu quand le modele est pret */
+    #canvas.pre-reveal { opacity: 0; }
     
     /* UI OVERLAY */
     #ui-overlay { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
@@ -1281,7 +1283,7 @@
       box-shadow: 0 0 20px rgba(var(--brand-accent-rgb),0.35), var(--glass-shadow) !important;
       transform: translateY(-1px);
     }
-    .cine-guide svg{ fill: var(--brand-accent); }
+    .cine-guide svg{ fill: #fff; }
 
     /* "Commencer la visite" (cover) → pilule verre lumineuse (pt.2)
        On neutralise l'aplat plein et on applique la matière .lum-pill. */
@@ -1317,6 +1319,18 @@
     /* Vignettes "Photos réelles" du panneau POV → coins subtilement arrondis (pt.7) */
     .poi-panel .fp-photo-frame{ border-radius: 14px; }
 
+    /* V2 : panneau droit en verre fume NEUTRE (independant de la teinte de marque) */
+    .poi-panel{
+      background: rgba(16,18,22,0.72) !important;
+      box-shadow: -4px 0 26px rgba(0,0,0,0.45) !important;
+    }
+    .right-panel-container.reframing .poi-panel{ background: rgba(16,18,22,0.90) !important; }
+    .toggle-panel-btn{
+      background: rgba(16,18,22,0.60) !important;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.30) !important;
+    }
+    .toggle-panel-btn:hover{ background: rgba(16,18,22,0.78) !important; }
+
     /* Le rail masqué en mode éditeur (?edit=1) — l'éditeur garde ses propres outils */
     html.edit-mode .tool-rail, html.edit-mode .tour-topbar,
     html.edit-mode .rdv-overlay, html.edit-mode .bien-info{ display: none !important; }
@@ -1338,7 +1352,7 @@
 </head>
 <body>
 
-<canvas id="canvas" touch-action="none"></canvas>
+<canvas id="canvas" class="pre-reveal" touch-action="none"></canvas>
 
 <!-- Couche cinématique : letterbox + vignette au-dessus du canvas 3D -->
 <div class="cine-bar top"></div>
@@ -1614,7 +1628,7 @@ let currentAnimObserver = null; // observer d'animation actif (un seul à la foi
 // Sur mobile/petit écran, le panneau s'affiche en overlay PLEIN ÉCRAN. S'il est ouvert
 // au démarrage, il masque la visite et bloque la prise en main tactile. On démarre donc
 // FERMÉ sur petit écran (< 900px), OUVERT sur desktop comme avant.
-let isPoiPanelOpen = !(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+let isPoiPanelOpen = false; // V2 : panneau droit masque par defaut ; s'ouvre sur clic POV ou languette
 let poiMarkers = {}; // objets 3D pour les marqueurs POI (clé = poiId)
 let isFirstPerson = false; // true quand on est immergé en vue 1ère personne
 let fpCamera = null;        // caméra "tête" (UniversalCamera) qui pivote sur elle-même en 1ère personne
@@ -1711,8 +1725,8 @@ async function init() {
     // Mode éditeur : gris neutre, aligné sur le bord du dégradé de la skybox.
     if (new URLSearchParams(location.search).get('edit') === '1')
       return new BABYLON.Color4(43/255, 43/255, 43/255, 1);
-    var b=(window.__BRAND__&&window.__BRAND__.navyRgb)?window.__BRAND__.navyRgb.split(",").map(Number):[11,27,63];
-    return new BABYLON.Color4(b[0]*0.9/255,b[1]*0.74/255,b[2]*0.6/255,1);
+    // V2 : clearColor neutre sombre (aligne sur le bord du degrade skybox)
+    return new BABYLON.Color4(10/255, 11/255, 14/255, 1);
   })();
 
   // ========== RÉCUPÉRATION APRÈS PERTE DE CONTEXTE WebGL ==========
@@ -1824,8 +1838,10 @@ async function init() {
   // Laforêt → identique à l'origine ; ERA → bordeaux ; Sixième → vert d'eau sombre.
   const _bn = (window.__BRAND__ && window.__BRAND__.navyRgb) ? window.__BRAND__.navyRgb.split(',').map(Number) : [11,27,63];
   const _desat = (c, amt) => { const l = 0.3*c[0] + 0.59*c[1] + 0.11*c[2]; return [Math.round(c[0]+(l-c[0])*amt), Math.round(c[1]+(l-c[1])*amt), Math.round(c[2]+(l-c[2])*amt)]; };
-  let _ctr = _desat([Math.min(255,Math.round(_bn[0]*1.45)), Math.min(255,Math.round(_bn[1]*1.37)), Math.min(255,Math.round(_bn[2]*1.25))], 0.30);
-  let _edg = _desat([Math.round(_bn[0]*0.9), Math.round(_bn[1]*0.74), Math.round(_bn[2]*0.6)], 0.30);
+  // V2 : degrade de fond NEUTRE (bleu-nuit tres sombre), independant de la teinte
+  // de marque -> supprime le halo rouge/bordeaux. Doux centre -> bords.
+  let _ctr = [22, 24, 30];   // centre legerement plus clair (#16181e)
+  let _edg = [10, 11, 14];   // bords tres sombres (#0a0b0e)
 
   /* MODE ÉDITEUR UNIQUEMENT : on neutralise la teinte de marque pour un fond
      gris façon viewport Blender — même mécanique de dégradé radial que pour les
@@ -3239,6 +3255,12 @@ async function loadWalls() {
     applyGlassTreatment(wallsRoot);
     if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(4);
 
+    // V2 : apparition fluide — on revele le canvas en fondu une fois la scene prete
+    try {
+      var __cv = document.getElementById('canvas');
+      if (__cv) { var __f = 0; var __rev = function(){ if (++__f < 3) { requestAnimationFrame(__rev); return; } __cv.classList.remove('pre-reveal'); }; requestAnimationFrame(__rev); }
+    } catch (_) {}
+
     // AO activée PAR DÉFAUT au lancement. On l'attache ICI (et pas à la création du
     // pipeline) : après le traitement du verre + sa réfraction différée, pour éviter
     // l'artefact de vitres blanches signalé quand l'AO était attachée trop tôt. Le
@@ -3255,6 +3277,7 @@ async function loadWalls() {
   } catch (err) {
     console.error('Échec chargement walls.glb :', err);
     document.querySelector('#loading-bar h3').textContent = 'Modèle introuvable (walls.glb)';
+    try { var __cvE = document.getElementById('canvas'); if (__cvE) __cvE.classList.remove('pre-reveal'); } catch (_) {}
   }
 }
 
@@ -4328,8 +4351,7 @@ function showFirstPersonPhoto(poi) {
   if (room && !isPhoneUI()) {
     const checked  = (rst && rst.enabled) ? 'checked' : '';
     const disabled = roomLoaded ? '' : 'disabled';
-    const status   = (rst && rst.failed) ? '<span class="room-status">indispo.</span>'
-                   : (!roomLoaded ? '<span class="room-status">chargement…</span>' : '');
+    const status   = (rst && rst.failed) ? '<span class="room-status">indispo.</span>' : '';
     roomToggleHTML = `
       <div class="room-section">
         <div class="room-section-head">
@@ -4524,7 +4546,6 @@ function renderRoomSwitchesHTML() {
     const st = roomState[r.id] || {};
     let status = '';
     if (st.failed)      status = '<span class="room-status">indispo.</span>';
-    else if (!st.loaded) status = '<span class="room-status">chargement…</span>';
     const disabled = (!st.loaded || st.failed) ? 'disabled' : '';
     const checked  = st.enabled ? 'checked' : '';
     return `
