@@ -70,6 +70,8 @@
       try{document.title=A.name+' \u2014 Visite virtuelle 3D';}catch(e){}
       if(A.logo!=='laforet'&&window.brandLogoHTML){var el=document.querySelector('.brand-logo'); if(el) el.innerHTML=window.brandLogoHTML(A);}
       try{var bb=document.querySelector('.back-btn'); if(bb&&A.id) bb.setAttribute('href','index-'+A.id+'.html');}catch(e){}
+      // V2 : titre de la cover en attendant que propertyData arrive
+      try{var ce=document.getElementById('cine-entry-title'); if(ce && (ce.textContent||'').trim()==='') ce.textContent='Bienvenue';}catch(e){}
     });
   })();
   </script>
@@ -6470,12 +6472,12 @@ init();
 <div id="cine-entry" role="dialog" aria-label="Bienvenue">
   <div class="cine-entry-in">
     <div class="eb">Visite virtuelle</div>
-    <h1 id="cine-entry-title">Visite 3D</h1>
+    <h1 id="cine-entry-title">&nbsp;</h1>
     <div class="rule"></div>
-    <div class="sub" id="cine-entry-sub">Chargement de la scene en cours...</div>
-    <button class="cine-enter-btn is-loading" id="cine-enter-btn" onclick="cineBegin()" disabled aria-disabled="true">
+    <div class="sub" id="cine-entry-sub" style="display:none;"></div>
+    <button class="cine-enter-btn" id="cine-enter-btn" onclick="cineBegin()">
       <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-      <span id="cine-enter-label">Preparation de la visite...</span>
+      <span id="cine-enter-label">Commencer la visite</span>
     </button>
   </div>
 </div>
@@ -6489,30 +6491,24 @@ init();
 
   function cleanTitle(s){ return (s||'Visite 3D').replace(/^\s*la\s*for[e\u00EA]t\s*[-\u2013\u2014:]\s*/i,''); }
 
-  // V2 : la cover est deja visible depuis l'ouverture (voir CSS #cine-entry).
-  // cineRevealEntry MET A JOUR le titre/sous-titre et DEVERROUILLE le bouton
-  // "Commencer la visite" une fois le modele charge.
+  // V2 : la cover est un simple mur d'accueil, deja visible et cliquable
+  //      des l'ouverture (voir CSS #cine-entry + bouton sans etat de chargement).
+  //      Cette fonction se contente de mettre a jour le titre du bien quand
+  //      propertyData est disponible, si l'utilisateur n'a pas encore clique.
   window.cineRevealEntry = function(){
     if (isEdit) return;
     entryShown = true;
     try{
       const t=document.getElementById('cine-entry-title');
-      const s=document.getElementById('cine-entry-sub');
-      const pn = (typeof propertyData!=='undefined' && propertyData && propertyData.name) ? cleanTitle(propertyData.name) : 'Visite 3D';
-      if(t) t.textContent = pn;
-      const n = (typeof propertyData!=='undefined' && propertyData && propertyData.poi) ? propertyData.poi.length : 0;
-      if(s) s.textContent = n ? (n + ' pieces a explorer librement') : 'Pret a explorer';
-      const b = document.getElementById('cine-enter-btn');
-      const bl = document.getElementById('cine-enter-label');
-      if (b){ b.classList.remove('is-loading'); b.removeAttribute('disabled'); b.setAttribute('aria-disabled','false'); }
-      if (bl) bl.textContent = 'Commencer la visite';
+      if (t){
+        const pn = (typeof propertyData!=='undefined' && propertyData && propertyData.name) ? cleanTitle(propertyData.name) : 'Visite 3D';
+        t.textContent = pn;
+      }
     }catch(_){}
-    // Garde la classe .show pour compatibilite avec la logique de veille
+    // .show maintenu pour la logique de veille (n'a d'effet que si non .gone)
     const e=document.getElementById('cine-entry'); if(e && !e.classList.contains('gone')) e.classList.add('show');
   };
   window.cineBegin = function(){
-    const b = document.getElementById('cine-enter-btn');
-    if (b && b.classList.contains('is-loading')) return; // pas encore pret
     const e=document.getElementById('cine-entry'); if(e){ e.classList.remove('show'); e.classList.add('gone'); }
     if (typeof window.cineWake==='function') window.cineWake();
   };
