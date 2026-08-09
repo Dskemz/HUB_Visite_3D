@@ -320,8 +320,8 @@
     .poi-panel .fp-section-title { color: #fff; }
     .poi-panel .fp-photo-hint,
     .poi-panel .fp-desc p { color: #c3cee4; }
-    .poi-panel .fp-poi-btn { background: rgba(255, 255, 255, 0.06); color: #eaf0fb; }
-    .poi-panel .fp-poi-btn:hover { background: var(--brand-accent); color: #fff; }
+    .poi-panel .fp-poi-btn { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.85); }
+    .poi-panel .fp-poi-btn:hover { background: rgba(255,255,255,0.10); }
     
     .poi-panel.closed {
       transform: translateX(100%);
@@ -450,7 +450,16 @@
     .poi-card .pc-check { width: 17px; height: 17px; flex: 0 0 auto; opacity: 0; transition: opacity 0.2s ease; }
     .poi-btn.visited .pc-check { opacity: 1; }
     .poi-card .pc-check svg { width: 100%; height: 100%; stroke: var(--brand-accent); stroke-width: 2.6; fill: none; }
-    .poi-btn.active.poi-card { background: rgba(var(--brand-accent-rgb),0.16); border-color: rgba(var(--brand-accent-rgb),0.42); }
+    .poi-btn.active.poi-card {
+      background: rgba(var(--brand-accent-rgb),0.12); border-color: rgba(var(--brand-accent-rgb),0.40);
+      position: relative;
+    }
+    .poi-btn.active.poi-card::after{
+      content:''; position:absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--brand-accent);
+      box-shadow: 0 0 8px 1px rgba(var(--brand-accent-rgb),0.9);
+    }
 
     /* Bouton d'action header générique (icône SVG) — mesure & aide */
     .hdr-icon-btn { display: inline-flex; align-items: center; gap: 0.45rem; flex: 0 0 auto; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 9px; padding: 0.55rem 0.95rem; font-size: 0.86rem; font-weight: 700; font-family: inherit; line-height: 1; cursor: pointer; transition: background .18s, border-color .18s, transform .12s; }
@@ -529,7 +538,7 @@
 
     /* ====== VUE 1ÈRE PERSONNE — PHOTO RÉELLE DANS LE PANNEAU DROITE ====== */
     .fp-photo-block { display: flex; flex-direction: column; gap: 0.8rem; }
-    .fp-photo-title { color: var(--brand-navy); font-size: 1.05rem; font-weight: 700; }
+    .fp-photo-title { color: #fff; font-size: 1.05rem; font-weight: 700; }
     .fp-photo-frame {
       width: 100%;
       /* GABARIT FIXE — sans hauteur imposée, le cadre prenait le ratio propre de
@@ -567,23 +576,54 @@
       margin-bottom: 0.2rem; padding-bottom: 0.7rem;
       border-bottom: 2px solid var(--brand-accent);
     }
-    .fp-section-title { color: var(--brand-navy); font-size: 0.95rem; font-weight: 700; margin-bottom: 0.1rem; }
-    .fp-desc p { color: #5b6b85; font-size: 0.88rem; line-height: 1.55; margin: 0.2rem 0 0 0; }
+    .fp-section-title { color: rgba(255,255,255,0.55); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.4rem; }
+    .fp-desc p { color: rgba(255,255,255,0.72); font-size: 0.88rem; line-height: 1.55; margin: 0.2rem 0 0 0; }
     .fp-photos { display: flex; flex-direction: column; gap: 0.7rem; }
 
     /* Navigation entre POV en mode 1ère personne */
     .fp-other-poi { margin-top: 1rem; }
+
+    /* ===== V2 : HEADER PANNEAU DROIT ===== */
+    .panel-header{
+      display: flex; align-items: center; gap: 10px;
+      padding-bottom: 12px; margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+    }
+    .panel-header .ph-title{
+      flex: 1; font-family: 'Fraunces', Georgia, serif; font-weight: 500;
+      font-size: 1.1rem; color: #fff; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .panel-close{
+      flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      color: #fff; cursor: pointer; font-size: 0.85rem; line-height: 1;
+      transition: background .18s ease;
+    }
+    .panel-close:hover{ background: rgba(255,255,255,0.14); }
     /* Desktop/tablette : 2 colonnes (rendu d'origine inchangé). */
     .fp-poi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     .fp-poi-btn {
-      background: #f0f5ff; color: var(--brand-navy);
-      border: 1px solid var(--brand-accent);
-      border-radius: 6px;
-      padding: 0.5rem 0.6rem;
-      font-family: inherit; font-size: 0.8rem; font-weight: 600;
-      cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center;
+      padding: 9px 12px; border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px; background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.85); font-size: 0.82rem; font-weight: 600;
+      font-family: inherit; cursor: pointer; position: relative;
+      transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
     }
-    .fp-poi-btn:hover { background: var(--brand-accent); color: #fff; }
+    .fp-poi-btn:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.22); }
+    .fp-poi-btn.active {
+      background: rgba(var(--brand-accent-rgb),0.12);
+      border-color: rgba(var(--brand-accent-rgb),0.40);
+      color: #fff; cursor: default;
+    }
+    .fp-poi-btn.active::after{
+      content:''; position:absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--brand-accent);
+      box-shadow: 0 0 8px 1px rgba(var(--brand-accent-rgb),0.9);
+    }
     .fp-poi-btn:active { transform: scale(0.97); }
     .fp-poi-btn.active {
       background: var(--brand-accent); color: #fff;
@@ -593,20 +633,14 @@
     .fp-poi-btn.active:hover { background: var(--brand-accent); } /* pas de changement au survol */
 
     .fp-back-btn {
-      margin-top: 0.4rem;
-      padding: 0.85rem 1.2rem;
-      background: var(--brand-accent);
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      cursor: pointer;
-      font-size: 0.98rem;
-      font-weight: 700;
-      font-family: inherit;
-      box-shadow: 0 4px 14px rgba(var(--brand-accent-rgb),0.45);
-      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; margin-top: 14px; padding: 11px 16px;
+      border-radius: 12px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06); color: #fff;
+      font-weight: 600; font-size: 0.88rem; font-family: inherit;
+      cursor: pointer; transition: background .18s ease, border-color .18s ease;
     }
-    .fp-back-btn:hover { background: var(--brand-accent-dark); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(var(--brand-accent-rgb),0.55); }
+    .fp-back-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.22); }
 
     /* Indication "regarder autour" en vue 1ère personne */
     .fp-look-hint {
@@ -1451,7 +1485,7 @@
   <div class="right-panel-wrapper">
     <div class="right-panel-container">
       <div class="poi-panel" id="poi-panel">
-        <h3 style="color: #fff; font-size: 0.95rem; font-weight: 600; margin-bottom: 0.9rem; border-bottom: 2px solid rgba(255,255,255,0.18); padding-bottom: 0.6rem;">Visiter les pièces</h3>
+        <!-- V2 : header injecté dynamiquement par rebuildPoiList / showFirstPersonPhoto -->
         <div class="poi-container" id="poi-list" style="flex: 1; overflow-y: auto;"></div>
       </div>
     </div>
@@ -4487,13 +4521,16 @@ function showFirstPersonPhoto(poi) {
     </div>` : '';
 
   panel.innerHTML = `
+    <div class="panel-header">
+      <span class="ph-title">${poiLabel(poi) || 'Pièce'}</span>
+      <button class="panel-close" onclick="togglePoiPanel()" title="Fermer" aria-label="Fermer le panneau">&#10005;</button>
+    </div>
     <div class="fp-photo-block">
-      <div class="fp-room-title">${poiLabel(poi) || 'Pièce'}</div>
-      ${roomToggleHTML}
-      ${descHTML}
       ${photosHTML}
+      ${descHTML}
+      ${roomToggleHTML}
       ${otherPoiHTML}
-      <button class="fp-back-btn" onclick="exitFirstPerson()">← Revenir à la visite</button>
+      <button class="fp-back-btn" onclick="exitFirstPerson()">Revenir à la visite</button>
     </div>
   `;
 }
@@ -4592,18 +4629,16 @@ function rebuildPoiList() {
     return;
   }
 
-  // DESKTOP / TABLETTE — rendu d'origine inchangé.
+  // DESKTOP / TABLETTE — V2 structure unifiée.
   panel.innerHTML = `
+    <div class="panel-header">
+      <span class="ph-title">Visiter les pièces</span>
+      <button class="panel-close" onclick="togglePoiPanel()" title="Fermer" aria-label="Fermer le panneau">&#10005;</button>
+    </div>
     ${renderRoomSwitchesHTML()}
-    <details class="collapsible" open>
-      <summary>
-        <h3 style="color:#fff;font-size:0.95rem;font-weight:600;margin:0;border-bottom:2px solid rgba(255,255,255,0.18);padding-bottom:0.6rem;flex:1;">Visiter les pièces</h3>
-        <svg class="collapse-arrow" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </summary>
-      <div class="poi-container" id="poi-list" style="flex:1;overflow-y:auto;padding-top:0.7rem;">
-        ${itemsHTML}
-      </div>
-    </details>
+    <div class="poi-container" id="poi-list" style="flex:1;overflow-y:auto;padding-top:0.4rem;">
+      ${itemsHTML}
+    </div>
   `;
 }
 
