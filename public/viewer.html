@@ -1008,6 +1008,320 @@
     .poi-mark .pm-dot   { transform-box:fill-box; transform-origin:center; transition:transform .15s ease; }
     .poi-mark:hover .pm-inner { transform:scale(1.636); }  /* r 5.5 → 9 : rejoint l'anneau externe */
     .poi-mark:hover .pm-dot   { transform:scale(1.7); }    /* point central un peu plus présent */
+
+    /* ============================================================
+       ===  V2 GLASSMORPHISM PREMIUM (visionOS) — refonte visuelle ===
+       Ajouts NON destructifs. La logique métier et les ID sont intacts.
+       ============================================================ */
+
+    /* Propriété animable pour la rotation de la bordure lumineuse.
+       Fallback silencieux si le navigateur ne supporte pas @property :
+       la bordure reste alors fixe (toujours lisible). */
+    @property --lum-a { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+    /* Tokens communs de la matière verre (pilules flottantes) */
+    :root{
+      --glass-bg: rgba(18,20,24,0.42);
+      --glass-bg-strong: rgba(18,20,24,0.60);
+      --glass-brd: rgba(255,255,255,0.10);
+      --glass-blur: 20px;
+      --glass-radius: 18px;
+      --glass-shadow: 0 10px 40px rgba(0,0,0,0.35);
+    }
+
+    /* Rotation lente de la lueur de bordure (2 éclats opposés au repos) */
+    @keyframes lumRotate { to { --lum-a: 360deg; } }
+
+    /* -----------------------------------------------------------------
+       PILULE LUMINEUSE  (Commencer la visite / Prendre RDV / Envoyer)
+       Verre sombre + liseré orange qui tourne lentement au repos,
+       s'allume sur tout le contour + glow externe au survol.
+       Pas d'aplat de couleur plein.
+       ----------------------------------------------------------------- */
+    .lum-pill{
+      position: relative;
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--glass-bg-strong);
+      -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
+      color: #fff; font-family: inherit; font-weight: 600;
+      border: 1px solid var(--glass-brd);
+      border-radius: 999px;
+      cursor: pointer; pointer-events: auto;
+      transition: box-shadow .35s ease, border-color .35s ease, transform .15s ease;
+      isolation: isolate;
+    }
+    .lum-pill > *{ position: relative; z-index: 1; }
+    /* Liseré conique masqué en anneau de 1.2px */
+    .lum-pill::before{
+      content:''; position:absolute; inset:0; border-radius:inherit; padding:1.2px;
+      background: conic-gradient(from var(--lum-a),
+        transparent 0deg,
+        rgba(var(--brand-accent-rgb),0.9) 40deg,
+        transparent 90deg,
+        transparent 180deg,
+        rgba(var(--brand-accent-rgb),0.9) 220deg,
+        transparent 270deg,
+        transparent 360deg);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      opacity: .55; animation: lumRotate 6s linear infinite;
+      pointer-events: none;
+    }
+    .lum-pill:hover{
+      border-color: rgba(var(--brand-accent-rgb),0.55);
+      box-shadow: 0 0 26px rgba(var(--brand-accent-rgb),0.45), var(--glass-shadow);
+      transform: translateY(-1px);
+    }
+    .lum-pill:hover::before{ opacity: 1; }
+    .lum-pill:active{ transform: translateY(0) scale(.985); }
+    .lum-pill svg{ width: 18px; height: 18px; fill: currentColor; }
+
+    /* -----------------------------------------------------------------
+       BARRE D'OUTILS — rail vertical verre à gauche (pt.5)
+       Un seul conteneur verre ; icônes fines blanches nues, sans cadre
+       individuel, généreusement espacées ; état actif = pastille lumineuse.
+       ----------------------------------------------------------------- */
+    .tool-rail{
+      position: fixed; left: 18px; top: 50%; transform: translateY(-50%);
+      z-index: 40; display: flex; flex-direction: column; align-items: center;
+      gap: 6px; padding: 10px 8px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-brd);
+      border-radius: 22px;
+      box-shadow: var(--glass-shadow);
+      pointer-events: auto;
+    }
+    /* Bouton d'outil : icône nue, aucune bordure ni fond propre au repos */
+    .rail-btn{
+      position: relative; display: flex; align-items: center; justify-content: center;
+      width: 46px; height: 46px; padding: 0;
+      background: transparent; border: none; border-radius: 14px;
+      color: #fff; cursor: pointer; pointer-events: auto;
+      transition: background .18s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .rail-btn:hover{ background: rgba(255,255,255,0.08); }
+    .rail-btn svg{ width: 22px; height: 22px; display: block; stroke: currentColor; fill: none; stroke-width: 1.5; }
+    .rail-btn .btn-icon{ display: inline-flex; width: 22px; height: 22px; }
+    .rail-btn .btn-icon svg{ width: 22px; height: 22px; }
+    /* Zéro texte dans le rail : les libellés existants sont conservés
+       dans le DOM (pour la logique) mais masqués visuellement. */
+    .rail-btn .btn-label, .rail-btn .measure-lbl{ display: none !important; }
+    /* Pastille lumineuse d'état actif — l'icône reste blanche */
+    .rail-btn.active::after{
+      content:''; position:absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--brand-accent);
+      box-shadow: 0 0 8px 1px rgba(var(--brand-accent-rgb),0.9);
+    }
+    /* Tooltip discret au survol (lit l'attribut title via data-tip) */
+    .rail-btn[data-tip]::before{
+      content: attr(data-tip);
+      position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%);
+      white-space: nowrap;
+      background: var(--glass-bg-strong);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-brd);
+      color: #fff; font-size: 0.78rem; font-weight: 600; font-family: inherit;
+      padding: 6px 10px; border-radius: 10px;
+      opacity: 0; pointer-events: none; transition: opacity .16s ease;
+      box-shadow: var(--glass-shadow); z-index: 2;
+    }
+    .rail-btn[data-tip]:hover::before{ opacity: 1; }
+
+    /* -----------------------------------------------------------------
+       BLOC TITRE + "i" (haut-gauche, pt.4) et PILULE RDV (pt.6)
+       ----------------------------------------------------------------- */
+    .tour-topbar{
+      position: fixed; top: 18px; left: 18px; z-index: 45;
+      display: flex; align-items: center; gap: 12px;
+      pointer-events: none;
+    }
+    .title-pill{
+      display: inline-flex; align-items: center; gap: 12px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-brd);
+      border-radius: 999px;
+      padding: 9px 14px 9px 18px;
+      box-shadow: var(--glass-shadow);
+      pointer-events: auto;
+    }
+    .title-pill .tp-name{
+      font-family: 'Fraunces', Georgia, serif; font-weight: 500;
+      font-size: 1.02rem; letter-spacing: -0.01em; color: #fff; line-height: 1;
+      white-space: nowrap; max-width: 42vw; overflow: hidden; text-overflow: ellipsis;
+    }
+    .info-dot{
+      flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.28);
+      color: rgba(255,255,255,0.7);
+      font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 600;
+      font-size: 0.9rem; cursor: pointer; pointer-events: auto;
+      transition: color .2s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .info-dot:hover{
+      color: #fff; border-color: rgba(var(--brand-accent-rgb),0.8);
+      background: rgba(var(--brand-accent-rgb),0.12);
+      box-shadow: 0 0 14px rgba(var(--brand-accent-rgb),0.45);
+    }
+    /* La pilule RDV réutilise .lum-pill ; padding propre au texte */
+    .rdv-pill{ padding: 11px 20px; font-size: 0.9rem; }
+
+    /* -----------------------------------------------------------------
+       MODALE "PRENDRE RDV" (pt.6) — overlay flouté + carte verre + formulaire
+       ----------------------------------------------------------------- */
+    .rdv-overlay{
+      position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center;
+      background: rgba(0,0,0,0.45);
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+      opacity: 0; visibility: hidden; transition: opacity .3s ease, visibility .3s ease;
+      pointer-events: none;
+    }
+    .rdv-overlay.open{ opacity: 1; visibility: visible; pointer-events: auto; }
+    .rdv-card{
+      width: min(92vw, 440px);
+      background: var(--glass-bg-strong);
+      -webkit-backdrop-filter: blur(26px); backdrop-filter: blur(26px);
+      border: 1px solid var(--glass-brd);
+      border-radius: 22px; padding: 26px 26px 24px;
+      box-shadow: 0 30px 70px rgba(0,0,0,0.5);
+      transform: translateY(10px) scale(.98); transition: transform .3s cubic-bezier(.22,.61,.36,1);
+      color: #fff;
+    }
+    .rdv-overlay.open .rdv-card{ transform: none; }
+    .rdv-card h3{ font-family:'Fraunces',Georgia,serif; font-weight:500; font-size:1.5rem; margin:0 0 4px; }
+    .rdv-card .rdv-sub{ font-size:.86rem; color:rgba(255,255,255,.7); margin-bottom:18px; }
+    .rdv-field{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+    .rdv-field label{ font-size:.74rem; letter-spacing:.04em; text-transform:uppercase; color:rgba(255,255,255,.6); }
+    .rdv-field input, .rdv-field textarea{
+      width:100%; font-family:inherit; font-size:.92rem; color:#fff;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 12px; padding: 11px 13px; outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .rdv-field input::placeholder, .rdv-field textarea::placeholder{ color: rgba(255,255,255,0.35); }
+    .rdv-field input:focus, .rdv-field textarea:focus{
+      border-color: rgba(var(--brand-accent-rgb),0.7);
+      box-shadow: 0 0 0 3px rgba(var(--brand-accent-rgb),0.18);
+    }
+    .rdv-field textarea{ resize: vertical; min-height: 74px; }
+    .rdv-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
+    .rdv-send{ padding: 11px 22px; font-size:.9rem; }
+    .rdv-close{
+      position:absolute; top:14px; right:14px; width:32px; height:32px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14);
+      color:#fff; cursor:pointer; font-size:1rem; line-height:1; transition: background .18s ease;
+    }
+    .rdv-close:hover{ background: rgba(255,255,255,0.14); }
+
+    /* Panneau contextuel "infos du bien" ouvert par le "i" */
+    .bien-info{
+      position: fixed; top: 66px; left: 18px; z-index: 44;
+      width: min(88vw, 340px);
+      background: var(--glass-bg-strong);
+      -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+      border: 1px solid var(--glass-brd);
+      border-radius: 18px; padding: 16px 18px;
+      box-shadow: var(--glass-shadow); color: #fff;
+      opacity: 0; visibility: hidden; transform: translateY(-6px);
+      transition: opacity .22s ease, visibility .22s ease, transform .22s ease;
+      pointer-events: none;
+    }
+    .bien-info.open{ opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
+    .bien-info h4{ font-family:'Fraunces',Georgia,serif; font-weight:500; font-size:1.1rem; margin:0 0 6px; }
+    .bien-info p{ font-size:.85rem; line-height:1.5; color:rgba(255,255,255,.78); margin:0; }
+
+    /* -----------------------------------------------------------------
+       RE-SKIN des éléments existants vers la charte verre (pt.1/9)
+       Overrides ciblés — aucun aplat de couleur plein conservé.
+       ----------------------------------------------------------------- */
+    /* La barre du haut ne sert plus que de zone d'ancrage : transparente,
+       ne capte pas les clics (les pilules, elles, sont pointer-events:auto). */
+    .header-bar{ background: transparent !important; height: auto !important; pointer-events: none !important; }
+
+    /* Bouton "Recentrer" → pilule verre */
+    .reset-btn{
+      background: var(--glass-bg) !important;
+      -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-brd) !important;
+      color: #fff !important; box-shadow: var(--glass-shadow) !important;
+    }
+    .reset-btn:hover{
+      background: var(--glass-bg-strong) !important;
+      border-color: rgba(var(--brand-accent-rgb),0.5) !important;
+      box-shadow: 0 0 20px rgba(var(--brand-accent-rgb),0.35), var(--glass-shadow) !important;
+    }
+
+    /* Bouton "Visite guidée" → verre + liseré discret (plus d'aplat orange) */
+    .cine-guide{
+      background: var(--glass-bg) !important;
+      -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-brd);
+      box-shadow: var(--glass-shadow) !important;
+    }
+    .cine-guide:hover{
+      background: var(--glass-bg-strong) !important;
+      border-color: rgba(var(--brand-accent-rgb),0.5);
+      box-shadow: 0 0 20px rgba(var(--brand-accent-rgb),0.35), var(--glass-shadow) !important;
+      transform: translateY(-1px);
+    }
+    .cine-guide svg{ fill: var(--brand-accent); }
+
+    /* "Commencer la visite" (cover) → pilule verre lumineuse (pt.2)
+       On neutralise l'aplat plein et on applique la matière .lum-pill. */
+    .cine-enter-btn{
+      background: var(--glass-bg-strong) !important;
+      -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-brd) !important;
+      border-radius: 999px !important;
+      box-shadow: var(--glass-shadow) !important;
+      overflow: visible; isolation: isolate;
+    }
+    .cine-enter-btn > *{ position: relative; z-index: 1; }
+    .cine-enter-btn::before{
+      content:''; position:absolute; inset:0; border-radius:inherit; padding:1.2px;
+      background: conic-gradient(from var(--lum-a),
+        transparent 0deg, rgba(var(--brand-accent-rgb),0.9) 40deg, transparent 90deg,
+        transparent 180deg, rgba(var(--brand-accent-rgb),0.9) 220deg, transparent 270deg, transparent 360deg);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      opacity: .55; animation: lumRotate 6s linear infinite; pointer-events: none;
+    }
+    .cine-enter-btn:hover{
+      background: var(--glass-bg-strong) !important;
+      border-color: rgba(var(--brand-accent-rgb),0.55) !important;
+      box-shadow: 0 0 26px rgba(var(--brand-accent-rgb),0.45), var(--glass-shadow) !important;
+      transform: translateY(-2px);
+    }
+    .cine-enter-btn:hover::before{ opacity: 1; }
+    .cine-enter-btn svg{ fill: var(--brand-accent); }
+
+    /* Vignettes "Photos réelles" du panneau POV → coins subtilement arrondis (pt.7) */
+    .poi-panel .fp-photo-frame{ border-radius: 14px; }
+
+    /* Le rail masqué en mode éditeur (?edit=1) — l'éditeur garde ses propres outils */
+    html.edit-mode .tool-rail, html.edit-mode .tour-topbar,
+    html.edit-mode .rdv-overlay, html.edit-mode .bien-info{ display: none !important; }
+
+    /* Responsive : sur petit écran le rail se pose en bas, horizontal */
+    @media (max-width: 820px){
+      .tool-rail{
+        left: 50%; right: auto; top: auto; bottom: 16px; transform: translateX(-50%);
+        flex-direction: row; border-radius: 22px;
+      }
+      .rail-btn[data-tip]::before{
+        left: 50%; top: auto; bottom: calc(100% + 10px); transform: translateX(-50%);
+      }
+      .tour-topbar{ top: 12px; left: 12px; right: 12px; }
+      .title-pill .tp-name{ max-width: 46vw; }
+    }
+
   </style>
 </head>
 <body>
@@ -1031,10 +1345,10 @@
     <g id="poi-markers"></g>
   </svg>
 
-  <!-- HEADER (topbar) -->
+  <!-- HEADER (topbar) — conserve les elements masques references par la logique -->
   <div class="header-bar">
-    <div class="header-left">
-      <a class="back-btn" href="index.html" title="Retour à l'annonce">
+    <div class="header-left" style="display:none;">
+      <a class="back-btn" href="index.html" title="Retour a l'annonce">
         <svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Annonce
       </a>
@@ -1042,27 +1356,62 @@
         <svg class="tree" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" fill="#fff" rx="2"/><text x="12" y="16" font-size="14" font-weight="bold" fill="#2d2d2d" text-anchor="middle">V</text></svg>
         Visite 3D
       </div>
-      <div class="ttl">
-        <span class="property-title" id="header-title">Chargement…</span>
-        <small>Visite virtuelle 3D</small>
-      </div>
       <nav class="breadcrumb" id="breadcrumb" aria-label="Fil d'Ariane">
         <span class="bc-prop" id="bc-prop">Visite 3D</span>
         <span class="bc-sep">/</span>
         <span class="bc-room" id="bc-room">Vue d'ensemble</span>
       </nav>
     </div>
-    <div class="header-spacer"></div>
-    <button class="hdr-icon-btn" id="btn-measure" onclick="toggleMeasure()" title="Mesurer une distance (ex : mon canapé rentre-t-il ?)" aria-label="Mesurer une distance">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12l10-10 10 10-10 10z"/><path d="M8 12h1M12 8v1M12 15v1M15 12h1"/></svg><span class="measure-lbl">Mesurer</span>
+  </div>
+
+  <!-- ===== V2 : BLOC TITRE + "i" (haut-gauche, pt.4) + PILULE RDV (pt.6) ===== -->
+  <div class="tour-topbar">
+    <div class="title-pill">
+      <span class="tp-name" id="header-title">Chargement...</span>
+      <button class="info-dot" id="btn-bien-info" onclick="toggleBienInfo()" title="Informations sur le bien" aria-label="Informations sur le bien">i</button>
+    </div>
+    <button class="lum-pill rdv-pill" id="btn-rdv" onclick="openRdv()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>Prendre RDV</span>
     </button>
-    <button class="hdr-icon-btn" id="btn-help" onclick="toggleHelp()" title="Aide et raccourcis" aria-label="Aide et raccourcis clavier">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 013.5 2.3c0 1.5-2 1.7-2 3M12 17h.01"/></svg><span class="measure-lbl">Aide</span>
-    </button>
-    <button class="toggle-view-btn" id="btn-toggle-view" onclick="toggleViewMode()">
+  </div>
+
+  <!-- Panneau contextuel "infos du bien" (ouvert par le "i") -->
+  <div class="bien-info" id="bien-info" role="dialog" aria-label="Informations sur le bien">
+    <h4 id="bien-info-name">Le bien</h4>
+    <p id="bien-info-text">Visite virtuelle 3D immersive. Cliquez une piece pour l'explorer, ou prenez rendez-vous pour une visite sur place.</p>
+  </div>
+
+  <!-- ===== V2 : RAIL D'OUTILS VERTICAL A GAUCHE (pt.5) =====
+       Les boutons conservent leurs ID + onclick d'origine : la logique
+       (toggleViewMode / toggleMeasure / toggleHelp) reste identique. -->
+  <div class="tool-rail" role="toolbar" aria-label="Outils de visite">
+    <button class="rail-btn" id="btn-toggle-view" onclick="toggleViewMode()" data-tip="Vue de dessus" title="Vue de dessus" aria-label="Vue de dessus">
       <span class="btn-icon" id="btn-icon"></span>
       <span class="btn-label" id="btn-label">Vue de dessus</span>
     </button>
+    <button class="rail-btn" id="btn-measure" onclick="toggleMeasure()" data-tip="Mesurer" title="Mesurer une distance" aria-label="Mesurer une distance">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12l10-10 10 10-10 10z"/><path d="M8 12h1M12 8v1M12 15v1M15 12h1"/></svg><span class="measure-lbl">Mesurer</span>
+    </button>
+    <button class="rail-btn" id="btn-help" onclick="toggleHelp()" data-tip="Aide" title="Aide et raccourcis" aria-label="Aide et raccourcis clavier">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 013.5 2.3c0 1.5-2 1.7-2 3M12 17h.01"/></svg><span class="measure-lbl">Aide</span>
+    </button>
+  </div>
+
+  <!-- ===== V2 : MODALE "PRENDRE RDV" (pt.6) ===== -->
+  <div class="rdv-overlay" id="rdv-overlay" onclick="if(event.target===this)closeRdv()">
+    <div class="rdv-card" role="dialog" aria-label="Prendre rendez-vous">
+      <button class="rdv-close" onclick="closeRdv()" aria-label="Fermer">&#10005;</button>
+      <h3>Prendre rendez-vous</h3>
+      <div class="rdv-sub" id="rdv-sub">Organisons une visite de ce bien.</div>
+      <div class="rdv-field"><label for="rdv-name">Votre nom</label><input id="rdv-name" type="text" placeholder="Nom et prenom" autocomplete="name"></div>
+      <div class="rdv-field"><label for="rdv-email">Email</label><input id="rdv-email" type="email" placeholder="vous@exemple.fr" autocomplete="email"></div>
+      <div class="rdv-field"><label for="rdv-phone">Telephone</label><input id="rdv-phone" type="tel" placeholder="06 12 34 56 78" autocomplete="tel"></div>
+      <div class="rdv-field"><label for="rdv-msg">Message</label><textarea id="rdv-msg" placeholder="Vos disponibilites, questions..."></textarea></div>
+      <div class="rdv-actions">
+        <button class="lum-pill rdv-send" onclick="submitRdv()"><span>Envoyer</span></button>
+      </div>
+    </div>
   </div>
 
   <!-- PANNEAU POI RÉTRACTABLE À DROITE -->
@@ -3090,6 +3439,35 @@ function frameModel(root) {
   // vrai centre du modèle.
   modelBounds = {min, max, center: center.clone(), radius};
 
+  // ===== V2 : SOL MAT INFINI — ancre les ombres portees (pt.8) =====
+  // Positionne au niveau du plancher du modele (min.y), dimensionne large,
+  // mat (0 speculaire), recoit les ombres sans en projeter. Cree une seule
+  // fois. Neutralise en mode editeur (?edit=1) pour laisser le placement POV.
+  if (typeof EDIT_MODE === 'undefined' || !EDIT_MODE) {
+    try {
+      var __span = Math.max(max.x - min.x, max.z - min.z) || 20;
+      var __floorSize = Math.max(60, __span * 12);
+      var __cx = (min.x + max.x) / 2, __cz = (min.z + max.z) / 2;
+      var __floor = scene.getMeshByName('__infiniteFloor');
+      if (!__floor) {
+        __floor = BABYLON.MeshBuilder.CreateGround('__infiniteFloor', { width: __floorSize, height: __floorSize }, scene);
+        var __fm = new BABYLON.StandardMaterial('__infiniteFloorMat', scene);
+        __fm.diffuseColor  = new BABYLON.Color3(0.082, 0.090, 0.098); // ~#151719 sombre
+        __fm.specularColor = new BABYLON.Color3(0, 0, 0);             // aucun reflet -> mat
+        __fm.ambientColor  = new BABYLON.Color3(0.082, 0.090, 0.098);
+        __floor.material = __fm;
+        __floor.receiveShadows = true;
+        __floor.isPickable = false;      // ne perturbe pas les clics de navigation POV
+        __floor.checkCollisions = false;
+        // Le sol ne doit PAS projeter d'ombre (seulement en recevoir)
+        if (window.shadowGenerator) { try { window.shadowGenerator.removeShadowCaster(__floor); } catch(e){} }
+      }
+      __floor.position.x = __cx;
+      __floor.position.z = __cz;
+      __floor.position.y = min.y + 0.002; // pile sous le plancher, sans z-fighting
+    } catch (e) { console.warn('Sol infini non cree:', e); }
+  }
+
   const fovV = camera.fov;
   const aspect = engine.getAspectRatio(camera);
   const fovH = 2 * Math.atan(Math.tan(fovV / 2) * aspect);
@@ -4826,6 +5204,8 @@ function updateToggleButton() {
   const label = document.getElementById('btn-label');
   const btn = document.getElementById('btn-toggle-view');
   if (!icon || !label || !btn) return;
+  // V2 : pastille lumineuse d'etat actif dans le rail (icone reste blanche)
+  btn.classList.toggle('active', !!isTopView);
   // Téléphone : libellés courts (« 3D » / « Plan ») pour laisser respirer le titre
   // du bien dans le bandeau. Desktop/tablette : libellés complets, inchangés.
   const phone = isPhoneUI();
@@ -4839,6 +5219,58 @@ function updateToggleButton() {
     btn.title = 'Passer en vue de dessus';
   }
 }
+
+/* ============================================================================
+   V2 — MODALE "PRENDRE RDV" (pt.6) + PANNEAU INFOS DU BIEN (pt.4)
+   Composants additifs : n'interferent avec aucune logique existante.
+   ============================================================================ */
+function __bienName(){
+  var h = document.getElementById('header-title');
+  var n = h && h.textContent ? h.textContent.trim() : '';
+  if (!n || n.indexOf('Chargement') === 0) {
+    n = (typeof propertyData !== 'undefined' && propertyData && propertyData.name) ? propertyData.name : 'ce bien';
+  }
+  return n;
+}
+function toggleBienInfo(){
+  var p = document.getElementById('bien-info'); if (!p) return;
+  var nm = document.getElementById('bien-info-name'); if (nm) nm.textContent = __bienName();
+  p.classList.toggle('open');
+}
+function openRdv(){
+  var o = document.getElementById('rdv-overlay'); if (!o) return;
+  var sub = document.getElementById('rdv-sub');
+  if (sub) sub.textContent = 'Organisons une visite de ' + __bienName() + '.';
+  var bi = document.getElementById('bien-info'); if (bi) bi.classList.remove('open');
+  o.classList.add('open');
+  var f = document.getElementById('rdv-name'); if (f) setTimeout(function(){ try{ f.focus(); }catch(e){} }, 60);
+}
+function closeRdv(){
+  var o = document.getElementById('rdv-overlay'); if (o) o.classList.remove('open');
+}
+function submitRdv(){
+  var val = function(id){ var el = document.getElementById(id); return el ? el.value : ''; };
+  var name = val('rdv-name'), email = val('rdv-email'), phone = val('rdv-phone'), msg = val('rdv-msg');
+  var bien = __bienName();
+  var subject = 'Demande de RDV - ' + bien;
+  var body = 'Bonjour,%0D%0A%0D%0A'
+    + 'Je souhaite prendre rendez-vous pour une visite de ' + encodeURIComponent(bien) + '.%0D%0A%0D%0A'
+    + 'Nom : ' + encodeURIComponent(name) + '%0D%0A'
+    + 'Email : ' + encodeURIComponent(email) + '%0D%0A'
+    + 'Telephone : ' + encodeURIComponent(phone) + '%0D%0A%0D%0A'
+    + 'Message : ' + encodeURIComponent(msg) + '%0D%0A';
+  var to = (window.__BRAND__ && window.__BRAND__.contactEmail) ? window.__BRAND__.contactEmail : '';
+  window.location.href = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + body;
+  closeRdv();
+}
+/* Echap ferme la modale RDV / le panneau infos (additif, non bloquant) */
+window.addEventListener('keydown', function(e){
+  if (e.key !== 'Escape') return;
+  var o = document.getElementById('rdv-overlay');
+  if (o && o.classList.contains('open')) o.classList.remove('open');
+  var bi = document.getElementById('bien-info');
+  if (bi && bi.classList.contains('open')) bi.classList.remove('open');
+});
 
 // Courbe d'easing identique à CubicEase EASEINOUT
 function easeInOut(t) {
