@@ -1763,6 +1763,8 @@ async function init() {
   camera.attachControl(canvas, true);
   // Empêche le menu contextuel au clic droit → translation propre (comme le Sandbox)
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  // V2 : fermer le panneau "i" au clic sur la scene
+  canvas.addEventListener('pointerdown', function(){ if (typeof __closeBienInfo==='function') __closeBienInfo(); });
   defaultFov = camera.fov; // mémorise le FOV de navigation pour le restaurer après la vue 1ère personne
 
   // === PARAMÈTRES EXACTS DU SANDBOX BABYLON.JS (valeurs par défaut de l'ArcRotateCamera) ===
@@ -3488,16 +3490,67 @@ function frameModel(root) {
       var __cx = (min.x + max.x) / 2, __cz = (min.z + max.z) / 2;
       var __floor = scene.getMeshByName('__infiniteFloor');
       if (!__floor) {
-        __floor = BABYLON.MeshBuilder.CreateGround('__infiniteFloor', { width: __floorSize, height: __floorSize }, scene);
-        var __fm = new BABYLON.StandardMaterial('__infiniteFloorMat', scene);
-        __fm.diffuseColor  = new BABYLON.Color3(0.082, 0.090, 0.098); // ~#151719 sombre
-        __fm.specularColor = new BABYLON.Color3(0, 0, 0);             // aucun reflet -> mat
-        __fm.ambientColor  = new BABYLON.Color3(0.082, 0.090, 0.098);
+        __floor = BABYLON.MeshBuilder.CreateGround('__infiniteFloor', {
+          width: __floorSize, height: __floorSize, subdivisions: 1
+        }, scene);
+
+        // V2 : ShaderMaterial avec fondu radial aux bords.
+        // Le sol est opaque au centre (sous le modele) et devient
+        // transparent progressivement vers les bords, fusionnant
+        // avec le fond de scene (skybox + clearColor).
+        BABYLON.Effect.ShadersStore['infiniteFloorVertexShader'] = [
+          'precision highp float;',
+          'attribute vec3 position;',
+          'attribute vec3 normal;',
+          'uniform mat4 worldViewProjection;',
+          'uniform mat4 world;',
+          'varying vec3 vWorldPos;',
+          'varying vec3 vNormal;',
+          'void main(){',
+          '  vWorldPos = (world * vec4(position,1.0)).xyz;',
+          '  vNormal = normalize((world * vec4(normal,0.0)).xyz);',
+          '  gl_Position = worldViewProjection * vec4(position,1.0);',
+          '}'
+        ].join('\n');
+        BABYLON.Effect.ShadersStore['infiniteFloorFragmentShader'] = [
+          'precision highp float;',
+          'uniform vec3 uCenter;',
+          'uniform float uFadeStart;',
+          'uniform float uFadeEnd;',
+          'uniform vec3 uColor;',
+          'varying vec3 vWorldPos;',
+          'varying vec3 vNormal;',
+          'void main(){',
+          '  float d = length(vWorldPos.xz - uCenter.xz);',
+          '  float a = 1.0 - smoothstep(uFadeStart, uFadeEnd, d);',
+          '  // Eclairage diffus minimal pour recevoir les ombres',
+          '  float ndl = max(dot(vNormal, normalize(vec3(0.4,1.0,0.3))), 0.0);',
+          '  vec3 col = uColor * (0.55 + 0.45 * ndl);',
+          '  gl_FragColor = vec4(col, a);',
+          '}'
+        ].join('\n');
+
+        var __fm = new BABYLON.ShaderMaterial('__infiniteFloorMat', scene, {
+          vertex: 'infiniteFloor',
+          fragment: 'infiniteFloor'
+        }, {
+          attributes: ['position', 'normal'],
+          uniforms: ['worldViewProjection', 'world', 'uCenter', 'uFadeStart', 'uFadeEnd', 'uColor'],
+          needAlphaBlending: true
+        });
+        __fm.backFaceCulling = false;
+        // Fondu : opaque dans la zone du modele, transparent aux bords
+        var __fadeStart = __span * 1.8;   // debut du fondu
+        var __fadeEnd   = __floorSize * 0.48; // fin du fondu (presque le bord du ground)
+        __fm.setVector3('uCenter', new BABYLON.Vector3(__cx, 0, __cz));
+        __fm.setFloat('uFadeStart', __fadeStart);
+        __fm.setFloat('uFadeEnd', __fadeEnd);
+        __fm.setColor3('uColor', new BABYLON.Color3(0.082, 0.090, 0.098));
+
         __floor.material = __fm;
         __floor.receiveShadows = true;
-        __floor.isPickable = false;      // ne perturbe pas les clics de navigation POV
+        __floor.isPickable = false;
         __floor.checkCollisions = false;
-        // Le sol ne doit PAS projeter d'ombre (seulement en recevoir)
         if (window.shadowGenerator) { try { window.shadowGenerator.removeShadowCaster(__floor); } catch(e){} }
       }
       __floor.position.x = __cx;
@@ -3878,6 +3931,7 @@ function generateDefaultPOIs() {
    ALLER VERS UN POV → ANIMATION CAMÉRA EN VUE 1ÈRE PERSONNE
    ============================================================================ */
 function goToPOI(poiId) {
+  __closeBienInfo();
   if (!propertyData || isAnimating) return;
   const poi = (propertyData.poi || []).find(p => p.id === poiId);
   if (!poi) return;
@@ -4981,7 +5035,7 @@ function poiProject(world) {
     if (mActive) hint('Cliquez un premier point sur la pièce');
   }
 
-  window.toggleMeasure = toggle;
+  window.toggleMeasure = function(){ __closeBienInfo(); toggle(); };
   window.clearMeasures = clear;
 })();
 
@@ -5221,6 +5275,7 @@ function playTopViewAnimation() {
 
 /* Bouton bascule : alterne entre vue de dessus et navigation */
 function toggleViewMode() {
+  __closeBienInfo();
   if (isAnimating) return; // ignore les clics pendant une transition
   if (isTopView) {
     resetView();            // → revient en navigation
@@ -5290,6 +5345,10 @@ function __fillBienInfo(){
   });
   if (!html) html = '<div class="bien-info-empty">Informations bient\u00F4t disponibles.</div>';
   list.innerHTML = html;
+}
+function __closeBienInfo(){
+  var bi = document.getElementById('bien-info');
+  if (bi && bi.classList.contains('open')) bi.classList.remove('open');
 }
 function toggleBienInfo(){
   var p = document.getElementById('bien-info'); if (!p) return;
