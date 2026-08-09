@@ -401,7 +401,7 @@
     .poi-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: 4px; margin-bottom: 1rem; background: #222; }
     .poi-image[src=""] { display: none; }
     
-    .reset-btn { position: absolute; bottom: 1rem; right: 1rem; pointer-events: auto; background: rgba(255,255,255,0.95); border: 1px solid #ddd; border-radius: 999px; padding: 0.6rem 1.1rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 0.4rem; font-family: inherit; }
+    .reset-btn { position: fixed; bottom: 1.2rem; right: 1.2rem; z-index: 42; pointer-events: auto; border-radius: 999px; padding: 0.6rem 1.1rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; font-family: inherit; }
     .reset-btn:hover { background: var(--brand-accent); color: white; border-color: var(--brand-accent); }
 
     /* ----- OUTIL MESURE (visiteur) ----- */
@@ -461,14 +461,15 @@
     /* Overlay d'aide (raccourcis) */
     .vhelp { position: fixed; inset: 0; z-index: 500; display: none; place-items: center; background: rgba(10,8,6,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
     .vhelp.on { display: grid; }
-    .vhelp-card { width: min(92vw, 430px); background: rgba(var(--brand-navy-rgb),0.86); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.22); border-radius: 16px; padding: 22px 24px; color: #fff; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+    .vhelp-card { width: min(92vw, 430px); background: rgba(16,18,22,0.90); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 22px 24px; color: #fff; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
     .vhelp-card h3 { font-size: 1.02rem; font-weight: 700; margin: 0 0 14px; }
     .vhelp-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.86rem; }
     .vhelp-row:last-child { border-bottom: none; }
     .vhelp-row .d { color: rgba(255,255,255,0.72); }
     .vhelp-row .keys { display: flex; gap: 5px; }
     .vhelp-row kbd { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.74rem; padding: 3px 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.24); border-radius: 6px; color: #fff; }
-    .vhelp-close { margin-top: 16px; width: 100%; height: 40px; border-radius: 9px; background: var(--brand-accent); color: #fff; font-weight: 700; font-size: 0.86rem; cursor: pointer; }
+    .vhelp-close { margin-top: 16px; width: 100%; height: 40px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: rgba(255,255,255,0.08); color: #fff; font-weight: 700; font-size: 0.86rem; cursor: pointer; transition: background .18s ease; }
+    .vhelp-close:hover { background: rgba(255,255,255,0.16); }
     :focus-visible { outline: 2.5px solid var(--brand-accent); outline-offset: 2px; }
 
     /* ============ VIEWER 2.0 — Couche cinématique (sur la scène Babylon vivante) ============ */
@@ -3518,12 +3519,15 @@ function frameModel(root) {
           'uniform float uFadeStart;',
           'uniform float uFadeEnd;',
           'uniform vec3 uColor;',
+          'uniform vec3 uCamPos;',
           'varying vec3 vWorldPos;',
           'varying vec3 vNormal;',
           'void main(){',
+          '  // Camera sous le sol -> face invisible (comme le plafond)',
+          '  vec3 viewDir = normalize(uCamPos - vWorldPos);',
+          '  if (dot(vNormal, viewDir) < 0.0) discard;',
           '  float d = length(vWorldPos.xz - uCenter.xz);',
           '  float a = 1.0 - smoothstep(uFadeStart, uFadeEnd, d);',
-          '  // Eclairage diffus minimal pour recevoir les ombres',
           '  float ndl = max(dot(vNormal, normalize(vec3(0.4,1.0,0.3))), 0.0);',
           '  vec3 col = uColor * (0.55 + 0.45 * ndl);',
           '  gl_FragColor = vec4(col, a);',
@@ -3535,7 +3539,7 @@ function frameModel(root) {
           fragment: 'infiniteFloor'
         }, {
           attributes: ['position', 'normal'],
-          uniforms: ['worldViewProjection', 'world', 'uCenter', 'uFadeStart', 'uFadeEnd', 'uColor'],
+          uniforms: ['worldViewProjection', 'world', 'uCenter', 'uFadeStart', 'uFadeEnd', 'uColor', 'uCamPos'],
           needAlphaBlending: true
         });
         __fm.backFaceCulling = false;
@@ -3556,6 +3560,14 @@ function frameModel(root) {
       __floor.position.x = __cx;
       __floor.position.z = __cz;
       __floor.position.y = min.y + 0.002; // pile sous le plancher, sans z-fighting
+
+      // V2 : mettre a jour la position camera dans le shader a chaque frame
+      // pour que le sol disparaisse vu d'en dessous.
+      scene.onBeforeRenderObservable.add(function(){
+        var fl = scene.getMeshByName('__infiniteFloor');
+        if (!fl || !fl.material || !camera) return;
+        try { fl.material.setVector3('uCamPos', camera.position); } catch(_){}
+      });
     } catch (e) { console.warn('Sol infini non cree:', e); }
   }
 
@@ -4942,11 +4954,16 @@ function poiProject(world) {
     ov.appendChild(g);
   }
 
-  // Picking décor (ni POV, ni skybox), sous le curseur.
+  // Picking decor (ni POV, ni skybox, ni plafond), sous le curseur.
   function pickPoint(){
     try {
       const pk = scene.pick(scene.pointerX, scene.pointerY, function(m){
-        return m.isPickable !== false && !m.poiId && m.name !== 'skybox';
+        if (m.isPickable === false || m.poiId || m.name === 'skybox') return false;
+        // Exclure le plafond : snap sol et murs uniquement
+        if (typeof ceilingNode !== 'undefined' && ceilingNode) {
+          var p = m; while (p) { if (p === ceilingNode) return false; p = p.parent; }
+        }
+        return true;
       });
       if (pk && pk.hit && pk.pickedPoint){
         const q = pk.pickedPoint; return [ r3(q.x), r3(q.y), r3(q.z) ];
