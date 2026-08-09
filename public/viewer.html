@@ -70,8 +70,7 @@
       try{document.title=A.name+' \u2014 Visite virtuelle 3D';}catch(e){}
       if(A.logo!=='laforet'&&window.brandLogoHTML){var el=document.querySelector('.brand-logo'); if(el) el.innerHTML=window.brandLogoHTML(A);}
       try{var bb=document.querySelector('.back-btn'); if(bb&&A.id) bb.setAttribute('href','index-'+A.id+'.html');}catch(e){}
-      // V2 : titre de la cover en attendant que propertyData arrive
-      try{var ce=document.getElementById('cine-entry-title'); if(ce && (ce.textContent||'').trim()==='') ce.textContent='Bienvenue';}catch(e){}
+
     });
   })();
   </script>
@@ -496,8 +495,10 @@
     @media (max-width: 820px){ .cine-guide { left: 14px; bottom: 14px; } .cine-guide .cg-lbl { display: none; } .cine-guide { padding: 0; width: 46px; justify-content: center; } }
 
     /* Entrée cinématique (révélée quand le 3D est prêt) */
-    /* Cover VISIBLE DES L'OUVERTURE : opacite 1 par defaut, .gone la ferme. */
-    #cine-entry { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; text-align: center; opacity: 1; visibility: visible; background: radial-gradient(120% 90% at 50% 42%, rgba(0,0,0,.42), rgba(0,0,0,.86)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); transition: opacity 1s cubic-bezier(.22,.61,.36,1), visibility 1s; }
+    /* Cover VISIBLE DES L'OUVERTURE — fond OPAQUE noir profond organique.
+       Aucune transparence vers le viewer : le modele 3D ne transparait pas.
+       Degradé radial subtil pour eviter l'aplat numerique plat. */
+    #cine-entry { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; text-align: center; opacity: 1; visibility: visible; background: radial-gradient(ellipse 110% 80% at 50% 38%, #16171c, #0d0e12 55%, #0a0a0c); transition: opacity 1s cubic-bezier(.22,.61,.36,1), visibility 1s; }
     #cine-entry.show { opacity: 1; visibility: visible; }
     #cine-entry.gone { opacity: 0; visibility: hidden; pointer-events: none; }
     .cine-entry-in { max-width: 700px; padding: 0 24px; opacity: 1; }
@@ -1313,9 +1314,17 @@
     }
     .cine-enter-btn:hover::before{ opacity: 1; animation: none; }
     .cine-enter-btn svg{ fill: var(--brand-accent); }
-    /* Etat "modele pas encore charge" : bouton non cliquable, doux visuel */
-    .cine-enter-btn.is-loading{ opacity: .55; cursor: progress; pointer-events: none; }
-    .cine-enter-btn.is-loading::before{ animation-duration: 2.2s; }
+    /* Ecrin dark glassmorphism autour du bloc titre+bouton de la cover.
+       Fond sombre translucide avec blur pour laisser deviner subtilement
+       le degrade atmospherique de la page, sans montrer le viewer. */
+    .cine-entry-in{
+      background: rgba(13,14,18,0.50);
+      -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 28px;
+      padding: 44px 48px 40px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+    }
 
     /* Vignettes "Photos réelles" du panneau POV → coins subtilement arrondis (pt.7) */
     .poi-panel .fp-photo-frame{ border-radius: 14px; }
@@ -6472,7 +6481,7 @@ init();
 <div id="cine-entry" role="dialog" aria-label="Bienvenue">
   <div class="cine-entry-in">
     <div class="eb">Visite virtuelle</div>
-    <h1 id="cine-entry-title">&nbsp;</h1>
+    <h1 id="cine-entry-title">Demo Rambouillet</h1>
     <div class="rule"></div>
     <div class="sub" id="cine-entry-sub" style="display:none;"></div>
     <button class="cine-enter-btn" id="cine-enter-btn" onclick="cineBegin()">
