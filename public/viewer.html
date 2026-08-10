@@ -481,18 +481,96 @@
     .hdr-icon-btn:active { transform: translateY(1px); }
     .hdr-icon-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
-    /* Overlay d'aide (raccourcis) */
-    .vhelp { position: fixed; inset: 0; z-index: 500; display: none; place-items: center; background: rgba(10,8,6,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-    .vhelp.on { display: grid; }
-    .vhelp-card { width: min(92vw, 430px); background: rgba(16,18,22,0.90); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 22px 24px; color: #fff; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
-    .vhelp-card h3 { font-size: 1.02rem; font-weight: 700; margin: 0 0 14px; }
-    .vhelp-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.86rem; }
-    .vhelp-row:last-child { border-bottom: none; }
-    .vhelp-row .d { color: rgba(255,255,255,0.72); }
+    /* ==============================================================
+       V2.4 — OVERLAY D'AIDE (raccourcis clavier) — refonte robuste
+       Structure captive : backdrop DÉDIÉ (cliquable) + carte AU-DESSUS.
+       Fermeture par : croix ✕, bouton "Compris", clic sur backdrop, Échap.
+       Tous les handlers passent par addEventListener (voir JS plus bas),
+       zéro onclick inline — c'est plus robuste face aux edge cases.
+       ============================================================== */
+    .vhelp {
+      position: fixed; inset: 0; z-index: 1500;
+      display: none;
+      align-items: center; justify-content: center;
+    }
+    .vhelp.on { display: flex; }
+    .vhelp-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(6, 8, 14, 0.55);
+      -webkit-backdrop-filter: blur(10px) saturate(120%);
+              backdrop-filter: blur(10px) saturate(120%);
+      cursor: pointer;
+    }
+    .vhelp-card {
+      position: relative;
+      width: min(92vw, 430px);
+      background: rgba(14, 16, 22, 0.78);
+      -webkit-backdrop-filter: blur(24px) saturate(140%);
+              backdrop-filter: blur(24px) saturate(140%);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 18px;
+      padding: 22px 24px;
+      color: #fff;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      z-index: 1;
+      animation: vhelpCardIn .35s cubic-bezier(.22,.61,.36,1);
+    }
+    @keyframes vhelpCardIn {
+      from { opacity: 0; transform: translateY(8px) scale(.985); }
+      to   { opacity: 1; transform: none; }
+    }
+    .vhelp-card h3 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.15rem; font-weight: 500; margin: 0 0 14px;
+      padding-right: 32px;
+    }
+    .vhelp-x {
+      position: absolute; top: 12px; right: 12px;
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 1rem; line-height: 1; cursor: pointer;
+      font-family: inherit;
+      transition: background .18s ease, border-color .18s ease, color .18s ease;
+    }
+    .vhelp-x:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.22);
+      color: #fff;
+    }
+    .vhelp-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 0; font-size: 0.86rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .vhelp-row:last-of-type { border-bottom: none; }
+    .vhelp-row .d { color: rgba(255, 255, 255, 0.72); }
     .vhelp-row .keys { display: flex; gap: 5px; }
-    .vhelp-row kbd { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.74rem; padding: 3px 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.24); border-radius: 6px; color: #fff; }
-    .vhelp-close { margin-top: 16px; width: 100%; height: 40px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: rgba(255,255,255,0.08); color: #fff; font-weight: 700; font-size: 0.86rem; cursor: pointer; transition: background .18s ease; }
-    .vhelp-close:hover { background: rgba(255,255,255,0.16); }
+    .vhelp-row kbd {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 0.74rem; padding: 3px 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 6px; color: #fff;
+    }
+    .vhelp-close {
+      display: block; margin: 16px 0 0; width: 100%; height: 42px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.95);
+      font-family: inherit; font-weight: 600; font-size: 0.88rem;
+      cursor: pointer;
+      transition: background .18s ease, border-color .18s ease, color .18s ease;
+    }
+    .vhelp-close:hover {
+      background: rgba(255, 255, 255, 0.10);
+      border-color: rgba(255, 255, 255, 0.24);
+      color: #fff;
+    }
     :focus-visible { outline: 2.5px solid var(--brand-accent); outline-offset: 2px; }
 
     /* ============ VIEWER 2.0 — Couche cinématique (sur la scène Babylon vivante) ============ */
@@ -1832,16 +1910,24 @@
   <!-- Visite guidee retiree : emplacement reserve a la future mini-map (etages) -->
 
   <!-- OVERLAY AIDE (raccourcis) -->
-  <div class="vhelp" id="vhelp" onclick="if(event.target===this)toggleHelp()">
-    <div class="vhelp-card" role="dialog" aria-label="Raccourcis clavier">
-      <h3>Raccourcis</h3>
+  <!-- V2.4 — Overlay d'aide (raccourcis). Structure captive :
+       backdrop dédié (cliquable) + carte au-dessus + croix + bouton Compris.
+       AUCUN onclick inline : les handlers sont attachés via addEventListener
+       au boot du script principal (voir plus bas — initVhelpControls).
+       C'est plus robuste face aux edge cases et permet la fermeture par TOUT
+       point d'interaction utilisateur (croix, Compris, backdrop, Échap). -->
+  <div class="vhelp" id="vhelp" role="dialog" aria-modal="true" aria-labelledby="vhelp-title">
+    <div class="vhelp-backdrop" id="vhelp-backdrop" aria-hidden="true"></div>
+    <div class="vhelp-card">
+      <button class="vhelp-x" id="vhelp-x" type="button" aria-label="Fermer l'aide" title="Fermer">&#10005;</button>
+      <h3 id="vhelp-title">Raccourcis clavier</h3>
       <div class="vhelp-row"><span class="d">Pièce suivante / précédente</span><span class="keys"><kbd>→</kbd><kbd>←</kbd></span></div>
       <div class="vhelp-row"><span class="d">Basculer vue de dessus</span><span class="keys"><kbd>P</kbd></span></div>
       <div class="vhelp-row"><span class="d">Mesurer une distance</span><span class="keys"><kbd>M</kbd></span></div>
       <div class="vhelp-row"><span class="d">Ouvrir / fermer le panneau</span><span class="keys"><kbd>L</kbd></span></div>
       <div class="vhelp-row"><span class="d">Fermer / annuler</span><span class="keys"><kbd>Échap</kbd></span></div>
       <div class="vhelp-row"><span class="d">Cette aide</span><span class="keys"><kbd>?</kbd></span></div>
-      <button class="vhelp-close" onclick="toggleHelp()">Compris</button>
+      <button class="vhelp-close" id="vhelp-close" type="button">Compris</button>
     </div>
   </div>
 
@@ -5469,7 +5555,56 @@ function updateBreadcrumb(markId){
   }catch(_){}
 }
 
-function toggleHelp(){ const h=document.getElementById('vhelp'); if(h) h.classList.toggle('on'); }
+/* V2.4 — Chemin bouton "Aide" → overlay vhelp → fermeture robuste.
+   Le bouton "?" du rail gauche appelle toggleHelp() (via son onclick),
+   qui bascule la classe 'on'. Une fois l'overlay ouvert, il peut être
+   fermé par : croix ✕, bouton "Compris", clic sur le backdrop, ou Échap.
+   Ces 4 chemins passent par openVhelp/closeVhelp — jamais par du onclick
+   inline sur le HTML, qui s'est révélé fragile en présence d'autres
+   listeners globaux. Handlers attachés une fois via addEventListener. */
+function openVhelp(){
+  var h = document.getElementById('vhelp');
+  if (h) h.classList.add('on');
+}
+function closeVhelp(){
+  var h = document.getElementById('vhelp');
+  if (h) h.classList.remove('on');
+}
+function toggleHelp(){
+  var h = document.getElementById('vhelp');
+  if (!h) return;
+  if (h.classList.contains('on')) closeVhelp(); else openVhelp();
+}
+(function initVhelpControls(){
+  function attach(){
+    var vhelp    = document.getElementById('vhelp');
+    var backdrop = document.getElementById('vhelp-backdrop');
+    var xBtn     = document.getElementById('vhelp-x');
+    var closeBtn = document.getElementById('vhelp-close');
+    if (!vhelp) return;
+    // Croix ✕
+    if (xBtn) xBtn.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation(); closeVhelp();
+    });
+    // Bouton "Compris"
+    if (closeBtn) closeBtn.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation(); closeVhelp();
+    });
+    // Clic sur le backdrop (dark blur en fond)
+    if (backdrop) backdrop.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation(); closeVhelp();
+    });
+    // Échap ferme aussi (double sécurité, en plus du handler global)
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape' && vhelp.classList.contains('on')) closeVhelp();
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+})();
 
 function navStep(dir){
   if (typeof propertyData==='undefined' || !propertyData) return;
