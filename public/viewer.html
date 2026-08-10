@@ -582,6 +582,26 @@
     }
     :focus-visible { outline: 2.5px solid var(--brand-accent); outline-offset: 2px; }
 
+    /* ==============================================================
+       V2.5 — STAGGERED FADE-IN (apparition séquentielle "Apple-like")
+       Chaque élément HUD démarre invisible, puis apparaît en slide-up
+       avec un décalage de 150ms entre blocs. La vue 3D a son propre
+       fondu plus lent. Classe .hud-reveal-ready posée par cineBegin.
+       ============================================================== */
+    .header-bar,
+    .tool-rail,
+    .rdv-topright,
+    .reset-btn {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.7s cubic-bezier(0.22, 0.61, 0.36, 1),
+                  transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    body.hud-reveal-ready .header-bar  { opacity: 1; transform: none; transition-delay: 0.05s; }
+    body.hud-reveal-ready .tool-rail   { opacity: 1; transform: none; transition-delay: 0.20s; }
+    body.hud-reveal-ready .rdv-topright{ opacity: 1; transform: none; transition-delay: 0.35s; }
+    body.hud-reveal-ready .reset-btn   { opacity: 1; transform: none; transition-delay: 0.50s; }
+
     /* ============ VIEWER 2.0 — Couche cinématique (sur la scène Babylon vivante) ============ */
     /* Letterbox + vignette : donnent le grain « film » au-dessus du canvas 3D */
     .cine-bar { position: fixed; left: 0; right: 0; z-index: 6; pointer-events: none; }
@@ -1442,33 +1462,160 @@
     }
     .bien-info{
       position: fixed; top: 66px; left: 18px; z-index: 44;
-      width: min(88vw, 340px);
-      background: var(--glass-bg-strong);
-      -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
-      border: 1px solid var(--glass-brd);
-      border-radius: 18px; padding: 16px 18px;
-      box-shadow: var(--glass-shadow); color: #fff;
-      opacity: 0; visibility: hidden; transform: translateY(-6px);
-      transition: opacity .22s ease, visibility .22s ease, transform .22s ease;
+      width: min(92vw, 380px);
+      max-height: calc(100vh - 90px);
+      overflow-y: auto; overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.14) transparent;
+      background: rgba(14, 16, 22, 0.78);
+      -webkit-backdrop-filter: blur(26px) saturate(140%);
+              backdrop-filter: blur(26px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 0;
+      box-shadow: 0 30px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+      color: #fff;
+      opacity: 0; visibility: hidden; transform: translateY(-8px);
+      transition: opacity .28s ease, visibility .28s ease, transform .28s cubic-bezier(.22,.61,.36,1);
       pointer-events: none;
     }
+    .bien-info::-webkit-scrollbar{ width: 5px; }
+    .bien-info::-webkit-scrollbar-track{ background: transparent; }
+    .bien-info::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.12); border-radius: 999px; }
     .bien-info.open{ opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
-    .bien-info h4{ font-family:'Fraunces',Georgia,serif; font-weight:500; font-size:1.15rem; margin:0 0 12px; }
-    .bien-info p{ font-size:.85rem; line-height:1.5; color:rgba(255,255,255,.78); margin:0; }
-    /* Liste cle/valeur des infos du bien */
-    .bien-info-list{ margin:0; display:grid; grid-template-columns:auto 1fr; gap:9px 16px; }
-    .bien-info-list dt{ font-size:.72rem; letter-spacing:.05em; text-transform:uppercase; color:rgba(255,255,255,.55); align-self:center; }
-    .bien-info-list dd{ margin:0; font-size:.95rem; font-weight:600; color:#fff; text-align:right; }
-    .bien-info-empty{ font-size:.85rem; color:rgba(255,255,255,.6); }
-    /* Bouton "Compris" — pilule verre fumé, ferme le panneau explicitement */
+    /* ── En-tête titre + localisation ── */
+    .bi-header{
+      padding: 20px 20px 0; display: flex; flex-direction: column; gap: 4px;
+    }
+    .bi-title{
+      font-family: 'Fraunces', Georgia, serif; font-weight: 500;
+      font-size: 1.2rem; line-height: 1.25; letter-spacing: -0.01em;
+      margin: 0; padding-right: 32px;
+    }
+    .bi-location{
+      font-size: 0.78rem; color: rgba(255,255,255,0.55);
+      letter-spacing: 0.03em; margin: 0;
+    }
+    /* ── Prix ── */
+    .bi-price{
+      margin: 14px 20px 0; padding: 12px 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      font-family: 'Fraunces', Georgia, serif; font-weight: 500;
+      font-size: 1.45rem; letter-spacing: -0.015em;
+      text-align: center;
+    }
+    .bi-price-label{
+      display: block; font-family: 'Inter', sans-serif;
+      font-size: 0.65rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(255,255,255,0.45); margin-bottom: 2px;
+    }
+    /* ── Grille chiffres clés ── */
+    .bi-stats{
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+      margin: 14px 20px 0;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; overflow: hidden;
+    }
+    .bi-stat{
+      display: flex; flex-direction: column; align-items: center;
+      padding: 11px 6px; gap: 3px;
+      border-right: 1px solid rgba(255,255,255,0.06);
+    }
+    .bi-stat:last-child{ border-right: none; }
+    .bi-stat-val{ font-size: 1.1rem; font-weight: 700; }
+    .bi-stat-lbl{
+      font-size: 0.62rem; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+    }
+    /* ── Section séparateur ── */
+    .bi-sep{ height: 1px; margin: 14px 20px; background: rgba(255,255,255,0.07); }
+    .bi-section-title{
+      padding: 0 20px; margin: 0 0 8px;
+      font-size: 0.68rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+    }
+    /* ── DPE badge ── */
+    .bi-dpe-row{
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 20px; margin-bottom: 4px;
+    }
+    .bi-dpe-badge{
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 10px;
+      font-size: 1.1rem; font-weight: 800; font-family: 'Inter', sans-serif;
+      color: #fff; line-height: 1;
+    }
+    .bi-dpe-badge[data-dpe="A"]{ background: #319834; }
+    .bi-dpe-badge[data-dpe="B"]{ background: #33a357; }
+    .bi-dpe-badge[data-dpe="C"]{ background: #cbcf33; color: #222; }
+    .bi-dpe-badge[data-dpe="D"]{ background: #f0e030; color: #222; }
+    .bi-dpe-badge[data-dpe="E"]{ background: #eba834; }
+    .bi-dpe-badge[data-dpe="F"]{ background: #e57830; }
+    .bi-dpe-badge[data-dpe="G"]{ background: #d6302f; }
+    .bi-dpe-label{ font-size: 0.82rem; color: rgba(255,255,255,0.72); }
+    /* ── Lignes financières ── */
+    .bi-finance{
+      display: grid; grid-template-columns: 1fr auto; gap: 6px 14px;
+      padding: 0 20px;
+    }
+    .bi-fin-label{ font-size: 0.82rem; color: rgba(255,255,255,0.60); }
+    .bi-fin-val{ font-size: 0.82rem; font-weight: 600; text-align: right; }
+    /* ── Points forts (puces) ── */
+    .bi-highlights{
+      list-style: none; margin: 0; padding: 0 20px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .bi-highlights li{
+      position: relative; padding-left: 16px;
+      font-size: 0.84rem; line-height: 1.45;
+      color: rgba(255,255,255,0.82);
+    }
+    .bi-highlights li::before{
+      content: ''; position: absolute; left: 0; top: 7px;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--brand-accent, rgba(255,255,255,0.45));
+    }
+    /* ── CTA Agence + RDV ── */
+    .bi-cta{
+      margin: 0 20px; padding: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .bi-agent-name{
+      font-size: 0.78rem; color: rgba(255,255,255,0.55);
+      letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600;
+    }
+    .bi-rdv-btn{
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 11px 16px;
+      border-radius: 11px;
+      border: 1px solid rgba(var(--brand-accent-rgb), 0.5);
+      background: rgba(var(--brand-accent-rgb), 0.15);
+      color: #fff; font-weight: 600; font-size: 0.88rem;
+      font-family: inherit; cursor: pointer;
+      transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .bi-rdv-btn:hover{
+      background: rgba(var(--brand-accent-rgb), 0.28);
+      border-color: rgba(var(--brand-accent-rgb), 0.7);
+      box-shadow: 0 0 22px -4px rgba(var(--brand-accent-rgb), 0.4);
+    }
+    .bi-rdv-btn svg{ width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; }
+    /* ── Footer fermer ── */
+    .bi-footer{ padding: 12px 20px 16px; }
     .bien-info-close{
       display: flex; align-items: center; justify-content: center;
-      width: 100%; margin-top: 14px; padding: 9px 14px;
+      width: 100%; padding: 9px 14px;
       border-radius: 10px; border: 1px solid rgba(255,255,255,0.10);
       background: rgba(255,255,255,0.04);
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-      color: rgba(255,255,255,0.90);
-      font-family: inherit; font-weight: 600; font-size: 0.82rem;
+      color: rgba(255,255,255,0.75);
+      font-family: inherit; font-weight: 500; font-size: 0.78rem;
       cursor: pointer;
       transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
@@ -1477,6 +1624,7 @@
       border-color: rgba(255,255,255,0.20);
       color: #fff;
     }
+    .bien-info-empty{ font-size:.85rem; color:rgba(255,255,255,.6); padding: 20px; }
 
     /* -----------------------------------------------------------------
        RE-SKIN des éléments existants vers la charte verre (pt.1/9)
@@ -1841,11 +1989,14 @@
        tout clic sur le scrim ferme le panneau — c'est CAPTIF, pas conditionnel. -->
   <div class="bien-info-scrim" id="bien-info-scrim" onclick="__closeBienInfo()" aria-hidden="true"></div>
 
-  <!-- Panneau contextuel "infos du bien" (ouvert par le "i") : donnees cles -->
+  <!-- Panneau contextuel "infos du bien" (ouvert par le "i") : PLAQUETTE COMMERCIALE -->
   <div class="bien-info" id="bien-info" role="dialog" aria-label="Informations sur le bien">
-    <h4 id="bien-info-name">Le bien</h4>
-    <dl class="bien-info-list" id="bien-info-list"></dl>
-    <button class="bien-info-close" type="button" onclick="event.stopPropagation(); __closeBienInfo();">Compris</button>
+    <div id="bien-info-content">
+      <!-- Rempli dynamiquement par __fillBienInfo() -->
+    </div>
+    <div class="bi-footer">
+      <button class="bien-info-close" type="button" onclick="event.stopPropagation(); __closeBienInfo();">Fermer</button>
+    </div>
   </div>
 
   <!-- ===== V2 : RAIL D'OUTILS VERTICAL A GAUCHE (pt.5) =====
@@ -5871,27 +6022,96 @@ function __bienName(){
   return n;
 }
 function __fillBienInfo(){
-  var list = document.getElementById('bien-info-list'); if (!list) return;
+  var container = document.getElementById('bien-info-content'); if (!container) return;
   var pd = (typeof propertyData!=='undefined' && propertyData) ? propertyData : {};
-  // Nb de pieces : depuis les POV du manifest (toujours dispo)
+  var brand = (typeof window.__BRAND__!=='undefined' && window.__BRAND__) ? window.__BRAND__ : {};
+
+  // Nb de pièces depuis les POV du manifest
   var nbPieces = (pd.poi && pd.poi.length) ? pd.poi.length
                : (pd.rooms ? (Array.isArray(pd.rooms)? pd.rooms.length : pd.rooms) : null);
-  // Champs optionnels lus depuis le manifest (absents => "—", jamais inventes)
-  var rows = [
-    ['Surface',      pd.surface != null ? (pd.surface + ' m\u00B2') : null],
-    ['Pi\u00E8ces', nbPieces != null ? String(nbPieces) : null],
-    ['Type',         pd.type || null],
-    ['Prix',         pd.price != null ? (typeof pd.price==='number' ? pd.price.toLocaleString('fr-FR') + ' \u20AC' : pd.price) : null],
-    ['DPE',          pd.dpe || null],
-    ['Localisation', pd.location || null]
-  ];
+
   var html = '';
-  rows.forEach(function(r){
-    if (r[1] == null || r[1] === '') return;
-    html += '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>';
-  });
-  if (!html) html = '<div class="bien-info-empty">Informations bient\u00F4t disponibles.</div>';
-  list.innerHTML = html;
+
+  // ── 1. EN-TÊTE : titre + localisation ──
+  var title = pd.name || __bienName() || 'Visite 3D';
+  var loc = pd.location || '';
+  html += '<div class="bi-header">';
+  html += '<h4 class="bi-title">' + title + '</h4>';
+  if (loc) html += '<p class="bi-location">' + loc + '</p>';
+  html += '</div>';
+
+  // ── 2. PRIX ──
+  if (pd.price != null) {
+    var prixStr = (typeof pd.price === 'number')
+      ? pd.price.toLocaleString('fr-FR') + ' \u20AC'
+      : pd.price;
+    html += '<div class="bi-price"><span class="bi-price-label">Prix de vente</span>' + prixStr + '</div>';
+  }
+
+  // ── 3. CHIFFRES CLÉS (surface, pièces, chambres) ──
+  var stats = [];
+  if (pd.surface != null) stats.push(['Surface', pd.surface + ' m\u00B2']);
+  if (nbPieces != null) stats.push(['Pi\u00E8ces', String(nbPieces)]);
+  if (pd.chambres != null) stats.push(['Chambres', String(pd.chambres)]);
+  if (pd.etage != null) stats.push(['\u00C9tage', String(pd.etage)]);
+  if (stats.length) {
+    html += '<div class="bi-stats">';
+    stats.forEach(function(s){
+      html += '<div class="bi-stat"><span class="bi-stat-val">' + s[1] + '</span><span class="bi-stat-lbl">' + s[0] + '</span></div>';
+    });
+    html += '</div>';
+  }
+
+  // ── 4. TECHNIQUE & FINANCIER : DPE + taxes ──
+  var hasFinance = (pd.dpe || pd.taxeFonciere != null || pd.charges != null);
+  if (hasFinance) {
+    html += '<div class="bi-sep"></div>';
+    html += '<div class="bi-section-title">Technique &amp; Financier</div>';
+    if (pd.dpe) {
+      var letter = String(pd.dpe).charAt(0).toUpperCase();
+      html += '<div class="bi-dpe-row">';
+      html += '<span class="bi-dpe-badge" data-dpe="' + letter + '">' + letter + '</span>';
+      html += '<span class="bi-dpe-label">Diagnostic \u00E9nerg\u00E9tique (DPE)</span>';
+      html += '</div>';
+    }
+    var fins = [];
+    if (pd.taxeFonciere != null) fins.push(['Taxe fonci\u00E8re', typeof pd.taxeFonciere==='number' ? pd.taxeFonciere.toLocaleString('fr-FR') + ' \u20AC/an' : pd.taxeFonciere]);
+    if (pd.charges != null) fins.push(['Charges copro', typeof pd.charges==='number' ? pd.charges.toLocaleString('fr-FR') + ' \u20AC/mois' : pd.charges]);
+    if (fins.length) {
+      html += '<div class="bi-finance">';
+      fins.forEach(function(f){
+        html += '<span class="bi-fin-label">' + f[0] + '</span><span class="bi-fin-val">' + f[1] + '</span>';
+      });
+      html += '</div>';
+    }
+  }
+
+  // ── 5. POINTS FORTS ──
+  var highlights = pd.highlights || pd.pointsForts || pd.atouts || null;
+  if (highlights && Array.isArray(highlights) && highlights.length) {
+    html += '<div class="bi-sep"></div>';
+    html += '<div class="bi-section-title">Points forts</div>';
+    html += '<ul class="bi-highlights">';
+    highlights.forEach(function(h){ html += '<li>' + h + '</li>'; });
+    html += '</ul>';
+  }
+
+  // ── 6. CTA : Agence + Prendre RDV ──
+  html += '<div class="bi-sep"></div>';
+  var agentName = pd.agent || brand.agencyName || brand.label || '';
+  html += '<div class="bi-cta">';
+  if (agentName) html += '<span class="bi-agent-name">' + agentName + '</span>';
+  html += '<button class="bi-rdv-btn" type="button" onclick="event.stopPropagation(); __closeBienInfo(); openRdv();">';
+  html += '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+  html += '<span>Prendre RDV</span></button>';
+  html += '</div>';
+
+  // Fallback si absolument rien
+  if (!pd.name && !pd.price && !pd.surface && !nbPieces) {
+    html = '<div class="bien-info-empty">Informations bient\u00F4t disponibles.</div>';
+  }
+
+  container.innerHTML = html;
 }
 function __closeBienInfo(){
   var bi = document.getElementById('bien-info');
@@ -5903,7 +6123,6 @@ function __closeBienInfo(){
    couvre 100% de l'écran quand ouvert et intercepte tout clic hors panneau. */
 function toggleBienInfo(){
   var p = document.getElementById('bien-info'); if (!p) return;
-  var nm = document.getElementById('bien-info-name'); if (nm) nm.textContent = __bienName();
   __fillBienInfo();
   var willOpen = !p.classList.contains('open');
   p.classList.toggle('open', willOpen);
@@ -7184,6 +7403,8 @@ init();
   };
   window.cineBegin = function(){
     const e=document.getElementById('cine-entry'); if(e){ e.classList.remove('show'); e.classList.add('gone'); }
+    // V2.5 — Déclenche le staggered fade-in des éléments HUD
+    document.body.classList.add('hud-reveal-ready');
     if (typeof window.cineWake==='function') window.cineWake();
   };
 
