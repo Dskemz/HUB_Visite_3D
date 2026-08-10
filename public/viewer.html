@@ -282,10 +282,14 @@
       background: rgba(var(--brand-navy-rgb), 0.62);
       -webkit-backdrop-filter: blur(16px);
       backdrop-filter: blur(16px);
-      padding: 1.1rem 1.2rem; 
+      padding: 1.15rem 1.25rem 1.4rem;
       width: 100%; 
       height: 100%;
+      box-sizing: border-box;
       overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.18) transparent;
       box-shadow: -4px 0 26px rgba(var(--brand-navy-rgb), 0.45);
       transform: translateX(0);
       transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -296,6 +300,18 @@
       border-top-left-radius: 12px;
       border-bottom-left-radius: 12px;
     }
+    /* Scrollbar WebKit discrète (Chrome/Safari) — ne dépasse pas visuellement */
+    .poi-panel::-webkit-scrollbar{ width: 6px; }
+    .poi-panel::-webkit-scrollbar-track{ background: transparent; }
+    .poi-panel::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,0.14);
+      border-radius: 999px;
+    }
+    .poi-panel::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,0.24); }
+    /* Tous les enfants du panneau : box-sizing hérité pour éviter tout débordement */
+    .poi-panel *, .poi-panel *::before, .poi-panel *::after { box-sizing: border-box; }
+    /* Corps du panneau : largeur bornée à 100% pour empêcher tout dépassement horizontal */
+    .poi-panel > .panel-header, .poi-panel > .pl-body{ max-width: 100%; min-width: 0; }
 
     /* ===== Skin « verre navy » du panneau : textes & éléments internes en clair ===== */
     .poi-panel h3 { color: #fff; }
@@ -481,6 +497,11 @@
     /* Fiche pièce éditoriale (bas-gauche) */
     .cine-detail { position: fixed; left: 26px; bottom: 96px; z-index: 15; max-width: min(46vw, 460px); pointer-events: none; opacity: 0; transform: translateY(12px); transition: opacity .5s cubic-bezier(.22,.61,.36,1), transform .5s cubic-bezier(.22,.61,.36,1); }
     .cine-detail.on { opacity: 1; transform: none; }
+    /* V2.2 — Anti-redondance : quand le panneau droit est ouvert, le titre de
+       la pièce est déjà présent dans le drawer (header). Le titre bas-gauche
+       s'estompe fortement pour ne pas surcharger l'écran. */
+    body.poi-panel-open .cine-detail.on { opacity: 0.12; }
+    body.poi-panel-open .cine-detail.on .rname { text-shadow: none; }
     .cine-detail .eyebrow { font-size: .7rem; letter-spacing: .24em; text-transform: uppercase; color: var(--brand-accent); font-weight: 600; margin-bottom: 8px; }
     .cine-detail .rname { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: clamp(1.9rem, 3.6vw, 3rem); line-height: .98; letter-spacing: -.02em; color: #fff; text-shadow: 0 2px 30px rgba(0,0,0,.55); }
     .cine-detail .rdesc { margin-top: 11px; font-size: .9rem; line-height: 1.5; color: #f4f1ec; max-width: 400px; text-shadow: 0 1px 12px rgba(0,0,0,.6); }
@@ -1151,38 +1172,45 @@
        ----------------------------------------------------------------- */
     .rdv-overlay{
       position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center;
-      background: rgba(0,0,0,0.45);
-      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+      background: rgba(6, 8, 14, 0.55);
+      -webkit-backdrop-filter: blur(14px) saturate(120%); backdrop-filter: blur(14px) saturate(120%);
       opacity: 0; visibility: hidden; transition: opacity .3s ease, visibility .3s ease;
       pointer-events: none;
     }
     .rdv-overlay.open{ opacity: 1; visibility: visible; pointer-events: auto; }
     .rdv-card{
-      width: min(92vw, 440px);
-      background: var(--glass-bg-strong);
-      -webkit-backdrop-filter: blur(26px); backdrop-filter: blur(26px);
-      border: 1px solid var(--glass-brd);
+      position: relative;
+      width: min(92vw, 460px);
+      background: rgba(14, 16, 22, 0.78);
+      -webkit-backdrop-filter: blur(28px) saturate(140%); backdrop-filter: blur(28px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 22px; padding: 26px 26px 24px;
-      box-shadow: 0 30px 70px rgba(0,0,0,0.5);
+      box-shadow: 0 30px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
       transform: translateY(10px) scale(.98); transition: transform .3s cubic-bezier(.22,.61,.36,1);
       color: #fff;
     }
     .rdv-overlay.open .rdv-card{ transform: none; }
-    .rdv-card h3{ font-family:'Fraunces',Georgia,serif; font-weight:500; font-size:1.5rem; margin:0 0 4px; }
+    .rdv-card h3{ font-family:'Fraunces',Georgia,serif; font-weight:500; font-size:1.5rem; margin:0 0 4px; letter-spacing:-0.01em; }
     .rdv-card .rdv-sub{ font-size:.86rem; color:rgba(255,255,255,.7); margin-bottom:18px; }
+    .rdv-row{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .rdv-row .rdv-field{ margin-bottom: 0; }
     .rdv-field{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
     .rdv-field label{ font-size:.74rem; letter-spacing:.04em; text-transform:uppercase; color:rgba(255,255,255,.6); }
+    .rdv-optional{ text-transform: none; letter-spacing: 0; color: rgba(255,255,255,0.35); font-weight: 400; margin-left: 4px; }
     .rdv-field input, .rdv-field textarea{
       width:100%; font-family:inherit; font-size:.92rem; color:#fff;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
       border-radius: 12px; padding: 11px 13px; outline: none;
-      transition: border-color .2s ease, box-shadow .2s ease;
+      box-sizing: border-box;
+      transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
     }
-    .rdv-field input::placeholder, .rdv-field textarea::placeholder{ color: rgba(255,255,255,0.35); }
+    .rdv-field input::placeholder, .rdv-field textarea::placeholder{ color: rgba(255,255,255,0.30); }
+    .rdv-field input:hover, .rdv-field textarea:hover{ background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.16); }
     .rdv-field input:focus, .rdv-field textarea:focus{
       border-color: rgba(var(--brand-accent-rgb),0.7);
       box-shadow: 0 0 0 3px rgba(var(--brand-accent-rgb),0.18);
+      background: rgba(255,255,255,0.06);
     }
     .rdv-field textarea{ resize: vertical; min-height: 74px; }
     .rdv-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
@@ -1190,10 +1218,12 @@
     .rdv-close{
       position:absolute; top:14px; right:14px; width:32px; height:32px; border-radius:50%;
       display:flex; align-items:center; justify-content:center;
-      background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14);
-      color:#fff; cursor:pointer; font-size:1rem; line-height:1; transition: background .18s ease;
+      background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);
+      color:rgba(255,255,255,0.85); cursor:pointer; font-size:1rem; line-height:1;
+      transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
-    .rdv-close:hover{ background: rgba(255,255,255,0.14); }
+    .rdv-close:hover{ background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.20); color:#fff; }
+    @media (max-width: 520px){ .rdv-row{ grid-template-columns: 1fr; gap: 0; } }
 
     /* Panneau contextuel "infos du bien" ouvert par le "i" */
     .bien-info{
@@ -1375,17 +1405,35 @@
       font-size: 0.9rem; line-height: 1.6;
       margin: 0;
     }
-    /* SECTION LABEL (petite majuscule discrète au-dessus de la grille) */
+    /* SECTION LABEL — bouton toggle discret pour replier/déplier la grille */
     .pl-section-lbl{
-      color: rgba(255,255,255,0.42);
+      all: unset;
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; cursor: pointer;
+      color: rgba(255,255,255,0.55);
       font-size: 0.68rem; font-weight: 600;
       letter-spacing: 0.09em; text-transform: uppercase;
       margin: 0.35rem 0 0.55rem 0;
+      padding: 4px 2px;
+      border-radius: 6px;
+      transition: color .18s ease, background .18s ease;
     }
-    /* GRILLE DES PIÈCES — verre fumé + pastille lumineuse sur active */
+    .pl-section-lbl:hover{ color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.03); }
+    .pl-section-lbl:focus-visible{ outline: 1px solid rgba(255,255,255,0.25); outline-offset: 2px; }
+    .pl-section-lbl .pl-sec-chev{
+      width: 12px; height: 12px; margin-left: 8px; opacity: 0.7;
+      stroke: currentColor; stroke-width: 2.4; fill: none;
+      transition: transform .28s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    .pl-section-lbl.collapsed .pl-sec-chev{ transform: rotate(-90deg); }
+    /* La grille est repliée : hauteur 0, opacité 0, mais l'espace descriptif au-dessus reste stable */
     .pl-grid{
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem;
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.55rem;
+      overflow: hidden;
+      max-height: 2400px; opacity: 1;
+      transition: max-height .38s cubic-bezier(0.22, 0.61, 0.36, 1), opacity .28s ease;
     }
+    .pl-grid.collapsed{ max-height: 0; opacity: 0; pointer-events: none; }
     .pl-room{
       position: relative;
       display: flex; align-items: center; justify-content: flex-start;
@@ -1574,10 +1622,13 @@
       <button class="rdv-close" onclick="closeRdv()" aria-label="Fermer">&#10005;</button>
       <h3>Prendre rendez-vous</h3>
       <div class="rdv-sub" id="rdv-sub">Organisons une visite de ce bien.</div>
-      <div class="rdv-field"><label for="rdv-name">Votre nom</label><input id="rdv-name" type="text" placeholder="Nom et prenom" autocomplete="name"></div>
+      <div class="rdv-row">
+        <div class="rdv-field"><label for="rdv-firstname">Prénom</label><input id="rdv-firstname" type="text" placeholder="Prénom" autocomplete="given-name"></div>
+        <div class="rdv-field"><label for="rdv-lastname">Nom</label><input id="rdv-lastname" type="text" placeholder="Nom" autocomplete="family-name"></div>
+      </div>
+      <div class="rdv-field"><label for="rdv-phone">Téléphone</label><input id="rdv-phone" type="tel" placeholder="06 12 34 56 78" autocomplete="tel"></div>
       <div class="rdv-field"><label for="rdv-email">Email</label><input id="rdv-email" type="email" placeholder="vous@exemple.fr" autocomplete="email"></div>
-      <div class="rdv-field"><label for="rdv-phone">Telephone</label><input id="rdv-phone" type="tel" placeholder="06 12 34 56 78" autocomplete="tel"></div>
-      <div class="rdv-field"><label for="rdv-msg">Message</label><textarea id="rdv-msg" placeholder="Vos disponibilites, questions..."></textarea></div>
+      <div class="rdv-field"><label for="rdv-msg">Message <span class="rdv-optional">(facultatif)</span></label><textarea id="rdv-msg" placeholder="Vos disponibilités, questions..."></textarea></div>
       <div class="rdv-actions">
         <button class="lum-pill rdv-send" onclick="submitRdv()"><span>Envoyer</span></button>
       </div>
@@ -1834,6 +1885,7 @@ async function init() {
     const panel = document.getElementById('poi-panel');
     const tbtn  = document.getElementById('btn-toggle-panel');
     if (panel) panel.classList.toggle('closed', !isPoiPanelOpen);
+    document.body.classList.toggle('poi-panel-open', isPoiPanelOpen);
   })();
 
   // Appareil tactile (tablette / mobile) ? Sert à alléger la charge GPU UNIQUEMENT
@@ -1902,8 +1954,10 @@ async function init() {
   camera.attachControl(canvas, true);
   // Empêche le menu contextuel au clic droit → translation propre (comme le Sandbox)
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-  // V2 : fermer le panneau "i" au clic sur la scene
-  canvas.addEventListener('pointerdown', function(){ if (typeof __closeBienInfo==='function') __closeBienInfo(); });
+  // V2.2 : le panneau "i" (bien-info) ne se ferme PLUS au clic sur la scène 3D —
+  // fermeture uniquement via ré-clic sur le bouton "i", touche Échap, ou action
+  // explicite (goToPOI, mesure, bascule vue). Cliquer/glisser sur la 3D pour
+  // regarder autour du bien ne doit pas replier le panneau d'informations.
   defaultFov = camera.fov; // mémorise le FOV de navigation pour le restaurer après la vue 1ère personne
 
   // === PARAMÈTRES EXACTS DU SANDBOX BABYLON.JS (valeurs par défaut de l'ArcRotateCamera) ===
@@ -4538,6 +4592,16 @@ function refreshFirstPersonPanelIfRoom(roomId) {
    • Sélecteur : grille des pièces (verre fumé + pastille lumineuse sur active)
    Le panneau est masqué hors champ tant qu'aucune action explicite ne l'ouvre.
    ============================================================================ */
+/* Toggle repli/déplié de la grille "Autres pièces" (persistent via window.__plGridCollapsed) */
+function togglePlGrid(btn){
+  const isCollapsed = btn.classList.toggle('collapsed');
+  window.__plGridCollapsed = isCollapsed;
+  btn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+  btn.setAttribute('title', isCollapsed ? 'Déplier les pièces' : 'Replier les pièces');
+  const grid = document.getElementById('pl-grid-body');
+  if (grid) grid.classList.toggle('collapsed', isCollapsed);
+}
+
 function renderPanelContent(activePoi) {
   const panel = document.getElementById('poi-panel');
   if (!panel) return;
@@ -4576,11 +4640,21 @@ function renderPanelContent(activePoi) {
     ? `<p class="pl-desc">${activePoi.description}</p>`
     : '';
 
-  // --- Grille des pièces (sélecteur unifié) ---
+  // --- Grille des pièces (sélecteur unifié) — repliable via le label section
+  //     Le state est mémorisé dans window.__plGridCollapsed pour persister entre les renders.
   const activeId = activePoi ? activePoi.id : (typeof currentPoiId !== 'undefined' ? currentPoiId : null);
+  const collapsed = !!window.__plGridCollapsed;
   const gridHTML = allPois.length ? `
-    <div class="pl-section-lbl">${activePoi ? 'Autres pièces' : 'Pièces à visiter'}</div>
-    <div class="pl-grid">
+    <button class="pl-section-lbl${collapsed ? ' collapsed' : ''}"
+            type="button"
+            onclick="togglePlGrid(this)"
+            aria-expanded="${collapsed ? 'false' : 'true'}"
+            aria-controls="pl-grid-body"
+            title="${collapsed ? 'Déplier les pièces' : 'Replier les pièces'}">
+      <span>${activePoi ? 'Autres pièces' : 'Pièces à visiter'}</span>
+      <svg class="pl-sec-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="pl-grid${collapsed ? ' collapsed' : ''}" id="pl-grid-body">
       ${allPois.map(p => {
         const isActive  = p.id === activeId;
         const isVisited = window.__visited && window.__visited.has(p.id);
@@ -5511,21 +5585,34 @@ function openRdv(){
   if (sub) sub.textContent = 'Organisons une visite de ' + __bienName() + '.';
   var bi = document.getElementById('bien-info'); if (bi) bi.classList.remove('open');
   o.classList.add('open');
-  var f = document.getElementById('rdv-name'); if (f) setTimeout(function(){ try{ f.focus(); }catch(e){} }, 60);
+  // Focus sur le premier champ (Prénom) pour une saisie immédiate
+  var f = document.getElementById('rdv-firstname'); if (f) setTimeout(function(){ try{ f.focus(); }catch(e){} }, 60);
 }
 function closeRdv(){
   var o = document.getElementById('rdv-overlay'); if (o) o.classList.remove('open');
 }
 function submitRdv(){
-  var val = function(id){ var el = document.getElementById(id); return el ? el.value : ''; };
-  var name = val('rdv-name'), email = val('rdv-email'), phone = val('rdv-phone'), msg = val('rdv-msg');
+  var val = function(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  var firstname = val('rdv-firstname'), lastname = val('rdv-lastname');
+  var email = val('rdv-email'), phone = val('rdv-phone'), msg = val('rdv-msg');
+  // Validation minimale : prénom + nom + (téléphone OU email) requis pour un contact utile
+  if (!firstname || !lastname || (!phone && !email)){
+    var missing = [];
+    if (!firstname) missing.push('Prénom');
+    if (!lastname)  missing.push('Nom');
+    if (!phone && !email) missing.push('Téléphone ou Email');
+    alert('Merci de renseigner : ' + missing.join(', ') + '.');
+    return;
+  }
+  var fullname = firstname + ' ' + lastname;
   var bien = __bienName();
   var subject = 'Demande de RDV - ' + bien;
   var body = 'Bonjour,%0D%0A%0D%0A'
     + 'Je souhaite prendre rendez-vous pour une visite de ' + encodeURIComponent(bien) + '.%0D%0A%0D%0A'
-    + 'Nom : ' + encodeURIComponent(name) + '%0D%0A'
-    + 'Email : ' + encodeURIComponent(email) + '%0D%0A'
-    + 'Telephone : ' + encodeURIComponent(phone) + '%0D%0A%0D%0A'
+    + 'Prenom : ' + encodeURIComponent(firstname) + '%0D%0A'
+    + 'Nom : ' + encodeURIComponent(lastname) + '%0D%0A'
+    + 'Telephone : ' + encodeURIComponent(phone) + '%0D%0A'
+    + 'Email : ' + encodeURIComponent(email) + '%0D%0A%0D%0A'
     + 'Message : ' + encodeURIComponent(msg) + '%0D%0A';
   var to = (window.__BRAND__ && window.__BRAND__.contactEmail) ? window.__BRAND__.contactEmail : '';
   window.location.href = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + body;
@@ -5960,6 +6047,10 @@ function togglePoiPanel() {
   } else {
     panel.classList.add('closed');
   }
+
+  // V2.2 — Marque l'état global pour que les autres composants (HUD, cine-detail,
+  // titre bas-gauche) puissent s'adapter et éviter la redondance d'information.
+  document.body.classList.toggle('poi-panel-open', isPoiPanelOpen);
 
   // Coupe le flou du verre pendant le glissement + le recadrage caméra (perf),
   // puis le restaure une fois immobile.
