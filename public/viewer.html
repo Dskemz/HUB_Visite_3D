@@ -419,9 +419,15 @@
       box-shadow: 0 4px 14px rgba(var(--brand-accent-rgb),0.45); }
     .measure-hint {
       position: absolute; bottom: 1.2rem; left: 50%; transform: translateX(-50%);
-      background: rgba(var(--brand-navy-rgb),0.9); color: #fff; padding: 0.5rem 1.1rem;
-      border-radius: 999px; font-size: 0.82rem; font-weight: 600; pointer-events: none;
+      background: rgba(14, 16, 22, 0.85);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+              backdrop-filter: blur(14px) saturate(140%);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      color: rgba(255, 255, 255, 0.92);
+      padding: 0.5rem 1.1rem;
+      border-radius: 999px; font-size: 0.82rem; font-weight: 500; pointer-events: none;
       white-space: nowrap; max-width: calc(100vw - 2rem); text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
       opacity: 0; transition: opacity 0.3s; z-index: 150;
     }
     .measure-hint.show { opacity: 1; }
@@ -495,17 +501,14 @@
     #ui-overlay.cine-idle { opacity: .16; }
 
     /* Fiche pièce éditoriale (bas-gauche) */
-    .cine-detail { position: fixed; left: 26px; bottom: 96px; z-index: 15; max-width: min(46vw, 460px); pointer-events: none; opacity: 0; transform: translateY(12px); transition: opacity .5s cubic-bezier(.22,.61,.36,1), transform .5s cubic-bezier(.22,.61,.36,1); }
-    .cine-detail.on { opacity: 1; transform: none; }
-    /* V2.2 — Anti-redondance : quand le panneau droit est ouvert, le titre de
-       la pièce est déjà présent dans le drawer (header). Le titre bas-gauche
-       s'estompe fortement pour ne pas surcharger l'écran. */
-    body.poi-panel-open .cine-detail.on { opacity: 0.12; }
-    body.poi-panel-open .cine-detail.on .rname { text-shadow: none; }
-    .cine-detail .eyebrow { font-size: .7rem; letter-spacing: .24em; text-transform: uppercase; color: var(--brand-accent); font-weight: 600; margin-bottom: 8px; }
+    /* V2.3 — Bloc cine-detail (nom + description pièce bas-gauche) SUPPRIMÉ.
+       Le nom et la description de la pièce vivent uniquement dans le panneau droit
+       (drawer contextuel). Évite la redondance textuelle et libère la vue 3D.
+       Le HTML est conservé pour compatibilité mais rendu invisible via display:none. */
+    .cine-detail { display: none !important; }
+    .cine-detail .eyebrow { font-size: .7rem; letter-spacing: .24em; text-transform: uppercase; color: rgba(255,255,255,0.55); font-weight: 600; margin-bottom: 8px; }
     .cine-detail .rname { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: clamp(1.9rem, 3.6vw, 3rem); line-height: .98; letter-spacing: -.02em; color: #fff; text-shadow: 0 2px 30px rgba(0,0,0,.55); }
-    .cine-detail .rdesc { margin-top: 11px; font-size: .9rem; line-height: 1.5; color: #f4f1ec; max-width: 400px; text-shadow: 0 1px 12px rgba(0,0,0,.6); }
-    @media (max-width: 820px){ .cine-detail { left: 16px; right: 16px; bottom: 120px; max-width: none; } .cine-detail .rname { font-size: 1.9rem; } }
+    .cine-detail .rdesc { margin-top: 11px; font-size: .9rem; line-height: 1.5; color: rgba(255,255,255,0.78); max-width: 400px; text-shadow: 0 1px 12px rgba(0,0,0,.6); }
 
     /* Bouton Visite guidée */
     .cine-guide { position: fixed; left: 26px; bottom: 26px; z-index: 16; display: inline-flex; align-items: center; gap: 9px; height: 46px; padding: 0 18px; border-radius: 13px; background: var(--brand-accent); color: #fff; font-weight: 600; font-size: .86rem; box-shadow: 0 10px 30px rgba(var(--brand-accent-rgb),.4); transition: transform .12s, background .2s; }
@@ -692,14 +695,18 @@
     /* NOTE : CSS vestige .fp-poi-btn, .fp-poi-grid, .fp-back-btn retiré —
        le rendu unifié V2.1+ utilise .pl-room (grille pièces) et .pl-back-pill (retour). */
 
-    /* Indication "regarder autour" en vue 1ère personne */
+    /* Indication "regarder autour" en vue 1ère personne — glassmorphism neutre
+       (indépendant de la charte agence, lisibilité universelle) */
     .fp-look-hint {
       position: absolute;
       bottom: 1.2rem;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(var(--brand-navy-rgb),0.85);
-      color: #fff;
+      background: rgba(14, 16, 22, 0.82);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+              backdrop-filter: blur(14px) saturate(140%);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      color: rgba(255, 255, 255, 0.90);
       padding: 0.5rem 1.1rem;
       border-radius: 999px;
       font-size: 0.82rem;
@@ -708,6 +715,7 @@
       opacity: 0;
       transition: opacity 0.4s;
       z-index: 150;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
     .fp-look-hint.show { opacity: 1; }
 
