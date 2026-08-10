@@ -7400,24 +7400,44 @@ init();
     const e=document.getElementById('cine-entry'); if(e && !e.classList.contains('gone')) e.classList.add('show');
   };
   window.cineBegin = function(){
-    const e=document.getElementById('cine-entry'); if(e){ e.classList.remove('show'); e.classList.add('gone'); }
+    var e = document.getElementById('cine-entry');
+    if (!e) return;
 
-    // V2.5 — Révèle le canvas au moment EXACT où l'utilisateur clique "Démarrer".
-    // Avant ce point, le canvas est opacity:0 même si la scène est prête depuis
-    // longtemps. On retire pre-reveal ici pour que la transition CSS soit visible.
-    var cv = document.getElementById('canvas');
-    if (cv) {
-      // Petite pause : laisse l'écran d'entrée commencer à disparaître (son
-      // transition: opacity 1s) avant que le canvas n'apparaisse — fondu croisé propre.
+    // L'écran d'entrée commence à disparaître (opaque → transparent sur 1s)
+    e.classList.remove('show');
+    e.classList.add('gone');
+
+    // V2.5 FIX — On attend la FIN de la disparition de l'écran d'entrée
+    // AVANT de reveal le canvas et le HUD. Sinon la transition se joue
+    // derrière l'écran opaque et personne ne la voit.
+    function revealAfterEntry(){
+      // 1) Canvas : fade-in + scale (CSS transition 1.15s)
+      var cv = document.getElementById('canvas');
+      if (cv) cv.classList.remove('pre-reveal');
+
+      // 2) HUD staggered : décalé de 200ms après le canvas pour un enchaînement fluide
       setTimeout(function(){
-        cv.classList.remove('pre-reveal');
-      }, 80);
+        document.body.classList.add('hud-reveal-ready');
+      }, 200);
     }
 
-    // Staggered fade-in HUD (décalé après le reveal du canvas)
-    setTimeout(function(){
-      document.body.classList.add('hud-reveal-ready');
-    }, 350);
+    // Écoute transitionend sur l'écran d'entrée (propriété opacity, ~1s)
+    // + fallback setTimeout si transitionend ne fire pas (tab cachée, etc.)
+    var fired = false;
+    function onDone(){
+      if (fired) return;
+      fired = true;
+      e.removeEventListener('transitionend', onTransEnd);
+      revealAfterEntry();
+    }
+    function onTransEnd(ev){
+      // Ne réagir qu'à la fin du fade de l'écran d'entrée, pas d'un enfant
+      if (ev.target !== e || ev.propertyName !== 'opacity') return;
+      onDone();
+    }
+    e.addEventListener('transitionend', onTransEnd);
+    // Fallback : si transitionend ne fire pas après 1.2s (sécurité)
+    setTimeout(onDone, 1200);
 
     if (typeof window.cineWake==='function') window.cineWake();
   };
