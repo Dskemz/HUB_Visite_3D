@@ -444,11 +444,23 @@
     .measure-hint.show { opacity: 1; }
     .measure-clear {
       position: absolute; bottom: 1rem; left: 1rem; display: none; align-items: center; gap: 0.4rem;
-      pointer-events: auto; background: rgba(255,255,255,0.95); color: #333; border: 1px solid #ddd;
+      pointer-events: auto;
+      background: rgba(14, 16, 22, 0.82);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+              backdrop-filter: blur(14px) saturate(140%);
+      color: rgba(255,255,255,0.92);
+      border: 1px solid rgba(255,255,255,0.10);
       border-radius: 999px; padding: 0.55rem 1rem; cursor: pointer; font-size: 0.82rem; font-weight: 600;
-      font-family: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 150;
+      font-family: inherit;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      z-index: 150;
+      transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
-    .measure-clear:hover { background: var(--brand-accent); color: #fff; border-color: var(--brand-accent); }
+    .measure-clear:hover {
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.22);
+      color: #fff;
+    }
 
     /* ============ VIEWER 2.0 — Incrément 1 : orientation, vignettes, aide ============ */
     /* Fil d'Ariane dans le header : Bien / Pièce courante (orientation permanente) */
@@ -1466,9 +1478,9 @@
       opacity: 1; visibility: visible; pointer-events: auto;
     }
     .bien-info{
-      position: fixed; top: 66px; left: 18px; z-index: 44;
+      position: fixed; top: 56px; left: 18px; z-index: 44;
       width: min(92vw, 380px);
-      max-height: calc(100vh - 90px);
+      max-height: calc(100vh - 80px);
       overflow-y: auto; overflow-x: hidden;
       scrollbar-width: thin;
       scrollbar-color: rgba(255,255,255,0.14) transparent;
@@ -1857,7 +1869,9 @@
     }
     .pl-room .pl-lbl{
       flex: 1; min-width: 0;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: normal; line-height: 1.3;
     }
     /* ÉTAT ACTIF — pastille lumineuse (glow accent marque) + halo subtil sur le bouton */
     .pl-room.active{
@@ -2022,6 +2036,9 @@
     </button>
     <button class="rail-btn" id="btn-help" onclick="toggleHelp()" data-tip="Aide" title="Aide et raccourcis" aria-label="Aide et raccourcis clavier">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 013.5 2.3c0 1.5-2 1.7-2 3M12 17h.01"/></svg><span class="measure-lbl">Aide</span>
+    </button>
+    <button class="rail-btn" id="btn-furnished" onclick="toggleFurnished()" data-tip="Meublé / Vide" title="Afficher ou masquer les meubles" aria-label="Meublé / Vide">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M16 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M2 18h20M4 15V9a2 2 0 012-2h12a2 2 0 012 2v6"/><path d="M8 13h8" stroke-linecap="round"/></svg>
     </button>
   </div>
 
@@ -4534,6 +4551,16 @@ function setAllRooms(on) {
   // Idem : pas de recadrage caméra sur "tout afficher / tout masquer".
 }
 
+/* V2.6 — Toggle global meublé/vide. Bascule TOUS les nodes de meubles
+   (roomNodes) en une seule fois. Le bouton du rail reflète l'état. */
+let furnishedVisible = true;
+function toggleFurnished() {
+  furnishedVisible = !furnishedVisible;
+  setAllRooms(furnishedVisible);
+  const btn = document.getElementById('btn-furnished');
+  if (btn) btn.classList.toggle('active', !furnishedVisible);
+}
+
 /* Recentre le GLB global dans la zone visible avec la marge configurée, en douceur.
    Conserve l'orientation courante (nav) ou la vue de dessus selon le mode.
    Appelé à chaque clic de bouton pour remettre le modèle bien cadré. */
@@ -6149,16 +6176,14 @@ function __fillBienInfo(){
     html += '</ul>';
   }
 
-  // ── 6. CTA : Agence + Prendre RDV ──
-  html += '<div class="bi-sep"></div>';
+  // ── 6. AGENCE (sans doublon RDV — le bouton RDV est en haut à droite) ──
   var agentName = pd.agent || brand.agencyName || brand.label || '';
-  html += '<div class="bi-cta">';
-  if (agentName) html += '<span class="bi-agent-name">' + agentName + '</span>';
-  html += '<button class="bi-rdv-btn" type="button" onclick="event.stopPropagation(); __closeBienInfo(); openRdv();">';
-  html += '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
-  html += '<span>Prendre RDV</span></button>';
-  html += '</div>';
-
+  if (agentName) {
+    html += '<div class="bi-sep"></div>';
+    html += '<div style="padding:0 20px 4px; text-align:center;">';
+    html += '<span class="bi-agent-name">' + agentName + '</span>';
+    html += '</div>';
+  }
   // Fallback si absolument rien
   if (!pd.name && !pd.price && !pd.surface && !nbPieces) {
     html = '<div class="bien-info-empty">Informations bient\u00F4t disponibles.</div>';
