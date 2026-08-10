@@ -1340,6 +1340,19 @@
     @media (max-width: 520px){ .rdv-row{ grid-template-columns: 1fr; gap: 0; } }
 
     /* Panneau contextuel "infos du bien" ouvert par le "i" */
+    /* V2.3 — Scrim plein écran INVISIBLE qui capture les clics hors du panneau.
+       Solution captive : le scrim couvre 100% de la scène quand ouvert, tout clic
+       le referme. Pas de conditionnels JS, pas de listeners fragiles. */
+    .bien-info-scrim{
+      position: fixed; inset: 0; z-index: 43;
+      background: transparent;
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transition: opacity .22s ease, visibility .22s ease;
+      cursor: pointer;
+    }
+    body.bien-info-open .bien-info-scrim{
+      opacity: 1; visibility: visible; pointer-events: auto;
+    }
     .bien-info{
       position: fixed; top: 66px; left: 18px; z-index: 44;
       width: min(88vw, 340px);
@@ -1736,11 +1749,16 @@
     </button>
   </div>
 
+  <!-- V2.3 — Scrim plein écran INVISIBLE qui capture les clics hors du panneau "i".
+       Solution robuste : quand .bien-info-scrim est visible (bien-info ouvert),
+       tout clic sur le scrim ferme le panneau — c'est CAPTIF, pas conditionnel. -->
+  <div class="bien-info-scrim" id="bien-info-scrim" onclick="__closeBienInfo()" aria-hidden="true"></div>
+
   <!-- Panneau contextuel "infos du bien" (ouvert par le "i") : donnees cles -->
   <div class="bien-info" id="bien-info" role="dialog" aria-label="Informations sur le bien">
     <h4 id="bien-info-name">Le bien</h4>
     <dl class="bien-info-list" id="bien-info-list"></dl>
-    <button class="bien-info-close" type="button" onclick="__closeBienInfo()">Compris</button>
+    <button class="bien-info-close" type="button" onclick="event.stopPropagation(); __closeBienInfo();">Compris</button>
   </div>
 
   <!-- ===== V2 : RAIL D'OUTILS VERTICAL A GAUCHE (pt.5) =====
@@ -3945,7 +3963,14 @@ function wrapAlphaNear(current, target) {
 }
 
 function resetView() {
-  if (!initialFraming || isAnimating) return;
+  if (!initialFraming) return;
+  // V2.4 — Ne PAS bloquer sur isAnimating : si une animation traîne (edge case
+  // stuck), on l'annule proprement et on force le reset. Le bouton "Recentrer"
+  // doit TOUJOURS répondre au clic — c'est sa raison d'être.
+  if (currentAnimObserver) {
+    scene.onBeforeRenderObservable.remove(currentAnimObserver);
+    currentAnimObserver = null;
+  }
   isAnimating = true;
   isTopView = false; // on quitte la vue de dessus
   setHudVisible(false); // masque le HUD plan
@@ -5727,28 +5752,18 @@ function __fillBienInfo(){
 function __closeBienInfo(){
   var bi = document.getElementById('bien-info');
   if (bi && bi.classList.contains('open')) bi.classList.remove('open');
+  document.body.classList.remove('bien-info-open');
 }
-/* V2.3 — Click en dehors du panneau "i" ET du bouton "i" → ferme.
-   S'ajoute au bouton "Compris" (dans .bien-info) et à Échap (déjà en place).
-   Utilise pointerdown (capture) pour être robuste aux gestures 3D. */
-(function bienInfoClickOutside(){
-  document.addEventListener('pointerdown', function(e){
-    var bi = document.getElementById('bien-info');
-    if (!bi || !bi.classList.contains('open')) return;
-    // Clic sur le panneau lui-même → laisser
-    if (bi.contains(e.target)) return;
-    // Clic sur le bouton "i" (déclencheur) → laisser toggleBienInfo gérer
-    var trigger = document.getElementById('btn-bien-info');
-    if (trigger && trigger.contains(e.target)) return;
-    // Sinon : fermer explicitement
-    bi.classList.remove('open');
-  }, true);
-})();
+/* V2.3 — L'ancien listener pointerdown en capture était fragile (race conditions
+   avec les gestures 3D). Remplacé par un scrim CSS captif (.bien-info-scrim) qui
+   couvre 100% de l'écran quand ouvert et intercepte tout clic hors panneau. */
 function toggleBienInfo(){
   var p = document.getElementById('bien-info'); if (!p) return;
   var nm = document.getElementById('bien-info-name'); if (nm) nm.textContent = __bienName();
   __fillBienInfo();
-  p.classList.toggle('open');
+  var willOpen = !p.classList.contains('open');
+  p.classList.toggle('open', willOpen);
+  document.body.classList.toggle('bien-info-open', willOpen);
 }
 function openRdv(){
   var o = document.getElementById('rdv-overlay'); if (!o) return;
