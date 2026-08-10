@@ -88,13 +88,18 @@
     
     #canvas {
       width: 100%; height: 100%; display: block; outline: none; touch-action: none;
-      transform-origin: center center;
-      transition: opacity 1.15s cubic-bezier(.22,.61,.36,1),
-                  transform 1.35s cubic-bezier(.22,.61,.36,1);
     }
-    /* V2.3 — Le canvas démarre invisible + très légèrement scale-down, puis se
-       révèle en fondu élégant quand le modèle est prêt. Sans saccade, sans flash. */
-    #canvas.pre-reveal { opacity: 0; transform: scale(0.985); }
+    /* V2.6 — Voile de reveal : couvre 100% de l'écran, opaque au départ (même
+       teinte que l'écran d'entrée pour un raccord parfait), puis se dissout.
+       Placé au-dessus du canvas mais SOUS l'écran d'entrée (z 1200) et le HUD. */
+    #reveal-veil {
+      position: fixed; inset: 0; z-index: 40;
+      background: radial-gradient(ellipse 110% 80% at 50% 38%, #16171c, #0d0e12 55%, #0a0a0c);
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 1.25s cubic-bezier(.22,.61,.36,1);
+    }
+    #reveal-veil.dissolved { opacity: 0; }
     
     /* UI OVERLAY */
     #ui-overlay { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
@@ -1932,7 +1937,12 @@
 </head>
 <body>
 
-<canvas id="canvas" class="pre-reveal" touch-action="none"></canvas>
+<canvas id="canvas" touch-action="none"></canvas>
+
+<!-- V2.6 — Voile de reveal AU-DESSUS du canvas. Le canvas WebGL se redessine
+     en continu (runRenderLoop), donc une transition CSS opacity DESSUS lui est
+     peu fiable. On anime plutôt ce voile opaque qui se dissout → reveal garanti. -->
+<div id="reveal-veil"></div>
 
 <!-- Couche cinématique : letterbox + vignette au-dessus du canvas 3D -->
 <div class="cine-bar top"></div>
@@ -3863,8 +3873,9 @@ async function loadWalls() {
     applyGlassTreatment(wallsRoot);
     if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(4);
 
-    // V2.5 FIX — Le canvas reste invisible (pre-reveal) jusqu'à ce que l'utilisateur
-    // clique "Démarrer la visite" (cineBegin). On marque juste que la scène est prête.
+    // V2.6 — Le voile de reveal (#reveal-veil) couvre le canvas jusqu'à ce que
+    // l'utilisateur clique "Commencer la visite" (cineBegin → dissout le voile
+    // + lance l'animation caméra). On marque juste que la scène est prête.
     window.__sceneReady = true;
 
     // AO activée PAR DÉFAUT au lancement. On l'attache ICI (et pas à la création du
@@ -3883,7 +3894,7 @@ async function loadWalls() {
   } catch (err) {
     console.error('Échec chargement walls.glb :', err);
     document.querySelector('#loading-bar h3').textContent = 'Modèle introuvable (walls.glb)';
-    try { var __cvE = document.getElementById('canvas'); if (__cvE) __cvE.classList.remove('pre-reveal'); } catch (_) {}
+    try { var __v = document.getElementById('reveal-veil'); if (__v) __v.classList.add('dissolved'); } catch (_) {}
   }
 }
 
@@ -4191,6 +4202,50 @@ function frameModel(root) {
     radius: distance,
     alpha: -Math.PI / 2,
     beta: Math.PI / 2.5,
+  };
+
+  // V2.6 — Expose l'animation caméra d'intro sur window pour que le script
+  // cinématique séparé (cineBegin) puisse la déclencher. Les variables
+  // camera/scene/initialFraming/isAnimating sont dans la portée de CE script
+  // (let top-level, non partagées entre blocs <script>) — donc la fonction
+  // qui les utilise doit être définie ICI puis exposée.
+  window.playIntroCameraMove = function(){
+    if (!camera || !initialFraming || !scene) return;
+    var endRadius = initialFraming.radius;
+    var startRadius = endRadius * 0.72;         // démarre plus proche
+    var endAlpha = initialFraming.alpha;
+    var startAlpha = endAlpha - 0.35;           // ~20° de rotation à parcourir
+    var endBeta = initialFraming.beta;
+    var startBeta = Math.min(endBeta + 0.22, Math.PI * 0.49); // un peu plus haut
+
+    camera.setTarget(initialFraming.target.clone());
+    camera.radius = startRadius;
+    camera.alpha = startAlpha;
+    camera.beta = startBeta;
+
+    isAnimating = true;                          // bloque la navigation pendant l'intro
+    try { camera.detachControl(); } catch(_){}
+
+    var DURATION = 2200;
+    var t0 = performance.now();
+    var easeOutCubic = function(x){ return 1 - Math.pow(1 - x, 3); };
+
+    if (currentAnimObserver) { scene.onBeforeRenderObservable.remove(currentAnimObserver); currentAnimObserver = null; }
+    var obs = scene.onBeforeRenderObservable.add(function(){
+      var t = (performance.now() - t0) / DURATION;
+      if (t >= 1) t = 1;
+      var k = easeOutCubic(t);
+      camera.radius = startRadius + (endRadius - startRadius) * k;
+      camera.alpha  = startAlpha  + (endAlpha  - startAlpha)  * k;
+      camera.beta   = startBeta   + (endBeta   - startBeta)   * k;
+      if (t >= 1) {
+        scene.onBeforeRenderObservable.remove(obs);
+        currentAnimObserver = null;
+        try { camera.attachControl(document.getElementById('canvas'), true); } catch(_){}
+        isAnimating = false;
+      }
+    });
+    currentAnimObserver = obs;
   };
 
   console.log(`✅ Cadré — centre ${center}, rayon ${radius.toFixed(2)}, distance ${distance.toFixed(2)}`);
@@ -7403,44 +7458,36 @@ init();
     var e = document.getElementById('cine-entry');
     if (!e) return;
 
-    // L'écran d'entrée commence à disparaître (opaque → transparent sur 1s)
+    // 1) L'écran d'entrée disparaît (fade 1s)
     e.classList.remove('show');
     e.classList.add('gone');
 
-    // V2.5 FIX — On attend la FIN de la disparition de l'écran d'entrée
-    // AVANT de reveal le canvas et le HUD. Sinon la transition se joue
-    // derrière l'écran opaque et personne ne la voit.
-    function revealAfterEntry(){
-      // 1) Canvas : fade-in + scale (CSS transition 1.15s)
-      var cv = document.getElementById('canvas');
-      if (cv) cv.classList.remove('pre-reveal');
-
-      // 2) HUD staggered : décalé de 200ms après le canvas pour un enchaînement fluide
-      setTimeout(function(){
-        document.body.classList.add('hud-reveal-ready');
-      }, 200);
+    // 2) Le voile de reveal (au-dessus du canvas) se dissout → le GLB apparaît
+    //    en fondu. Fiable car c'est un div CSS, pas le canvas WebGL lui-même.
+    var veil = document.getElementById('reveal-veil');
+    if (veil) {
+      // rAF pour garantir que la transition CSS est bien prise en compte
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ veil.classList.add('dissolved'); });
+      });
     }
 
-    // Écoute transitionend sur l'écran d'entrée (propriété opacity, ~1s)
-    // + fallback setTimeout si transitionend ne fire pas (tab cachée, etc.)
-    var fired = false;
-    function onDone(){
-      if (fired) return;
-      fired = true;
-      e.removeEventListener('transitionend', onTransEnd);
-      revealAfterEntry();
-    }
-    function onTransEnd(ev){
-      // Ne réagir qu'à la fin du fade de l'écran d'entrée, pas d'un enfant
-      if (ev.target !== e || ev.propertyName !== 'opacity') return;
-      onDone();
-    }
-    e.addEventListener('transitionend', onTransEnd);
-    // Fallback : si transitionend ne fire pas après 1.2s (sécurité)
-    setTimeout(onDone, 1200);
+    // 3) ANIMATION CAMÉRA D'ENTRÉE — mouvement 3D indéniable AVANT navigation.
+    //    Dézoom cinématique : on démarre plus proche + légèrement décalé, puis
+    //    on rejoint le cadrage initial en douceur. L'utilisateur VOIT la maquette
+    //    bouger. Navigation bloquée pendant l'animation (isAnimating = true).
+    try { if (typeof window.playIntroCameraMove === 'function') window.playIntroCameraMove(); } catch(_) {}
+
+    // 4) HUD staggered — après le début du reveal
+    setTimeout(function(){
+      document.body.classList.add('hud-reveal-ready');
+    }, 600);
 
     if (typeof window.cineWake==='function') window.cineWake();
   };
+
+  // (playIntroCameraMove est défini dans le script principal, où camera/scene/
+  //  initialFraming sont accessibles, puis exposé sur window — voir loadWalls/frameModel.)
 
   // Fiche pièce : suit la pièce courante (appelée depuis updateBreadcrumb)
   window.cineUpdateDetail = function(){
