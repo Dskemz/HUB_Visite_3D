@@ -492,17 +492,23 @@
       position: fixed; inset: 0; z-index: 1500;
       display: none;
       align-items: center; justify-content: center;
+      /* Sécurité : quand fermé, ne bloque aucun clic ; quand ouvert, capte tout. */
+      pointer-events: none;
     }
-    .vhelp.on { display: flex; }
+    .vhelp.on { display: flex; pointer-events: auto; }
     .vhelp-backdrop {
       position: absolute; inset: 0;
       background: rgba(6, 8, 14, 0.55);
       -webkit-backdrop-filter: blur(10px) saturate(120%);
               backdrop-filter: blur(10px) saturate(120%);
       cursor: pointer;
+      pointer-events: auto;  /* Doit rester cliquable pour fermer au clic hors carte */
+      z-index: 1;
     }
     .vhelp-card {
       position: relative;
+      z-index: 2;  /* Au-dessus du backdrop */
+      pointer-events: auto;
       width: min(92vw, 430px);
       background: rgba(14, 16, 22, 0.78);
       -webkit-backdrop-filter: blur(24px) saturate(140%);
@@ -513,7 +519,6 @@
       color: #fff;
       box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55),
                   inset 0 1px 0 rgba(255, 255, 255, 0.06);
-      z-index: 1;
       animation: vhelpCardIn .35s cubic-bezier(.22,.61,.36,1);
     }
     @keyframes vhelpCardIn {
@@ -534,6 +539,8 @@
       color: rgba(255, 255, 255, 0.85);
       font-size: 1rem; line-height: 1; cursor: pointer;
       font-family: inherit;
+      pointer-events: auto;
+      z-index: 3;
       transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
     .vhelp-x:hover {
@@ -564,6 +571,8 @@
       color: rgba(255, 255, 255, 0.95);
       font-family: inherit; font-weight: 600; font-size: 0.88rem;
       cursor: pointer;
+      pointer-events: auto;
+      position: relative; z-index: 3;
       transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
     .vhelp-close:hover {
@@ -7244,6 +7253,69 @@ init();
   });
 
   window.cineWake();
+})();
+</script>
+<script>
+/* V2.5 — GARANTIE DE FERMETURE DU VHELP (aide/raccourcis clavier).
+   Ce script est INDÉPENDANT du script principal (7000+ lignes) : même si
+   une exception plus haut casse le boot, ce listener s'exécute quand même
+   car il est parsé dans un <script> séparé et attaché en CAPTURE-PHASE sur
+   le document. Toute tentative de fermer le vhelp (croix, bouton Compris,
+   backdrop, touche Échap) est interceptée AVANT tout autre handler.
+   → Impossible de rester bloqué dans le menu d'aide. */
+(function ensureVhelpEscape(){
+  function closeIt(){
+    var h = document.getElementById('vhelp');
+    if (h) h.classList.remove('on');
+  }
+  // 1) Clic (capture-phase) : croix, bouton Compris, backdrop → fermeture
+  document.addEventListener('click', function(e){
+    var h = document.getElementById('vhelp');
+    if (!h || !h.classList.contains('on')) return;
+    var t = e.target;
+    if (!t) return;
+    // Utilise closest pour rattraper les clics sur enfants (svg, span…)
+    var closer = (t.closest && (
+      t.closest('#vhelp-x') ||
+      t.closest('.vhelp-x') ||
+      t.closest('#vhelp-close') ||
+      t.closest('.vhelp-close') ||
+      t.closest('#vhelp-backdrop') ||
+      t.closest('.vhelp-backdrop')
+    ));
+    if (closer) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeIt();
+    }
+  }, true); // ← capture-phase : exécuté AVANT tout autre listener
+
+  // 2) Pointerdown (capture-phase) : miroir de sécurité si le click est mangé
+  document.addEventListener('pointerdown', function(e){
+    var h = document.getElementById('vhelp');
+    if (!h || !h.classList.contains('on')) return;
+    var t = e.target;
+    if (!t || !t.closest) return;
+    if (
+      t.closest('#vhelp-x') || t.closest('.vhelp-x') ||
+      t.closest('#vhelp-close') || t.closest('.vhelp-close') ||
+      t.closest('#vhelp-backdrop') || t.closest('.vhelp-backdrop')
+    ) {
+      e.stopPropagation();
+      // fermeture différée d'un tick pour laisser click passer avant le remove
+      setTimeout(closeIt, 0);
+    }
+  }, true);
+
+  // 3) Échap → fermeture
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Escape') return;
+    var h = document.getElementById('vhelp');
+    if (h && h.classList.contains('on')) {
+      e.stopPropagation();
+      closeIt();
+    }
+  }, true);
 })();
 </script>
 </body>
