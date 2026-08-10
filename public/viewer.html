@@ -3863,11 +3863,9 @@ async function loadWalls() {
     applyGlassTreatment(wallsRoot);
     if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(4);
 
-    // V2 : apparition fluide — on revele le canvas en fondu une fois la scene prete
-    try {
-      var __cv = document.getElementById('canvas');
-      if (__cv) { var __f = 0; var __rev = function(){ if (++__f < 3) { requestAnimationFrame(__rev); return; } __cv.classList.remove('pre-reveal'); }; requestAnimationFrame(__rev); }
-    } catch (_) {}
+    // V2.5 FIX — Le canvas reste invisible (pre-reveal) jusqu'à ce que l'utilisateur
+    // clique "Démarrer la visite" (cineBegin). On marque juste que la scène est prête.
+    window.__sceneReady = true;
 
     // AO activée PAR DÉFAUT au lancement. On l'attache ICI (et pas à la création du
     // pipeline) : après le traitement du verre + sa réfraction différée, pour éviter
@@ -7403,8 +7401,24 @@ init();
   };
   window.cineBegin = function(){
     const e=document.getElementById('cine-entry'); if(e){ e.classList.remove('show'); e.classList.add('gone'); }
-    // V2.5 — Déclenche le staggered fade-in des éléments HUD
-    document.body.classList.add('hud-reveal-ready');
+
+    // V2.5 — Révèle le canvas au moment EXACT où l'utilisateur clique "Démarrer".
+    // Avant ce point, le canvas est opacity:0 même si la scène est prête depuis
+    // longtemps. On retire pre-reveal ici pour que la transition CSS soit visible.
+    var cv = document.getElementById('canvas');
+    if (cv) {
+      // Petite pause : laisse l'écran d'entrée commencer à disparaître (son
+      // transition: opacity 1s) avant que le canvas n'apparaisse — fondu croisé propre.
+      setTimeout(function(){
+        cv.classList.remove('pre-reveal');
+      }, 80);
+    }
+
+    // Staggered fade-in HUD (décalé après le reveal du canvas)
+    setTimeout(function(){
+      document.body.classList.add('hud-reveal-ready');
+    }, 350);
+
     if (typeof window.cineWake==='function') window.cineWake();
   };
 
