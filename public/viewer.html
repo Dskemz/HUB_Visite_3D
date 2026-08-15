@@ -7483,32 +7483,62 @@ init();
     var e = document.getElementById('cine-entry');
     if (!e) return;
 
-    // 1) L'écran d'entrée disparaît (fade 1s)
+    // 1) L'écran d'entrée disparaît (fade 1s) — feedback immédiat du clic
     e.classList.remove('show');
     e.classList.add('gone');
 
-    // 2) Le voile de reveal (au-dessus du canvas) se dissout → le GLB apparaît
-    //    en fondu. Fiable car c'est un div CSS, pas le canvas WebGL lui-même.
-    var veil = document.getElementById('reveal-veil');
-    if (veil) {
-      // rAF pour garantir que la transition CSS est bien prise en compte
-      requestAnimationFrame(function(){
-        requestAnimationFrame(function(){ veil.classList.add('dissolved'); });
-      });
+    // 2) Séquence "reveal" : dissout le voile + lance l'animation caméra + HUD.
+    //    ATTEND DEUX conditions AVANT de démarrer :
+    //     (a) __sceneReady === true (loadWalls terminée → playIntroCameraMove exposée)
+    //     (b) fin de la transition CSS de #cine-entry (~1s, écran d'accueil dissous)
+    //    Sans (a) : window.playIntroCameraMove n'existe pas encore → skip silencieux
+    //               (bug observé : utilisateur clique avant fin du chargement du GLB)
+    //    Sans (b) : l'animation caméra joue derrière l'écran d'accueil opaque → invisible
+    //               (avec easeOutCubic, ~90% du mouvement se fait avant 1s → on ne voit rien)
+    var revealStarted = false;
+    function startReveal() {
+      if (revealStarted) return;
+      revealStarted = true;
+
+      var veil = document.getElementById('reveal-veil');
+      if (veil) {
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){ veil.classList.add('dissolved'); });
+        });
+      }
+
+      // ANIMATION CAMÉRA D'ENTRÉE — dézoom cinématique 2.2s (easeOutCubic)
+      try { if (typeof window.playIntroCameraMove === 'function') window.playIntroCameraMove(); } catch(_) {}
+
+      // HUD staggered — après le début du reveal
+      setTimeout(function(){
+        document.body.classList.add('hud-reveal-ready');
+      }, 600);
+
+      if (typeof window.cineWake==='function') window.cineWake();
     }
 
-    // 3) ANIMATION CAMÉRA D'ENTRÉE — mouvement 3D indéniable AVANT navigation.
-    //    Dézoom cinématique : on démarre plus proche + légèrement décalé, puis
-    //    on rejoint le cadrage initial en douceur. L'utilisateur VOIT la maquette
-    //    bouger. Navigation bloquée pendant l'animation (isAnimating = true).
-    try { if (typeof window.playIntroCameraMove === 'function') window.playIntroCameraMove(); } catch(_) {}
+    // Deux flags à valider avant startReveal()
+    var entryGone = false;
+    var sceneReady = false;
+    function tryStart(){ if (entryGone && sceneReady) startReveal(); }
 
-    // 4) HUD staggered — après le début du reveal
-    setTimeout(function(){
-      document.body.classList.add('hud-reveal-ready');
-    }, 600);
+    // Flag (b) : écran d'accueil complètement dissous (transition CSS = 1s)
+    setTimeout(function(){ entryGone = true; tryStart(); }, 1000);
 
-    if (typeof window.cineWake==='function') window.cineWake();
+    // Flag (a) : scène 3D prête (loadWalls terminée, playIntroCameraMove exposée).
+    // Poll léger 50ms, timeout de sécurité 15s (au-delà : dégradé gracieux sans animation caméra).
+    var t0 = Date.now();
+    function pollScene() {
+      if (window.__sceneReady && typeof window.playIntroCameraMove === 'function') {
+        sceneReady = true; tryStart();
+      } else if (Date.now() - t0 < 15000) {
+        setTimeout(pollScene, 50);
+      } else {
+        sceneReady = true; tryStart();     // dégradé gracieux : lance le reveal sans anim
+      }
+    }
+    pollScene();
   };
 
   // (playIntroCameraMove est défini dans le script principal, où camera/scene/
