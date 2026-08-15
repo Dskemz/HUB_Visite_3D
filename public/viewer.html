@@ -4509,10 +4509,6 @@ function loadRoomsAsync() {
         applyGlassTreatment(node); // vitres du mobilier/pièce : transparence claire
         if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
-
-        // Dès qu'une pièce est chargée, révéler le bouton meublé/vide
-        // (le cadre s'agrandit pour intégrer le nouveau bouton, animation naturelle)
-        showFurnishedButton();
       } catch (err) {
         roomState[r.id].failed = true;
         console.warn(`⚠️ Pièce « ${r.label} » (${r.glb}) non chargée :`, err);
@@ -4527,6 +4523,10 @@ function loadRoomsAsync() {
         refreshFirstPersonPanelIfRoom(r.id);
       }
     }
+    // TOUTES les pièces ont fini de charger (succès ou échec)
+    // → NOW on peut afficher le bouton meublé/vide, car le toggle fonctionnera vraiment
+    console.log('✅ Toutes les pièces chargées → bouton meublé/vide activé');
+    showFurnishedButton();
   }, CONFIG.roomsLoadDelay || 0);
 }
 
