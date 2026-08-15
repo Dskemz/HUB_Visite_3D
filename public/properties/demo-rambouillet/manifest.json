@@ -1,6 +1,41 @@
 {
   "name": "La Forêt - Demo Rambouillet",
-  "description": "Visite virtuelle 3D de la propriété demo-rambouillet",
+  "description": "Bel appartement lumineux de 4 pièces au 3ème étage avec balcon orienté sud, sans vis-à-vis. Parquet point de Hongrie dans le salon traversant, cuisine équipée avec plan de travail en quartz. Deux chambres dont une parentale avec dressing. Salle de bain avec douche à l'italienne.",
+  "location": "Rambouillet (78120)",
+  "type": "Appartement",
+  "reference": "LF-RBT-2025-042",
+  "price": 385000,
+  "surface": 82,
+  "chambres": 2,
+  "etage": 3,
+  "dpe": "C",
+  "ges": "B",
+  "taxeFonciere": 1250,
+  "charges": 180,
+  "anneeConstruction": "2018",
+  "chauffage": "Individuel gaz",
+  "orientation": "Sud / Ouest",
+  "etat": "Très bon état",
+  "balcon": true,
+  "ascenseur": true,
+  "parking": true,
+  "cave": true,
+  "honoraires": "3% charge acquéreur",
+  "pointsForts": [
+    "Double exposition traversante",
+    "Parquet point de Hongrie",
+    "Cuisine équipée haut de gamme",
+    "Balcon sud sans vis-à-vis",
+    "Place de parking en sous-sol",
+    "Cave privative"
+  ],
+  "agentName": "La Forêt Rambouillet",
+  "agentPhone": "01 34 83 00 00",
+  "agentEmail": "rambouillet@laforet.com",
+  "copropriete": {
+    "nbLots": 24,
+    "syndicFees": 180
+  },
   "rooms": [
     {
       "id": "cuisine",
