@@ -1670,11 +1670,18 @@
     .bi-agent-info{ display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
     .bi-agent-name-lg{ font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.92); }
     .bi-agent-role{ font-size: 0.72rem; color: rgba(255,255,255,0.55); }
-    .bi-agent-contact{ display: flex; gap: 8px; margin-top: 8px; }
+    .bi-agent-contact{
+      display: inline-flex; padding: 7px 10px; border-radius: 8px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+      color: #ffffff !important; text-decoration: none;
+      font-size: 0.75rem; text-align: center; font-weight: 500;
+      transition: background .18s ease; margin-top: 6px; margin-right: 8px;
+    }
+    .bi-agent-contact:hover{ background: rgba(255,255,255,0.10); }
     .bi-agent-contact a{
       flex: 1; padding: 7px 8px; border-radius: 8px;
       background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
-      color: #ffffff; text-decoration: none;
+      color: #ffffff !important; text-decoration: none;
       font-size: 0.75rem; text-align: center; font-weight: 500;
       transition: background .18s ease;
     }
