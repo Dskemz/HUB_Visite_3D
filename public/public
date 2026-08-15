@@ -1,0 +1,2266 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Éditeur — Visite 3D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{font-family:'Inter',system-ui,sans-serif;background:#0d1220;color:#e8ecf6;
+         display:flex;overflow:hidden}
+
+    /* Le VRAI viewer, tel quel. Aucune ligne recopiee. */
+    #stage{flex:1;position:relative;min-width:0}
+    #stage iframe{width:100%;height:100%;border:0;display:block}
+
+    /* Bandeau d'etat par-dessus le viewer */
+    #flash{position:absolute;top:14px;left:50%;transform:translateX(-50%);
+           background:rgba(13,18,32,.92);border:1px solid #2c3854;color:#e8ecf6;
+           padding:.5rem .9rem;border-radius:9px;font-size:.82rem;font-weight:600;
+           opacity:0;transition:opacity .2s;pointer-events:none;z-index:5}
+    #flash.on{opacity:1}
+
+    /* Panneau d'edition, HORS du viewer */
+    #side{width:330px;flex:0 0 330px;background:#111827;border-left:1px solid #212c44;
+          display:flex;flex-direction:column;overflow:hidden;transition:width .05s linear}
+    #resize-handle{width:12px;flex:0 0 12px;cursor:ew-resize;background:#0d1220;
+                   border-left:1px solid #1c2740;border-right:1px solid #2c3854;
+                   display:flex;align-items:center;justify-content:center;touch-action:none}
+    #resize-handle::before{content:'';width:2px;height:28px;border-radius:2px;background:#3a4666}
+    #resize-handle:hover{background:#1a2438}
+    #drag-overlay{position:fixed;inset:0;display:none;z-index:999;cursor:ew-resize}
+    #drag-overlay.active{display:block}
+    .hd{padding:1rem 1.1rem;border-bottom:1px solid #212c44}
+    .hd .t{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#6f7c99;font-weight:700}
+    .hd h1{font-size:1.05rem;font-weight:800;margin-top:.25rem}
+    .hd .p{font-size:.76rem;color:#6f7c99;margin-top:.3rem;font-family:ui-monospace,monospace}
+
+    .tabs{display:flex;gap:.35rem;padding:.8rem 1.1rem 0}
+    .tab{flex:1;padding:.5rem;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer;
+         background:#0d1220;border:1px solid #263149;color:#c7d0e4;border-radius:8px}
+    .tab.on{background:#4a6cff;border-color:#4a6cff;color:#fff}
+
+    .body{flex:1;overflow-y:auto;padding:1rem 1.1rem}
+    .hint{font-size:.76rem;color:#8b96ad;line-height:1.55;margin-bottom:.85rem}
+    .hint b{color:#e8ecf6}
+
+    input{width:100%;background:#0d1220;border:1px solid #263149;color:#e8ecf6;
+          border-radius:8px;padding:.55rem .7rem;font:inherit;font-size:.82rem;
+          margin-bottom:.5rem;outline:none}
+    input:focus{border-color:#4a6cff}
+    input::placeholder{color:#5b6580}
+
+    .btn{width:100%;padding:.65rem;border:none;border-radius:8px;font:inherit;
+         font-weight:700;font-size:.84rem;cursor:pointer;background:#4a6cff;color:#fff}
+    .btn:hover{opacity:.9}
+    .btn.sec{background:#0d1220;border:1px solid #2c3854;color:#c7d0e4}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+
+    .list{margin-top:.9rem}
+
+    /* ===== Sous-menus repliables (Traitement image) — charte éditeur ===== */
+    .fold{background:#0d1220;border:1px solid #263149;border-radius:8px;
+          margin-bottom:.55rem;overflow:hidden}
+    .fold > summary{cursor:pointer;list-style:none;padding:.55rem .65rem;
+          font-size:.78rem;color:#c7d0e4;display:flex;align-items:center;gap:.45rem;
+          user-select:none}
+    .fold > summary::-webkit-details-marker{display:none}
+    .fold > summary:hover{background:#131a2c}
+    .fold > summary .ar{margin-left:auto;color:#6f7c99;font-size:.7rem;
+          transition:transform .15s}
+    .fold[open] > summary .ar{transform:rotate(90deg)}
+    .fold > summary .dot{width:6px;height:6px;border-radius:50%;background:#2c3854;
+          flex:0 0 auto}
+    .fold[open] > summary .dot{background:#4a6cff}
+    .fold .bd{padding:.15rem .65rem .65rem}
+    .sl{display:flex;gap:.4rem;align-items:center;margin-bottom:.45rem}
+    .sl label{font-size:.72rem;color:#6f7c99;flex:0 0 86px}
+    .sl input[type=range]{flex:1}
+    .sl .v{font-size:.68rem;color:#c7d0e4;flex:0 0 62px;text-align:right;
+           font-family:ui-monospace,monospace}
+    .row{display:flex;align-items:center;gap:.4rem;padding:.45rem .1rem;
+         border-bottom:1px solid #1c2740;font-size:.8rem}
+    .row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .row button{background:#1a2438;border:none;color:#c7d0e4;border-radius:6px;
+                padding:.25rem .5rem;font-size:.74rem;cursor:pointer}
+    .row button:hover{background:#4a6cff;color:#fff}
+
+    .ft{padding:.9rem 1.1rem;border-top:1px solid #212c44}
+    .st{font-size:.74rem;color:#6f7c99;margin-top:.55rem;text-align:center}
+    .warn{margin:0 1.1rem 1rem;padding:.7rem .8rem;border-radius:8px;font-size:.76rem;
+          line-height:1.5;background:#2a1f12;border:1px solid #5a4526;color:#e8cfa4}
+  </style>
+</head>
+<body>
+
+  <div id="stage">
+    <iframe id="vw" title="Viewer"></iframe>
+    <div id="flash"></div>
+  </div>
+
+  <div id="resize-handle"></div>
+  <div id="drag-overlay"></div>
+  <aside id="side">
+    <div class="hd">
+      <div class="t">Éditeur — usage interne</div>
+      <h1 id="h-name">Visite 3D</h1>
+      <div class="p" id="h-prop"></div>
+    </div>
+
+    <div class="tabs" style="justify-content:space-between;">
+      <div style="display:flex;gap:.35rem;flex:1;">
+        <button class="tab on" id="t-pov" onclick="tab('pov')" style="flex:1;">POV</button>
+        <button class="tab"    id="t-cot" onclick="tab('cot')" style="flex:1;">Cotations</button>
+        <button class="tab"    id="t-piece" onclick="tab('piece')" style="flex:1;">Pièces</button>
+        <button class="tab"    id="t-verre" onclick="tab('verre')" style="flex:1;">Matériaux</button>
+        <button class="tab"    id="t-amb" onclick="tab('amb')" style="flex:1;">Post-process</button>
+        <button class="tab"    id="t-light" onclick="tab('light')" style="flex:1;">Lighting</button>
+      </div>
+      <button class="tab" id="b-expand" onclick="toggleExpand()" title="Plein ecran" style="flex:0 0 auto;">⛶</button>
+    </div>
+
+    <div class="body">
+      <div id="p-pov">
+        <p class="hint"><b>Placement interactif.</b> Clique « Placer POV » puis clique dans la vue 3D :
+          le point se pose au sol. Règle la hauteur, oriente ta vue avec « Voir », puis « Valider ».</p>
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.7rem;">
+          <div style="display:flex;gap:.4rem;margin-bottom:.5rem;">
+            <button class="btn" id="b-place-pov" onclick="placerPov()" style="flex:1;">📍 Placer POV</button>
+            <button class="btn sec" id="b-cancel-pov" onclick="annulerPov()" style="flex:1;display:none;">❌ Annuler</button>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;">
+            <label style="font-size:.76rem;color:#6f7c99;flex:0 0 50px;">Hauteur</label>
+            <input type="range" id="f-height" min="0" max="2" step="0.05" value="0" style="flex:1;"
+                   oninput="setHauteurPov(this.value)">
+            <span id="h-height-val" style="font-size:.76rem;color:#c7d0e4;flex:0 0 40px;">0 m</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:.4rem;margin-bottom:.5rem;">
+          <div style="flex:1;">
+            <label style="display:block;font-size:.68rem;color:#6f7c99;margin-bottom:.2rem;">Identifiant (technique, unique)</label>
+            <input id="f-id" placeholder="ex: pov-cuisine-1" style="width:100%;margin:0;">
+          </div>
+          <div style="flex:1;">
+            <label style="display:block;font-size:.68rem;color:#6f7c99;margin-bottom:.2rem;">Nom affiché au visiteur</label>
+            <input id="f-label" placeholder="ex: Cuisine" style="width:100%;margin:0;">
+          </div>
+        </div>
+        <select id="f-room" style="margin-bottom:.5rem;"><option value="">— pièce (optionnel) —</option></select>
+        <input id="f-photos" placeholder="photos (Salon_01.png, Salon_02.png)" style="margin-bottom:.7rem;">
+        <div style="display:flex;gap:.4rem;">
+          <button class="btn" id="b-voir" onclick="voirPov()" style="flex:1;display:none;">👁️ Voir (orienter)</button>
+          <button class="btn" id="b-valider" onclick="validerPov()" style="flex:1;display:none;">💾 Valider</button>
+        </div>
+        <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.7rem;background:#0d1220;padding:.5rem .7rem;border-radius:8px;">
+          <label style="font-size:.74rem;color:#9fb4ce;flex:1;">🎨 Couleur de tous les POV</label>
+          <input type="color" id="f-pov-color" value="#0B1B3F" style="flex:0 0 auto;width:44px;height:28px;padding:0;border:none;background:none;cursor:pointer;" oninput="setPovColor(this.value)">
+        </div>
+        <div class="list" id="pov-list" style="margin-top:.9rem;"></div>
+      </div>
+
+      <div id="p-cot" hidden>
+        <p class="hint">Passe le viewer en <b>vue de dessus</b>, puis :<br><br>
+          · <b>clic sur un trait de cotation</b> → il se scinde à l'endroit cliqué,
+            les cotes se recalculent seules ;<br>
+          · <b>clic sur une graduation</b> → elle disparaît, les deux cotes fusionnent.<br><br>
+          Aucun calcul, aucune saisie.</p>
+
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">📏 Dimensions générales (périmètre)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem;">
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Haut</label>
+              <input type="number" id="f-dim-top" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('top',this.value)"></div>
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Bas</label>
+              <input type="number" id="f-dim-bottom" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('bottom',this.value)"></div>
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Gauche</label>
+              <input type="number" id="f-dim-left" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('left',this.value)"></div>
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Droite</label>
+              <input type="number" id="f-dim-right" placeholder="m" step="0.01" style="width:100%;" oninput="setDimGen('right',this.value)"></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;">
+            <input type="checkbox" id="f-not-rect" onchange="setRectangular(!this.checked)">
+            N'est pas rectangulaire
+          </label>
+        </div>
+
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">📐 Espacement des cotations (px)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.5rem;">
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Extérieures</label>
+              <input type="number" id="f-offset-dim" placeholder="px" step="1" style="width:100%;" oninput="setOffsetDim(this.value)"></div>
+            <div><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Segments</label>
+              <input type="number" id="f-offset-seg" placeholder="px" step="1" style="width:100%;" oninput="setOffsetSeg(this.value)"></div>
+            <div style="grid-column:1/-1;"><label style="display:block;font-size:.7rem;color:#9fb4ce;margin-bottom:.2rem;">Pièces isolées</label>
+              <input type="number" id="f-offset-room" placeholder="px" step="1" style="width:100%;" oninput="setOffsetRoom(this.value)"></div>
+          </div>
+        </div>
+
+        <div class="list" id="cot-list"></div>
+      </div>
+      <div id="p-piece" hidden>
+        <p class="hint">Passe le viewer en <b>vue de dessus</b>.
+          Renomme, change la couleur ou la taille — l'effet est immédiat sur le plan.<br><br>
+          <b>Placer</b> : clique le bouton, puis clique sur le plan à l'endroit voulu.</p>
+        <div style="display:flex;gap:.5rem;margin-bottom:.8rem;align-items:stretch;">
+          <input id="f-newpiece" placeholder="Nom de la pièce (ex: Bureau)" style="flex:1;width:auto;margin:0;padding:0.7rem 0.8rem;font-size:1.05rem;height:auto;">
+          <button class="btn" id="b-addpiece" onclick="ajouterPiece()" style="width:auto;flex:0 0 auto;padding:0.5rem 0.9rem;font-size:0.9rem;white-space:nowrap;">➕ Ajouter</button>
+        </div>
+        <div class="list" id="piece-list"></div>
+      </div>
+
+      <div id="p-verre" hidden>
+        <p class="hint"><b>Matériaux par pièce.</b> Chaque pièce est un dossier, chaque type
+          un sous-dossier. Clique pour déplier et ajuster les propriétés en direct.</p>
+        <button class="btn sec" onclick="inspectorRefresh()" style="margin-bottom:.7rem;">🔄 Recharger</button>
+        <div id="mat-tree"></div>
+        <details style="margin-top:.8rem;">
+          <summary style="cursor:pointer;font-size:.72rem;color:#6f7c99;">🔍 Diagnostic (noms bruts)</summary>
+          <div style="margin-top:.5rem;"><button class="btn sec" onclick="diagnostiquerVerre()" style="margin-bottom:.6rem;">Lister les noms vus par le viewer</button><div id="glass-diag"></div></div>
+        </details>
+      </div>
+
+      <div id="p-amb" hidden>
+        <p class="hint"><b>Occlusion ambiante (AO).</b> Assombrit les recoins pour « poser »
+          les objets. Ajuste la puissance et le rayon en direct.</p>
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.6rem;">
+            <input type="checkbox" id="f-ao-on" onchange="ambSetAO()"> Activer l'AO
+          </label>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Puissance</label>
+            <input type="range" id="f-ao-strength" min="0" max="2" step="0.05" value="1" style="flex:1;" oninput="ambSetAO()">
+            <span id="v-ao-strength" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">1.0</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Rayon</label>
+            <input type="range" id="f-ao-radius" min="0.2" max="4" step="0.1" value="1.2" style="flex:1;" oninput="ambSetAO()">
+            <span id="v-ao-radius" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">1.2</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 62px;">Présence</label>
+            <input type="range" id="f-ao-base" min="0" max="1" step="0.05" value="0.2" style="flex:1;" oninput="ambSetAO()">
+            <span id="v-ao-base" style="font-size:.72rem;color:#c7d0e4;flex:0 0 32px;">0.2</span>
+          </div>
+          <p class="hint" style="margin:.5rem 0 0;font-size:.68rem;">Présence = luminosité minimale préservée dans les zones occluses (plus haut = AO plus discrète).</p>
+        </div>
+
+        <div id="ssr-box" style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.4rem;">
+            <input type="checkbox" id="f-ssr-on" onchange="ambSetSSR()"> Reflets écran (SSR) — test verre
+          </label>
+          <p class="hint" style="margin:0 0 .6rem;font-size:.68rem;">⚠️ SSR + verre transparent + SSAO2 est réputé instable (conflit de profondeur). <b>Off par défaut → le rendu public reste intact.</b> Active-le ici pour juger sur ce GLB ; désactive pour revenir au rendu d'origine.</p>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Intensité</label>
+            <input type="range" id="f-ssr-strength" min="0" max="2" step="0.05" value="0.7" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-strength" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.70</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Netteté</label>
+            <input type="range" id="f-ssr-falloff" min="0.5" max="6" step="0.1" value="2.5" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-falloff" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">2.5</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Rugosité</label>
+            <input type="range" id="f-ssr-rough" min="0" max="1" step="0.02" value="0.2" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-rough" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.20</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Épaisseur</label>
+            <input type="range" id="f-ssr-thick" min="0.1" max="3" step="0.05" value="0.5" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-thick" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.50</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Flou reflets</label>
+            <input type="range" id="f-ssr-blur" min="0" max="0.2" step="0.005" value="0.03" style="flex:1;" oninput="ambSetSSR()">
+            <span id="v-ssr-blur" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0.03</span>
+          </div>
+        </div>
+
+        <!-- ===================== TRAITEMENT IMAGE ===================== -->
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fb4ce;cursor:pointer;margin-bottom:.5rem;">
+            <input type="checkbox" id="f-grade-on" onchange="gradeSet()"> 🎨 Traitement image
+          </label>
+          <p class="hint" style="margin:0 0 .6rem;font-size:.68rem;">Toutes les valeurs sont neutres au départ : tant que rien n'est bougé, le rendu est strictement identique. Décocher rend le rendu d'origine.</p>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.8rem;">
+            <button class="btn" onclick="loadPreset('neutral')" style="font-size:.7rem;padding:.4rem .5rem;">📸 Studio Neutre</button>
+            <button class="btn" onclick="loadPreset('warm')" style="font-size:.7rem;padding:.4rem .5rem;">🔥 Cinéma Chaleur</button>
+            <button class="btn" onclick="loadPreset('cool')" style="font-size:.7rem;padding:.4rem .5rem;">❄️ Froid Moderne</button>
+            <button class="btn" onclick="loadPreset('golden')" style="font-size:.7rem;padding:.4rem .5rem;">🌅 Matin Doré</button>
+            <button class="btn" onclick="loadPreset('night')" style="font-size:.7rem;padding:.4rem .5rem;">🌃 Nuit Urbaine</button>
+            <button class="btn sec" onclick="gradeReset()" style="font-size:.7rem;padding:.4rem .5rem;">↺ Réinitialiser</button>
+          </div>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Exposition<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Exposition</label>
+                <input type="range" id="g-exposure" min="-0.06" max="0.06" step="0.0003" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-exposure">0.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Luminosité / Contraste<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Luminosité</label>
+                <input type="range" id="g-brightness" min="-0.01" max="0.01" step="0.00005" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-brightness">0.00</span></div>
+              <div class="sl"><label>Contraste</label>
+                <input type="range" id="g-contrast" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-contrast">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Gamma<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Gamma</label>
+                <input type="range" id="g-gamma" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-gamma">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Teinte / Saturation / Valeur<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Teinte</label>
+                <input type="range" id="g-hue" min="-4" max="4" step="0.04" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-hue">0°</span></div>
+              <div class="sl"><label>Saturation</label>
+                <input type="range" id="g-saturation" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-saturation">1.00</span></div>
+              <div class="sl"><label>Valeur</label>
+                <input type="range" id="g-value" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-value">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Balance des couleurs<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Température</label>
+                <input type="range" id="g-temperature" min="-0.02" max="0.02" step="0.0001" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-temperature">0.00</span></div>
+              <div class="sl"><label>Vert ↔ Magenta</label>
+                <input type="range" id="g-tint" min="-0.02" max="0.02" step="0.0001" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-tint">0.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Correction couleur<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div class="sl"><label>Pied noirs</label>
+                <input type="range" id="g-lift" min="-0.006" max="0.006" step="0.00003" value="0" oninput="gradeSet()">
+                <span class="v" id="v-g-lift">0.00</span></div>
+              <div class="sl"><label>Hautes lum.</label>
+                <input type="range" id="g-gain" min="0.98" max="1.02" step="0.0002" value="1" oninput="gradeSet()">
+                <span class="v" id="v-g-gain">1.00</span></div>
+            </div>
+          </details>
+
+          <details class="fold">
+            <summary><span class="dot"></span>Courbes RVB<span class="ar">▶</span></summary>
+            <div class="bd">
+              <div style="font-size:.75rem;color:#6f7c99;margin-bottom:.5rem;">Clic pour ajouter point • Glisser pour ajuster • Double-clic pour supprimer</div>
+              <div style="position:relative;margin-bottom:.5rem;background:#0d1220;border-radius:6px;overflow:hidden;border:1px solid #263149;">
+                <canvas id="rgb-curve-canvas" width="280" height="200" style="display:block;width:100%;"></canvas>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem;font-size:.7rem;">
+                <label style="display:flex;align-items:center;gap:.2rem;"><input type="checkbox" id="curve-channel-r" checked onchange="drawRgbCurve()"> <span style="width:8px;height:8px;background:#ff5555;border-radius:50%;"></span>Rouge</label>
+                <label style="display:flex;align-items:center;gap:.2rem;"><input type="checkbox" id="curve-channel-g" checked onchange="drawRgbCurve()"> <span style="width:8px;height:8px;background:#55ff55;border-radius:50%;"></span>Vert</label>
+                <label style="display:flex;align-items:center;gap:.2rem;"><input type="checkbox" id="curve-channel-b" checked onchange="drawRgbCurve()"> <span style="width:8px;height:8px;background:#5555ff;border-radius:50%;"></span>Bleu</label>
+              </div>
+            </div>
+          </details>
+
+
+
+        </div>
+      </div>
+
+      <div id="p-light" hidden>
+        <div style="background:#0d1220;padding:.7rem;border-radius:8px;margin-bottom:.9rem;">
+          <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">🌅 HDRI (environnement)</div>
+          <!-- Miniature live : rendue par le moteur du viewer, reflète intensité
+               ET orientation en temps réel. Le repère vertical marque le « nord »
+               de la scène, pour voir de combien on tourne. -->
+          <div style="position:relative;margin-bottom:.55rem;">
+            <canvas id="hdri-preview" width="512" height="128"
+                    style="width:100%;height:64px;display:block;border-radius:6px;
+                           border:1px solid #263149;background:#0d1220;"></canvas>
+            <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;
+                        background:rgba(255,255,255,.35);pointer-events:none;"></div>
+            <div id="hdri-preview-msg"
+                 style="position:absolute;inset:0;display:flex;align-items:center;
+                        justify-content:center;font-size:.7rem;color:#6f7c99;">
+              HDRI non chargée
+            </div>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Intensité</label>
+            <input type="range" id="f-hdri-int" min="0" max="4" step="0.05" value="1" style="flex:1;" oninput="setHdri()">
+            <span id="v-hdri-int" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">1.00</span>
+          </div>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.6rem;">
+            <label style="font-size:.72rem;color:#6f7c99;flex:0 0 72px;">Orientation</label>
+            <input type="range" id="f-hdri-rot" min="0" max="6.283" step="0.02" value="0" style="flex:1;" oninput="setHdri()">
+            <span id="v-hdri-rot" style="font-size:.72rem;color:#c7d0e4;flex:0 0 34px;">0°</span>
+          </div>
+          <label class="btn sec" style="display:block;text-align:center;cursor:pointer;margin:0;">
+            📁 Changer de HDRI (.hdr / .env)
+            <input type="file" accept=".hdr,.env" style="display:none;" onchange="importHdri(this)">
+          </label>
+        </div>
+
+        <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;">💡 Lumières déjà dans la scène</div>
+        <p class="hint" style="font-size:.68rem;margin-top:0;">Clique une lumière pour la déplier, l'ajuster ou la supprimer.</p>
+        <div id="scene-light-tree" style="margin-bottom:1rem;"></div>
+
+        <div style="font-size:.8rem;color:#6f7c99;margin-bottom:.5rem;border-top:1px solid #263149;padding-top:.7rem;">➕ Ajouter une lumière éditable</div>
+        <p class="hint" style="font-size:.68rem;margin-top:0;">Ajoute, clique « 📍 Placer » puis clique <b>dans la vue 3D</b>. Coche 👁 pour l'afficher et manipuler ses axes (déplacement + rotation).</p>
+        <div style="display:flex;gap:.35rem;margin-bottom:.8rem;">
+          <button class="btn" onclick="ambAddLight('point')" style="flex:1;">➕ Point</button>
+          <button class="btn" onclick="ambAddLight('spot')" style="flex:1;">➕ Spot</button>
+          <button class="btn" onclick="ambAddLight('directional')" style="flex:1;">➕ Soleil</button>
+        </div>
+        <div class="list" id="light-list"></div>
+      </div>
+    </div>
+
+    <div class="warn" id="warn" hidden></div>
+
+    <div class="ft">
+      <button class="btn sec" id="b-dl" onclick="download()">💾 Télécharger manifest.json</button>
+      <button class="btn sec" id="b-dl-light" onclick="downloadLighting()">💡 Télécharger lighting-config.json</button>
+      <div class="st" id="st">Chargement du viewer…</div>
+    </div>
+  </aside>
+
+<script>
+/* ============================================================================
+   ÉDITEUR — fichier SÉPARÉ.
+   ----------------------------------------------------------------------------
+   Il n'y a AUCUNE copie du viewer ici : viewer.html est chargé tel quel dans
+   l'iframe. On lui greffe ensuite un  pont  (window.__ed) qui parle à ses
+   variables internes (camera, propertyData, hudEdges…). Conséquence : toute
+   correction future de viewer.html profite automatiquement à cet éditeur,
+   et viewer.html reste 100 % stérile pour les agences.
+
+   Sortie unique : un téléchargement de manifest.json sur ce poste. Cet outil
+   n'écrit jamais sur le serveur.
+   ========================================================================== */
+
+const Q       = new URLSearchParams(location.search);
+const AGENCY  = Q.get('agency')   || 'laforet';
+const PROPERTY= Q.get('property') || 'demo-rambouillet';
+let   ed      = null;              // le pont, une fois greffé
+let   mode    = 'pov';
+
+document.getElementById('h-prop').textContent = AGENCY + ' · ' + PROPERTY;
+const vw = document.getElementById('vw');
+vw.src = 'viewer.html?agency=' + encodeURIComponent(AGENCY) +
+         '&property=' + encodeURIComponent(PROPERTY) + '&edit=1';
+
+function flash(msg){
+  const f = document.getElementById('flash');
+  f.textContent = msg; f.classList.add('on');
+  setTimeout(()=>f.classList.remove('on'), 1900);
+}
+function warn(msg){
+  const w = document.getElementById('warn');
+  w.hidden = !msg; w.innerHTML = msg || '';
+}
+
+/* -------- Le pont, injecté DANS le viewer -------------------------------- */
+/* Un <script> ajouté au document de l'iframe s'exécute dans SA portée : il voit
+   donc camera, propertyData, hudEdges, hudUpdate()… que l'extérieur ne peut pas
+   atteindre (ce sont des `let`, absents de window). */
+const PONT = `
+(function(){
+  const r2 = v => Math.round(v*100)/100;
+  const MIN = 0.05;
+
+  function pret(){
+    try { return typeof camera!=='undefined' && camera
+              && typeof propertyData!=='undefined' && propertyData; }
+    catch(e){ return false; }
+  }
+
+  function distToSeg(P,A,B){
+    const vx=B.x-A.x, vy=B.y-A.y, L2=vx*vx+vy*vy||1;
+    let t=((P.x-A.x)*vx+(P.y-A.y)*vy)/L2; t=Math.max(0,Math.min(1,t));
+    return { dist: Math.hypot(P.x-(A.x+t*vx), P.y-(A.y+t*vy)), t };
+  }
+
+  let onCot = false;
+  let onRooms = false;    // onglet Pieces actif
+  let placeIdx = -1;      // piece en attente d'un clic de placement
+  let onPov = false;      // onglet POV en mode placement
+  let undoStack = [];
+
+  /* Après un « Voir (orienter) », exitPanoramaCamera() repose l'ArcRotateCamera
+     SUR le point de vue — ce qui laisse l'éditeur collé au sol. On restaure donc
+     le cadrage orbite tel qu'il était avant d'entrer en orientation. */
+  function restaurerVueOrbite(){
+    var s = window.__edOrbitSave;
+    if (!s) return;
+    try {
+      camera.setTarget(s.target);
+      camera.setPosition(s.position);
+      if (s.mode != null) camera.mode = s.mode;
+    } catch(_){}
+    window.__edOrbitSave = null;
+  }
+
+  function majCurseur(){
+    const s = document.getElementById('hud-svg');
+    if (!s) return;
+    const actif = onCot || onRooms;
+    s.style.pointerEvents = actif ? 'auto' : '';
+    s.style.cursor        = (onRooms && placeIdx >= 0) ? 'crosshair'
+                          : (onCot ? 'crosshair' : '');
+  }
+
+  /* Les libelles peuvent etre absents du manifest (deduits des meubles).
+     On les materialise pour qu'ils deviennent editables ET exportables. */
+  function assurerPieces(){
+    if (Array.isArray(propertyData.roomLabels) && propertyData.roomLabels.length) return;
+    const yF = modelBounds ? modelBounds.min.y : 0;
+    propertyData.roomLabels = (hudRoomLabels() || []).map(function(e){
+      return { id: e.id || undefined, name: e.label,
+               position: [ Math.round(e.world.x*100)/100, yF, Math.round(e.world.z*100)/100 ] };
+    });
+  }
+
+  function posDe(r){
+    const c = r.position || r.coords || r.xz;
+    if (Array.isArray(c)) return (c.length>=3) ? [c[0],c[1],c[2]] : [c[0],0,c[1]];
+    return [r.x, r.y, r.z];
+  }
+
+  /* Deuxieme ecouteur, independant de clicCotation : il ne fait rien tant
+     qu'aucune piece n'attend d'etre placee. */
+  function placerPov(ev){
+    if (!onPov) return;
+    const svg = document.getElementById('hud-svg');
+    const r = svg.getBoundingClientRect();
+    const w = hudUnproject(ev.clientX - r.left, ev.clientY - r.top);
+    if (!w) return;
+    parent.__ed.setCiblePov(w.x, w.z);
+  }
+
+  function clicPiece(ev){
+    if (!onRooms || placeIdx < 0) return;
+    const svg = document.getElementById('hud-svg');
+    const r = svg.getBoundingClientRect();
+    const w = hudUnproject(ev.clientX - r.left, ev.clientY - r.top);
+    if (!w) return;
+    const cible = propertyData.roomLabels[placeIdx];
+    if (!cible) return;
+    cible.position = [ Math.round(w.x*100)/100, w.y, Math.round(w.z*100)/100 ];
+    ['x','y','z','coords','xz'].forEach(function(k){ delete cible[k]; });
+    placeIdx = -1;
+    majCurseur();
+    hudUpdate();
+    parent.__edEvent('piece','placee');
+  }
+
+  let lightToPlace = null; // id de lumière en attente de placement (onglet Ambiance)
+  function clicLight(ev){
+    if (!lightToPlace) return;
+    const svg = document.getElementById('hud-svg');
+    const r = svg.getBoundingClientRect();
+    const w = hudUnproject(ev.clientX - r.left, ev.clientY - r.top);
+    if (!w) return;
+    if (window.__ed && window.__ed.placeLightAt) window.__ed.placeLightAt(lightToPlace, w.x, w.z);
+    lightToPlace = null;
+    parent.__edEvent('light','placee');
+  }
+
+  function sauvegarder(){
+    undoStack.push(JSON.parse(JSON.stringify(propertyData.dimensions || {})));
+    if (undoStack.length > 20) undoStack.shift();   // garde les 20 derniers
+  }
+
+  function clicCotation(ev){
+    if (!onCot || typeof modelBounds==='undefined' || !modelBounds) return;
+    const svg = document.getElementById('hud-svg');
+    const r = svg.getBoundingClientRect();
+    const P = { x: ev.clientX-r.left, y: ev.clientY-r.top };
+
+    let best=null;
+    ['top','bottom','left','right'].forEach(function(name){
+      const e = hudEdges[name];
+      if (!e || !e.p0 || !e.p1 || !e.w0 || !e.w1) return;   // arete non encore projetee
+      const d = distToSeg(P, e.p0, e.p1);
+      if (!best || d.dist < best.dist) best = { name:name, e:e, dist:d.dist, t:d.t };
+    });
+    if (!best || best.dist > 70) return;
+
+    const dims = propertyData.dimensions = propertyData.dimensions || {};
+    const worldLen = BABYLON.Vector3.Distance(best.e.w0, best.e.w1);
+    const screenLen = Math.hypot(best.e.p1.x-best.e.p0.x, best.e.p1.y-best.e.p0.y) || 1;
+    const tolM = 12 * worldLen / screenLen;      // 12 px traduits en metres
+    const d = best.t * worldLen;
+    let segs = dims[best.name];
+
+    if (!segs || !segs.length){                  // premiere coupure de ce cote
+      if (d < MIN || worldLen-d < MIN) return;
+      sauvegarder();
+      dims[best.name] = [r2(d), r2(worldLen-d)];
+      hudUpdate(); parent.__edEvent('cot','scinde'); return;
+    }
+    let cum=0, bi=-1, bd=Infinity;
+    for (let i=0;i<segs.length-1;i++){
+      cum += segs[i];
+      const dd = Math.abs(cum-d);
+      if (dd < bd){ bd=dd; bi=i; }
+    }
+    if (bi>=0 && bd<=tolM){                      // clic sur une graduation -> fusion
+      sauvegarder();
+      segs[bi] = r2(segs[bi]+segs[bi+1]);
+      segs.splice(bi+1,1);
+      hudUpdate(); parent.__edEvent('cot','fusion'); return;
+    }
+    cum=0;                                       // sinon -> scission
+    for (let i=0;i<segs.length;i++){
+      if (d < cum+segs[i]){
+        const a=d-cum, b=segs[i]-a;
+        if (a<MIN || b<MIN) return;
+        sauvegarder();
+        segs.splice(i,1,r2(a),r2(b));
+        hudUpdate(); parent.__edEvent('cot','scinde'); return;
+      }
+      cum += segs[i];
+    }
+  }
+
+  function armer(){
+    if (!pret()) { setTimeout(armer, 250); return; }
+
+    const svg = document.getElementById('hud-svg');
+    if (svg) svg.addEventListener('click', clicCotation);
+    if (svg) svg.addEventListener('click', clicPiece);
+    if (svg) svg.addEventListener('click', placerPov);
+    if (svg) svg.addEventListener('click', clicLight);
+
+    window.__ed = {
+      nom: function(){ return propertyData.name || 'Visite 3D'; },
+
+      pois: function(){
+        return (propertyData.poi||[]).map(function(p){
+          return { id:p.id, label:p.label||p.id };
+        });
+      },
+
+      /* camPos + camTarget encodent A LA FOIS la position et l'angle de vue. */
+      capture: function(id, label, room, photos){
+        const pos = camera.position, tgt = camera.target;
+        propertyData.poi = propertyData.poi || [];
+        id    = id    || ('pov-' + (propertyData.poi.length+1));
+        label = label || id;
+        const e = { id:id, label:label,
+                    camPos:[r2(pos.x), r2(pos.y), r2(pos.z)],
+                    camTarget:[r2(tgt.x), r2(tgt.y), r2(tgt.z)] };
+        if (room) e.roomId = room;
+        if (photos && photos.length) e.photos = photos;
+        const i = propertyData.poi.findIndex(function(p){ return p.id===id; });
+        if (i>=0) propertyData.poi[i] = e; else propertyData.poi.push(e);
+        createPoiMarkers();   // marqueur 3D visible immediatement
+        rebuildPoiList();     // entree cliquable dans le panneau du viewer
+        return label;
+      },
+
+      supprimer: function(id){
+        propertyData.poi = (propertyData.poi||[]).filter(function(p){ return p.id!==id; });
+        createPoiMarkers(); rebuildPoiList();
+      },
+
+      voir: function(id){ goToPOI(id); },
+
+      cotations: function(){
+        const d = propertyData.dimensions || {};
+        return ['top','bottom','left','right'].map(function(k){
+          return { cote:k, segs:(d[k]||[]).slice() };
+        });
+      },
+
+      editerCotations: function(on){
+        onCot = !!on;
+        majCurseur();
+      },
+
+      editerPieces: function(on){
+        onRooms = !!on;
+        if (!on) placeIdx = -1;
+        majCurseur();
+      },
+
+      pieces: function(){
+        assurerPieces();
+        return propertyData.roomLabels.map(function(r, i){
+          const p = posDe(r);
+          return { i:i,
+                   name:  r.name || r.label || r.id || '',
+                   color: r.color || '',
+                   size:  r.fontSize || 0,
+                   pos:   [ p[0], p[2] ] };
+        });
+      },
+      renommer:   function(i,v){ assurerPieces(); propertyData.roomLabels[i].name = v; hudUpdate(); },
+      setCouleur: function(i,v){ assurerPieces();
+                                 if (v) propertyData.roomLabels[i].color = v;
+                                 else   delete propertyData.roomLabels[i].color;
+                                 hudUpdate(); },
+      setTaille:  function(i,v){ assurerPieces();
+                                 v = parseFloat(v);
+                                 if (v > 0) propertyData.roomLabels[i].fontSize = v;
+                                 else       delete propertyData.roomLabels[i].fontSize;
+                                 hudUpdate(); },
+      armerPlacement: function(i){ placeIdx = i; majCurseur(); },
+
+      /* Cree une piece (libelle) et la place au centre du modele.
+         L'utilisateur peut ensuite la deplacer avec le bouton Placer. */
+      ajouterPiece: function(nom){
+        assurerPieces();
+        const yF = modelBounds ? modelBounds.min.y : 0;
+        const cx = modelBounds ? (modelBounds.min.x + modelBounds.max.x) / 2 : 0;
+        const cz = modelBounds ? (modelBounds.min.z + modelBounds.max.z) / 2 : 0;
+        propertyData.roomLabels.push({
+          id: 'piece-' + (propertyData.roomLabels.length + 1),
+          name: nom || 'NOUVELLE PIECE',
+          position: [ Math.round(cx*100)/100, yF, Math.round(cz*100)/100 ]
+        });
+        hudUpdate();
+        return propertyData.roomLabels.length - 1;
+      },
+
+      setPositionPiece: function(i, x, z){
+        assurerPieces();
+        if (i < 0 || i >= propertyData.roomLabels.length) return;
+        propertyData.roomLabels[i].position = [
+          Math.round(parseFloat(x)*100)/100,
+          propertyData.roomLabels[i].position[1],
+          Math.round(parseFloat(z)*100)/100
+        ];
+        hudUpdate();
+      },
+
+      supprimerPiece: function(i){
+        assurerPieces();
+        if (i < 0 || i >= propertyData.roomLabels.length) return;
+        propertyData.roomLabels.splice(i, 1);
+        if (placeIdx === i) placeIdx = -1;
+        majCurseur();
+        hudUpdate();
+      },
+
+      /* Cotations generales */
+      dimensionsGeneral: function(){
+        return propertyData.dimensionsGeneral || { top:0, bottom:0, left:0, right:0 };
+      },
+      setDimensionGeneral: function(key, val){
+        propertyData.dimensionsGeneral = propertyData.dimensionsGeneral || {};
+        propertyData.dimensionsGeneral[key] = parseFloat(val) || 0;
+      },
+      isRectangular: function(){
+        return propertyData.isRectangular !== false;
+      },
+      setRectangular: function(b){
+        propertyData.isRectangular = !!b;
+      },
+
+      /* Offsets des cotations */
+      dimOffsets: function(){
+        return propertyData.dimOffsets || { dimOffset: 170, segOffset: 110, roomDimOffset: 36 };
+      },
+      setDimOffsets: function(key, val){
+        propertyData.dimOffsets = propertyData.dimOffsets || {};
+        propertyData.dimOffsets[key] = parseInt(val) || 0;
+        hudUpdate();
+      },
+
+      enVueDeDessus:  function(){ return !!(typeof hudVisible !== 'undefined' && hudVisible); },
+
+      manifest: function(){ return JSON.stringify(propertyData, null, 2); },
+
+      /* ===== AMBIANCE : AO + LUMIÈRES (lighting-config.json) ===== */
+      /* L'état d'ambiance vit dans window.__lightingState du viewer (initialisé au
+         chargement depuis lighting-config.json). L'éditeur le lit/écrit ici et
+         applique les changements en direct via les API du viewer (setAO / addLight…). */
+      aoParams: function(){
+        var st = window.__AO_STATE__ || {};
+        var s = window.__lightingState || {};
+        var ao = s.ao || {};
+        return {
+          enabled:  (st.enabled != null) ? st.enabled : (ao.enabled === true),
+          strength: (ao.strength != null) ? ao.strength : (st.strength != null ? st.strength : 1.0),
+          radius:   (ao.radius   != null) ? ao.radius   : (st.radius   != null ? st.radius   : 1.2),
+          base:     (ao.base     != null) ? ao.base     : (st.base     != null ? st.base     : 0.2)
+        };
+      },
+      setAO: function(p){
+        window.__lightingState = window.__lightingState || {};
+        window.__lightingState.ao = window.__lightingState.ao || {};
+        if (p.enabled  != null) window.__lightingState.ao.enabled  = !!p.enabled;
+        if (p.strength != null) window.__lightingState.ao.strength = parseFloat(p.strength);
+        if (p.radius   != null) window.__lightingState.ao.radius   = parseFloat(p.radius);
+        if (p.base     != null) window.__lightingState.ao.base     = parseFloat(p.base);
+        // Application live
+        if (typeof window.setAO === 'function') {
+          var st = window.__lightingState.ao;
+          window.setAO({
+            enabled: st.enabled !== false,
+            strength: st.strength,
+            radius: st.radius, base: st.base
+          });
+        }
+      },
+
+      /* ===== SSR (reflets écran) — test verre ===== */
+      ssrParams: function(){
+        var s = window.__SSR_STATE__ || {};
+        return {
+          enabled:         !!s.enabled,
+          strength:        (s.strength        != null) ? s.strength        : 0.7,
+          falloff:         (s.falloff         != null) ? s.falloff         : 2.5,
+          roughnessFactor: (s.roughnessFactor != null) ? s.roughnessFactor : 0.2,
+          thickness:       (s.thickness       != null) ? s.thickness       : 0.5,
+          blur:            (s.blur            != null) ? s.blur            : 0.03,
+          supported:       (typeof window.setSSR === 'function')
+        };
+      },
+      setSSR: function(p){ if (typeof window.setSSR === 'function') window.setSSR(p); },
+
+      /* ===== LUMIÈRES ÉDITABLES ===== */
+      lights: function(){
+        var s = window.__lightingState || {};
+        return (s.lights || []).map(function(l){ return Object.assign({}, l); });
+      },
+      addLight: function(kind){
+        window.__lightingState = window.__lightingState || {};
+        window.__lightingState.lights = window.__lightingState.lights || [];
+        var c = modelBounds ? modelBounds.center : {x:0,y:2,z:0};
+        var id = kind + '-' + (window.__lightingState.lights.length + 1);
+        var def = {
+          id: id, kind: kind,
+          position: [r2(c.x), r2((modelBounds?modelBounds.max.y:2.4)*0.85), r2(c.z)],
+          color: [1.0, 0.95, 0.85], intensity: kind==='directional'?0.8:1.5,
+          range: 40
+        };
+        if (kind === 'spot') { def.direction = [0,-1,0]; def.angle = 1.2; def.exponent = 2; }
+        if (kind === 'directional') { def.direction = [0.7,-1,0.2]; delete def.position; delete def.range; }
+        window.__lightingState.lights.push(def);
+        if (typeof window.applyEditableLights === 'function') window.applyEditableLights(window.__lightingState.lights);
+        return def;
+      },
+      updateLight: function(id, patch){
+        var s = window.__lightingState; if (!s || !s.lights) return;
+        var l = s.lights.find(function(x){ return x.id===id; }); if (!l) return;
+        Object.keys(patch).forEach(function(k){ l[k] = patch[k]; });
+        if (typeof window.applyEditableLights === 'function') window.applyEditableLights(s.lights);
+      },
+      removeLight: function(id){
+        var s = window.__lightingState; if (!s || !s.lights) return;
+        s.lights = s.lights.filter(function(x){ return x.id!==id; });
+        if (typeof window.applyEditableLights === 'function') window.applyEditableLights(s.lights);
+      },
+      /* Place une lumière sur le plan (clic vue de dessus → monde XZ), comme les POV */
+      placeLightAt: function(id, x, z){
+        var s = window.__lightingState; if (!s || !s.lights) return;
+        var l = s.lights.find(function(x2){ return x2.id===id; }); if (!l || !l.position) return;
+        l.position[0] = r2(x); l.position[2] = r2(z);
+        if (typeof window.applyEditableLights === 'function') window.applyEditableLights(s.lights);
+      },
+      armLightPlacement: function(id){
+        lightToPlace = id;
+        if (typeof window.armPickPlacement === 'function') {
+          window.armPickPlacement('light', function(w){
+            var s = window.__lightingState; if (!s || !s.lights) return;
+            var l = s.lights.find(function(x2){ return x2.id===id; }); if (!l || !l.position) return;
+            l.position[0] = r2(w.x); l.position[2] = r2(w.z);
+            if (w.y != null) l.position[1] = r2(w.y + 0.4); // légèrement au-dessus de la surface cliquée
+            if (typeof window.applyEditableLights === 'function') window.applyEditableLights(s.lights);
+            lightToPlace = null;
+            if (typeof window.disarmPickPlacement === 'function') window.disarmPickPlacement();
+            parent.__edEvent('light','placee');
+          });
+        }
+      },
+
+      /* ===== TOUTES LES LUMIÈRES DE LA SCÈNE ===== */
+      allLights:       function(){ return (typeof window.listAllLights==='function') ? window.listAllLights() : []; },
+      setSceneLight:   function(id, patch){ if (typeof window.setLightProp==='function') window.setLightProp(id, patch); },
+      removeSceneLight:function(id){ return (typeof window.removeSceneLight==='function') ? window.removeSceneLight(id) : false; },
+      attachGizmo:     function(id){ if (typeof window.attachLightGizmo==='function') window.attachLightGizmo(id); },
+      detachGizmo:     function(){ if (typeof window.detachLightGizmo==='function') window.detachLightGizmo(); },
+
+      /* ===== HDRI ===== */
+      hdriParams:  function(){ return (typeof window.getHdriParams==='function') ? window.getHdriParams() : {hasHdri:false,intensity:1,rotationY:0}; },
+      setHdri:     function(p){ if (typeof window.setHdriParams==='function') window.setHdriParams(p); },
+      replaceHdri: function(url, isEnv){ return (typeof window.replaceHdri==='function') ? window.replaceHdri(url, isEnv) : false; },
+      hdriPreview: function(w,h){ return (typeof window.getHdriPreviewPixels==='function') ? window.getHdriPreviewPixels(w,h) : null; },
+
+      /* ===== TRAITEMENT IMAGE (colorimétrie) ===== */
+      grade:      function(){ return (typeof window.getImageGrade==='function') ? window.getImageGrade() : null; },
+      setGrade:   function(o){ if (typeof window.setImageGrade==='function') window.setImageGrade(o); },
+      resetGrade: function(){ return (typeof window.resetImageGrade==='function') ? window.resetImageGrade() : null; },
+
+      /* Export du lighting-config.json — CONSTRUIT DEPUIS LA SCÈNE RÉELLE.
+         Avant, on recopiait __lightingBase (photo du fichier chargé) : une lumière
+         supprimée dans l'éditeur ressortait dans le JSON et revenait au rechargement. */
+      lightingConfigJSON: function(){
+        if (typeof window.buildLightingConfig === 'function') {
+          return JSON.stringify(window.buildLightingConfig(), null, 2);
+        }
+        var s = window.__lightingState || {};
+        var out = Object.assign({}, window.__lightingBase || {});
+        out.ao = s.ao || out.ao;
+        out.editableLights = s.lights || [];
+        return JSON.stringify(out, null, 2);
+      },
+
+      /* ===== COULEUR DES POV ===== */
+      povColor:    function(){ return (typeof window.__povColor==='function') ? window.__povColor() : '#0B1B3F'; },
+      setPovColor: function(hex){ if (typeof window.setPovColor==='function') window.setPovColor(hex); },
+
+      /* ===== POV ===== */
+      /* Arme/désarme le mode placement POV : clic DIRECT dans la vue 3D du viewer.
+         Le viewer raycaste le décor et rappelle setCiblePov avec le point monde. */
+      setMode: function(m){
+        onPov = (m === 'pov');
+        if (m === 'pov' && typeof window.armPickPlacement === 'function') {
+          window.armPickPlacement('pov', function(w){
+            povEnAttenteX = w.x; povEnAttenteZ = w.z;
+            // TOUJOURS au sol : on ignore la hauteur du point cliqué (mur, meuble…)
+            // et on ancre sur le niveau du sol réel du modèle. L'utilisateur monte ensuite.
+            window.__povFloorY = (modelBounds ? modelBounds.min.y : 0);
+            povEnAttenteY = window.__povFloorY;
+            try { var fh = parent.document.getElementById('f-height'); if (fh){ fh.value = 0; var lab = parent.document.getElementById('h-height-val'); if (lab) lab.textContent = '0 m'; } } catch(_){}
+            afficherMarqueurPov(true);
+            parent.__edEvent('pov','placee');
+          });
+        } else if (typeof window.disarmPickPlacement === 'function') {
+          window.disarmPickPlacement();
+        }
+      },
+      setCiblePov: function(x,z){ povEnAttenteX=x; povEnAttenteZ=z; window.__povFloorY=(modelBounds?modelBounds.min.y:0); povEnAttenteY=window.__povFloorY; afficherMarqueurPov(true); parent.__edEvent('pov','placee'); },
+      setHauteurPov: function(h){ var floor=(window.__povFloorY!=null?window.__povFloorY:(modelBounds?modelBounds.min.y:0)); povEnAttenteY=floor+Math.max(0,Math.min(2,parseFloat(h)||0)); afficherMarqueurPov(true); if(hudVisible)hudUpdate(); },
+      /* VOIR / ORIENTER — la caméra doit être POSÉE SUR le point et pivoter sur
+         elle-même. Avant, on bricolait l'ArcRotateCamera : lui assigner .position
+         puis .target reconstruit un orbite de rayon 1 autour d'un pivot situé 1 m
+         devant → caméra décalée et rotation autour du mauvais centre. On réutilise
+         donc la vraie caméra 1re personne du viewer (UniversalCamera), qui est
+         exactement faite pour ça : œil fixe sur le point, seul le regard tourne. */
+      voirPov: function(){
+        if (povEnAttenteX == null) return;
+        // Mémoriser la vue orbite pour la restaurer après validation/annulation.
+        window.__edOrbitSave = {
+          position: camera.position.clone(),
+          target:   (camera.target ? camera.target.clone() : BABYLON.Vector3.Zero()),
+          mode:     camera.mode
+        };
+        var eye = new BABYLON.Vector3(povEnAttenteX, povEnAttenteY, povEnAttenteZ);
+        // Cap initial : on reprend la direction horizontale de la vue courante
+        // pour ne pas désorienter ; repli sur +Z si elle est verticale.
+        var fwd;
+        try { fwd = camera.getForwardRay().direction.clone(); } catch(_) { fwd = null; }
+        if (!fwd) fwd = new BABYLON.Vector3(0, 0, 1);
+        fwd.y = 0;
+        if (fwd.lengthSquared() < 1e-4) fwd.set(0, 0, 1);
+        fwd.normalize();
+        isFirstPerson = true;              // cohérence avec la logique du viewer
+        enterPanoramaCamera(eye, eye.add(fwd));
+        setHudVisible(false);
+      },
+      validerPov: function(id,label,room,photos){
+        if (povEnAttenteX == null) return null;
+        // Lire la pose sur la caméra RÉELLEMENT active (POV si on vient d'orienter).
+        var enPov = !!(fpCamera && scene.activeCamera === fpCamera);
+        var cam   = enPov ? fpCamera : camera;
+        var pos   = cam.position.clone();
+        var tgt   = enPov
+          ? pos.add(cam.getForwardRay().direction)
+          : (camera.target ? camera.target.clone() : pos.add(new BABYLON.Vector3(0,0,1)));
+        const r2 = v => Math.round(v*100)/100;
+        const pov = {
+          id: id || ('pov-' + (propertyData.poi.length + 1)),
+          label: label || id,
+          camPos:    [r2(pos.x), r2(pos.y), r2(pos.z)],
+          camTarget: [r2(tgt.x), r2(tgt.y), r2(tgt.z)]
+        };
+        if (room) pov.roomId = room;
+        if (photos && photos.length) pov.photos = photos;
+        propertyData.poi = propertyData.poi || [];
+        const i = propertyData.poi.findIndex(p => p.id === pov.id);
+        if (i >= 0) propertyData.poi[i] = pov; else propertyData.poi.push(pov);
+        if (enPov) { isFirstPerson = false; exitPanoramaCamera(); restaurerVueOrbite(); }
+        createPoiMarkers(); rebuildPoiList();
+        povEnAttenteX = povEnAttenteY = povEnAttenteZ = null;
+        afficherMarqueurPov(false);
+        return pov.label;
+      },
+      annulerPov: function(){
+        if (fpCamera && scene.activeCamera === fpCamera) {
+          isFirstPerson = false; exitPanoramaCamera(); restaurerVueOrbite();
+        }
+        povEnAttenteX = povEnAttenteY = povEnAttenteZ = null;
+        afficherMarqueurPov(false);
+      },
+      editerPov: function(id){ propertyData.poi=propertyData.poi||[]; const poi=propertyData.poi.find(p=>p.id===id); if(!poi)return null; povEnAttenteX=poi.camPos[0]; povEnAttenteY=poi.camPos[1]; povEnAttenteZ=poi.camPos[2]; afficherMarqueurPov(true); return poi; },
+
+      undo: function(){
+        if (!undoStack || undoStack.length===0) return false;
+        const prev = undoStack.pop();
+        propertyData.dimensions = prev;
+        hudUpdate();
+        parent.__edEvent('cot','undo');
+        return true;
+      },
+      resetCote: function(cote){
+        if (!propertyData.dimensions) propertyData.dimensions = {};
+        propertyData.dimensions[cote] = [];
+        hudUpdate();
+      }
+    };
+    parent.__edPret();
+  }
+  armer();
+})();
+`;
+
+/* -------- Greffe du pont dès que le viewer a fini de charger ------------- */
+vw.addEventListener('load', function(){
+  let doc;
+  try { doc = vw.contentDocument; } catch(e) { doc = null; }
+  if (!doc) {
+    document.getElementById('st').textContent = 'Viewer inaccessible.';
+    warn("Le navigateur bloque l'accès au viewer. Ouvre cette page depuis " +
+         "<b>hub-visite-3d.vercel.app</b> ou un serveur local — pas en double-cliquant " +
+         "le fichier (<b>file://</b>), où Chrome isole chaque fichier.");
+    return;
+  }
+  const sc = doc.createElement('script');
+  sc.textContent = PONT;
+  doc.body.appendChild(sc);
+});
+
+/* Le pont nous rappelle quand il est prêt. */
+window.__edPret = function(){
+  ed = vw.contentWindow.__ed;
+  document.getElementById('h-name').textContent = ed.nom();
+  document.getElementById('st').textContent = 'Prêt.';
+  warn('');
+  refresh();
+  ed.editerCotations(mode === 'cot');
+  // Synchronise le sélecteur de couleur POV avec la couleur courante du viewer
+  try { var pc = document.getElementById('f-pov-color'); if (pc && ed.povColor) pc.value = ed.povColor(); } catch(_){}
+};
+window.__edEvent = function(kind, what){
+  if (kind === 'pov'){ flash('📍 POV placé sur le plan'); refresh(); return; }
+  if (kind === 'piece'){ flash('📍 Libellé déplacé'); refresh(); return; }
+  if (kind === 'cot'){
+    if (what === 'undo') flash('↶ Annulé');
+    else flash(what === 'fusion' ? '🔗 Graduation retirée' : '✂️ Cotation scindée');
+    refresh();
+  }
+};
+/* Resize du panneau lateral */
+/* Resize du panneau.
+   Piege : pendant le glissement le curseur survole l'IFRAME du viewer ; les
+   evenements souris partent alors dans le document de l'iframe et le parent
+   n'entend plus rien. D'ou (1) setPointerCapture, qui force tous les events a
+   revenir sur la poignee, et (2) un overlay plein ecran au-dessus de l'iframe. */
+(function(){
+  const handle  = document.getElementById('resize-handle');
+  const overlay = document.getElementById('drag-overlay');
+  const side    = document.getElementById('side');
+  const stage   = document.getElementById('stage');
+
+  handle.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);      // <- l'iframe ne vole plus les events
+    overlay.classList.add('active');
+    document.body.style.userSelect = 'none';
+
+    const startX = e.clientX;
+    const startW = side.offsetWidth;
+
+    function move(em){
+      const w = Math.max(260, Math.min(window.innerWidth - 260, startW + (startX - em.clientX)));
+      side.style.flex = '0 0 ' + w + 'px';
+      side.style.width = w + 'px';
+      stage.style.flex = '1 1 auto';
+      isExpanded = false;
+    }
+    function up(){
+      overlay.classList.remove('active');
+      document.body.style.userSelect = '';
+      handle.releasePointerCapture(e.pointerId);
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+    }
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  });
+})();
+
+let isExpanded = false;
+function toggleExpand(){
+  isExpanded = !isExpanded;
+  const side = document.getElementById('side');
+  const stage = document.getElementById('stage');
+  const b = document.getElementById('b-expand');
+  if (isExpanded){
+    side.style.width = '70%';
+    side.style.flex = '0 0 70%';
+    stage.style.flex = '0 0 30%';
+    b.style.background = '#4a6cff';
+    b.style.color = '#fff';
+    b.textContent = '⛶';
+  } else {
+    side.style.width = '330px';
+    side.style.flex = '0 0 330px';
+    stage.style.flex = '1';
+    b.style.background = '';
+    b.style.color = '';
+    b.textContent = '⛶';
+  }
+}
+
+document.addEventListener('keydown', function(e){
+  if ((e.ctrlKey || e.metaKey) && e.key==='z') { e.preventDefault(); undo(); }
+});
+
+/* -------- UI ------------------------------------------------------------- */
+function tab(m){
+  mode = m;
+  ['pov','cot','piece','verre','amb','light'].forEach(function(k){
+    var tb = document.getElementById('t-'+k);
+    var pb = document.getElementById('p-'+k);
+    if (tb) tb.classList.toggle('on', m===k);
+    if (pb) pb.hidden = (m!==k);
+  });
+  if (ed){
+    ed.editerCotations(m==='cot');
+    ed.editerPieces(m==='piece');
+    if (m !== 'pov' && ed.setMode) ed.setMode(null);   // désarme le placement POV en quittant l'onglet
+    if (m==='piece') refresh();
+    if (m==='amb') { refreshPostProcess(); gradeRefresh(); }
+    if (m==='light') refreshLighting();
+  }
+  if (m==='verre') inspectorRefresh();
+}
+
+/* -------- AMBIANCE : AO + LUMIÈRES -------------------------------------- */
+let lightPlaceId = null; // id de la lumière en attente de placement au clic
+
+function refreshPostProcess(){
+  if (!ed || !ed.aoParams) return;
+  var ao = ed.aoParams();
+  document.getElementById('f-ao-on').checked = ao.enabled;
+  document.getElementById('f-ao-strength').value = ao.strength;
+  document.getElementById('f-ao-radius').value = ao.radius;
+  document.getElementById('f-ao-base').value = ao.base;
+  document.getElementById('v-ao-strength').textContent = (+ao.strength).toFixed(2);
+  document.getElementById('v-ao-radius').textContent = (+ao.radius).toFixed(1);
+  document.getElementById('v-ao-base').textContent = (+ao.base).toFixed(2);
+  refreshSSR();
+}
+
+function refreshLighting(){
+  refreshHdri();
+  refreshSceneLights();
+  refreshLightList();
+}
+
+function refreshHdri(){
+  if (!ed || !ed.hdriParams) return;
+  var h = ed.hdriParams();
+  var fi = document.getElementById('f-hdri-int'), fr = document.getElementById('f-hdri-rot');
+  if (fi){ fi.value = h.intensity; document.getElementById('v-hdri-int').textContent = (+h.intensity).toFixed(2); }
+  if (fr){
+    fr.value = h.rotationY;
+    document.getElementById('v-hdri-rot').textContent = Math.round(h.rotationY*180/Math.PI) + '°';
+    // Rotation impossible tant que l'environnement est la sonde de repli.
+    fr.disabled = (h.canRotate === false);
+    fr.title = (h.canRotate === false)
+      ? 'Orientation disponible une fois la HDRI chargée' : '';
+  }
+  drawHdriPreview();
+}
+
+/* Miniature HDRI : les pixels sont rendus par le moteur du viewer (la texture vit
+   dans SON contexte WebGL) puis recopiés dans notre canvas 2D. On la redessine à
+   chaque changement de curseur — pas à chaque frame. */
+function drawHdriPreview(){
+  var cv = document.getElementById('hdri-preview');
+  var msg = document.getElementById('hdri-preview-msg');
+  if (!cv || !ed || !ed.hdriPreview) return;
+  var W = 256, H = 96;
+  var res;
+  try { res = ed.hdriPreview(W, H); } catch(e){ res = null; }
+  var peindre = function(r){
+    if (!r || !r.data){ if (msg) msg.style.display = 'flex'; return; }
+    if (msg) msg.style.display = 'none';
+    cv.width = r.width; cv.height = r.height;
+    var ctx = cv.getContext('2d');
+    var img = ctx.createImageData(r.width, r.height);
+    img.data.set(new Uint8ClampedArray(r.data.buffer || r.data));
+    // Babylon rend l'origine en bas à gauche : on retourne verticalement.
+    ctx.putImageData(img, 0, 0);
+    ctx.save();
+    ctx.scale(1, -1);
+    ctx.drawImage(cv, 0, -r.height, r.width, r.height);
+    ctx.restore();
+  };
+  if (res && typeof res.then === 'function') res.then(peindre).catch(function(){ if (msg) msg.style.display='flex'; });
+  else peindre(res);
+}
+
+function setHdri(){
+  if (!ed || !ed.setHdri) return;
+  var intensity = parseFloat(document.getElementById('f-hdri-int').value);
+  var rotationY = parseFloat(document.getElementById('f-hdri-rot').value);
+  document.getElementById('v-hdri-int').textContent = intensity.toFixed(2);
+  document.getElementById('v-hdri-rot').textContent = Math.round(rotationY*180/Math.PI) + '°';
+  ed.setHdri({ intensity: intensity, rotationY: rotationY });
+  drawHdriPreview();
+}
+
+/* ===== TRAITEMENT IMAGE (colorimétrie) =====================================
+   Plages TRÈS étroites autour de la valeur neutre — un cinquantième de
+   l'amplitude d'origine : sur cette scène le rendu bascule pour des écarts
+   minuscules. Chaque curseur garde ~200 crans, donc la course entière reste
+   utile. Le 2e nombre = décimales d'affichage, calées sur le pas (sinon la
+   valeur semblerait figée pendant qu'on déplace le curseur). */
+const GRADE_FIELDS = [
+  ['exposure',   4], ['brightness', 5], ['contrast', 4], ['gamma', 4],
+  ['saturation', 4], ['value',      4], ['temperature', 4], ['tint', 4],
+  ['lift',       5], ['gain',       4]
+];
+
+function gradeRefresh(){
+  if (!ed || !ed.grade) return;
+  var g = ed.grade(); if (!g) return;
+  var on = document.getElementById('f-grade-on');
+  if (on) on.checked = !!g.enabled;
+  GRADE_FIELDS.forEach(function(f){
+    var el = document.getElementById('g-' + f[0]);
+    var vv = document.getElementById('v-g-' + f[0]);
+    if (el) el.value = g[f[0]];
+    if (vv) vv.textContent = (+g[f[0]]).toFixed(f[1]);
+  });
+  var h = document.getElementById('g-hue'), vh = document.getElementById('v-g-hue');
+  if (h){ h.value = g.hue; }
+  if (vh){ vh.textContent = (+g.hue).toFixed(2) + '°'; }
+  if (g.curves) window.rgbCurves = JSON.parse(JSON.stringify(g.curves));
+  drawRgbCurve();
+}
+
+function gradeSet(){
+  if (!ed || !ed.setGrade) return;
+  var o = { enabled: document.getElementById('f-grade-on').checked };
+  GRADE_FIELDS.forEach(function(f){
+    var el = document.getElementById('g-' + f[0]);
+    if (!el) return;
+    o[f[0]] = parseFloat(el.value);
+    var vv = document.getElementById('v-g-' + f[0]);
+    if (vv) vv.textContent = parseFloat(el.value).toFixed(f[1]);
+  });
+  var h = document.getElementById('g-hue');
+  if (h){
+    o.hue = parseFloat(h.value);
+    var vh = document.getElementById('v-g-hue');
+    if (vh) vh.textContent = o.hue.toFixed(2) + '°';
+  }
+  o.curves = window.rgbCurves || {r: [], g: [], b: []};
+  o.tonemap = false;
+  ed.setGrade(o);
+}
+
+function gradeReset(){
+  if (!ed || !ed.resetGrade) return;
+  ed.resetGrade();
+  gradeRefresh();
+  gradeSet();          // ré-applique les valeurs neutres au shader
+  flash('↺ Traitement image réinitialisé');
+}
+
+// ==================== COURBES RGB ====================
+let rgbCurves = { r: [[0, 0], [1, 1]], g: [[0, 0], [1, 1]], b: [[0, 0], [1, 1]] };
+let activeCurvePoint = null;
+let activeCurveChannel = null;
+
+function initRgbCurve(){
+  const canvas = document.getElementById('rgb-curve-canvas');
+  if (!canvas) return;
+  canvas.addEventListener('mousedown', curveMouseDown);
+  canvas.addEventListener('mousemove', curveMouseMove);
+  canvas.addEventListener('mouseup', curveMouseUp);
+  canvas.addEventListener('dblclick', curveDblClick);
+  drawRgbCurve();
+}
+
+function drawRgbCurve(){
+  const canvas = document.getElementById('rgb-curve-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const pad = 20;
+  const inner = { x: pad, y: pad, w: w - 2*pad, h: h - 2*pad };
+  
+  ctx.fillStyle = '#0d1220';
+  ctx.fillRect(0, 0, w, h);
+  
+  ctx.strokeStyle = '#1c2740';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.rect(inner.x, inner.y, inner.w, inner.h); ctx.stroke();
+  
+  ctx.strokeStyle = '#0f1829';
+  ctx.lineWidth = 0.5;
+  for (let i = 1; i < 4; i++){
+    const x = inner.x + (inner.w / 4) * i;
+    const y = inner.y + (inner.h / 4) * i;
+    ctx.beginPath(); ctx.moveTo(x, inner.y); ctx.lineTo(x, inner.y + inner.h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(inner.x, y); ctx.lineTo(inner.x + inner.w, y); ctx.stroke();
+  }
+  
+  const channels = [
+    { key: 'r', color: '#ff8888', id: 'curve-channel-r' },
+    { key: 'g', color: '#88ff88', id: 'curve-channel-g' },
+    { key: 'b', color: '#8888ff', id: 'curve-channel-b' }
+  ];
+  
+  channels.forEach(ch => {
+    const visible = document.getElementById(ch.id)?.checked ?? true;
+    if (!visible) return;
+    
+    const points = rgbCurves[ch.key] || [[0, 0], [1, 1]];
+    const sorted = [...points].sort((a, b) => a[0] - b[0]);
+    
+    ctx.strokeStyle = ch.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    sorted.forEach((p, i) => {
+      const px = inner.x + p[0] * inner.w;
+      const py = inner.y + (1 - p[1]) * inner.h;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    
+    sorted.forEach(p => {
+      const px = inner.x + p[0] * inner.w;
+      const py = inner.y + (1 - p[1]) * inner.h;
+      ctx.fillStyle = activeCurvePoint === p && activeCurveChannel === ch.key ? '#ffff00' : ch.color;
+      ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#0d1220';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+  });
+}
+
+function curveMouseDown(e){
+  const canvas = e.target;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
+  const norm = { x: Math.max(0, Math.min(1, x * (canvas.width / rect.width) / canvas.width)), 
+                 y: 1 - Math.max(0, Math.min(1, y * (canvas.height / rect.height) / canvas.height)) };
+  
+  for (let ch of ['r', 'g', 'b']){
+    const points = rgbCurves[ch] || [];
+    for (let p of points){
+      const dx = norm.x - p[0], dy = norm.y - p[1];
+      if (dx*dx + dy*dy < 0.01){
+        activeCurvePoint = p;
+        activeCurveChannel = ch;
+        return;
+      }
+    }
+  }
+  
+  if (x >= 0 && x <= 1 && y >= 0 && y <= 1){
+    const newPoint = [Math.round(norm.x * 100) / 100, Math.round(norm.y * 100) / 100];
+    const ch = activeCurveChannel || 'r';
+    if (!rgbCurves[ch]) rgbCurves[ch] = [];
+    rgbCurves[ch].push(newPoint);
+    activeCurvePoint = newPoint;
+    activeCurveChannel = ch;
+    gradeSet();
+  }
+}
+
+function curveMouseMove(e){
+  if (!activeCurvePoint) return;
+  const canvas = e.currentTarget;
+  const rect = canvas.getBoundingClientRect();
+  const norm = {
+    x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+    y: 1 - Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
+  };
+  activeCurvePoint[0] = Math.round(norm.x * 100) / 100;
+  activeCurvePoint[1] = Math.round(norm.y * 100) / 100;
+  drawRgbCurve();
+  gradeSet();
+}
+
+function curveMouseUp(){
+  activeCurvePoint = null;
+}
+
+function curveDblClick(e){
+  const canvas = e.target;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
+  const norm = { x: Math.max(0, Math.min(1, x)), y: 1 - Math.max(0, Math.min(1, y)) };
+  
+  for (let ch of ['r', 'g', 'b']){
+    const points = rgbCurves[ch] || [];
+    for (let i = points.length - 1; i >= 0; i--){
+      const p = points[i];
+      const dx = norm.x - p[0], dy = norm.y - p[1];
+      if (dx*dx + dy*dy < 0.01 && (p[0] !== 0 && p[0] !== 1)){
+        points.splice(i, 1);
+        drawRgbCurve();
+        gradeSet();
+        return;
+      }
+    }
+  }
+}
+
+// ==================== PRESETS ====================
+const GRADE_PRESETS = {
+  neutral: {
+    exposure: 0, brightness: 0, contrast: 1, gamma: 1,
+    saturation: 1, value: 1, temperature: 0, tint: 0,
+    lift: 0, gain: 1, hue: 0,
+    curves: { r: [[0, 0], [1, 1]], g: [[0, 0], [1, 1]], b: [[0, 0], [1, 1]] }
+  },
+  warm: {
+    exposure: 0.02, brightness: 0, contrast: 1.01, gamma: 1,
+    saturation: 1.05, value: 1, temperature: 0.015, tint: -0.008,
+    lift: 0.001, gain: 1.01, hue: 0.1,
+    curves: { r: [[0, 0], [0.5, 0.52], [1, 1]], g: [[0, 0], [0.5, 0.5], [1, 1]], b: [[0, 0], [0.5, 0.48], [1, 1]] }
+  },
+  cool: {
+    exposure: 0, brightness: -0.002, contrast: 1.02, gamma: 0.99,
+    saturation: 1.08, value: 1, temperature: -0.015, tint: 0.01,
+    lift: 0, gain: 1, hue: -0.3,
+    curves: { r: [[0, 0], [0.5, 0.48], [1, 1]], g: [[0, 0], [0.5, 0.5], [1, 1]], b: [[0, 0], [0.5, 0.55], [1, 1]] }
+  },
+  golden: {
+    exposure: 0.015, brightness: 0.001, contrast: 1.015, gamma: 1.02,
+    saturation: 1.1, value: 1.05, temperature: 0.018, tint: -0.005,
+    lift: 0.002, gain: 1.02, hue: 0.25,
+    curves: { r: [[0, 0], [0.3, 0.35], [0.7, 0.75], [1, 1]], g: [[0, 0], [0.3, 0.3], [0.7, 0.7], [1, 1]], b: [[0, 0], [0.3, 0.2], [0.7, 0.6], [1, 0.95]] }
+  },
+  night: {
+    exposure: -0.01, brightness: -0.003, contrast: 1.1, gamma: 1.05,
+    saturation: 0.95, value: 0.95, temperature: -0.012, tint: 0.008,
+    lift: -0.001, gain: 1.05, hue: -0.15,
+    curves: { r: [[0, 0.05], [0.5, 0.5], [1, 0.95]], g: [[0, 0], [0.5, 0.48], [1, 0.95]], b: [[0, 0.15], [0.5, 0.58], [1, 1]] }
+  }
+};
+
+function loadPreset(name){
+  if (!ed || !ed.setGrade || !GRADE_PRESETS[name]) return;
+  const p = GRADE_PRESETS[name];
+  document.getElementById('f-grade-on').checked = true;
+  GRADE_FIELDS.forEach(f => {
+    const el = document.getElementById('g-' + f[0]);
+    if (el && p[f[0]] !== undefined) el.value = p[f[0]];
+  });
+  const hel = document.getElementById('g-hue');
+  if (hel && p.hue !== undefined) hel.value = p.hue;
+  rgbCurves = JSON.parse(JSON.stringify(p.curves));
+  gradeSet();
+  flash('✨ Preset « ' + {neutral:'Studio Neutre', warm:'Cinéma Chaleur', cool:'Froid Moderne', golden:'Matin Doré', night:'Nuit Urbaine'}[name] + ' » appliqué');
+}
+
+// Init des courbes au chargement
+window.addEventListener('load', () => { setTimeout(initRgbCurve, 100); });
+
+function importHdri(input){
+  var file = input.files && input.files[0];
+  if (!file || !ed || !ed.replaceHdri) return;
+  var isEnv = /\.env$/i.test(file.name);
+  var url = URL.createObjectURL(file);
+  ed.replaceHdri(url, isEnv);
+  flash('HDRI « ' + file.name + ' » importée');
+  setTimeout(refreshHdri, 400);
+}
+
+let sceneLightOpen = {}; // id -> déplié
+function refreshSceneLights(){
+  if (!ed || !ed.allLights) return;
+  var cont = document.getElementById('scene-light-tree');
+  if (!cont) return;
+  var lights = ed.allLights();
+  if (!lights.length){ cont.innerHTML = '<p class="hint" style="font-size:.7rem;">Aucune lumière détectée.</p>'; return; }
+  cont.innerHTML = '';
+  lights.forEach(function(l){
+    if (sceneLightOpen[l.id] === undefined) sceneLightOpen[l.id] = false;
+    var open = sceneLightOpen[l.id];
+    var card = document.createElement('div');
+    card.style.cssText = 'border:1px solid #263149;border-radius:8px;margin-bottom:.4rem;overflow:hidden;';
+
+    var head = document.createElement('button');
+    head.className = 'tab';
+    head.style.cssText = 'width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;font-size:.74rem;border-radius:0;border:none;'+(open?'background:#26325a;color:#fff;':'');
+    head.innerHTML = '<span>💡 '+l.id+' <span style="opacity:.55;font-weight:500;">'+l.kind+(l.enabled?'':' · éteinte')+'</span></span><span style="opacity:.7;">'+(open?'▾':'▸')+'</span>';
+    head.onclick = function(){ sceneLightOpen[l.id] = !sceneLightOpen[l.id]; refreshSceneLights(); };
+    card.appendChild(head);
+
+    if (open){
+      var col = l.color ? rgbToHex(l.color) : '#ffffff';
+      var body = document.createElement('div');
+      body.style.cssText = 'padding:.6rem;background:#0d1220;';
+      body.innerHTML =
+        '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem;">'+
+          '<label style="display:flex;align-items:center;gap:.3rem;flex:1;cursor:pointer;font-size:.72rem;color:#c7d0e4;">'+
+            '<input type="checkbox" '+(l.enabled?'checked':'')+' onchange="sceneLightToggle(\''+l.id+'\',this.checked)"> Allumée'+
+          '</label>'+
+          '<button class="btn sec" style="width:auto;flex:0 0 auto;padding:.3rem .6rem;font-size:.72rem;" onclick="sceneLightRemove(\''+l.id+'\')">✕ Supprimer</button>'+
+        '</div>'+
+        '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
+          '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Intensité</label>'+
+          '<input type="range" min="0" max="5" step="0.1" value="'+l.intensity+'" style="flex:1;" oninput="sceneLightSet(\''+l.id+'\',{intensity:parseFloat(this.value)})">'+
+        '</div>'+
+        '<div style="display:flex;gap:.4rem;align-items:center;">'+
+          '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Couleur</label>'+
+          '<input type="color" value="'+col+'" style="flex:0 0 auto;width:40px;height:26px;padding:0;border:none;background:none;cursor:pointer;" oninput="sceneLightSet(\''+l.id+'\',{color:hexToRgb(this.value)})">'+
+        '</div>';
+      card.appendChild(body);
+    }
+    cont.appendChild(card);
+  });
+}
+function sceneLightToggle(id, on){ if (ed) ed.setSceneLight(id, { enabled: on }); refreshSceneLights(); }
+function sceneLightSet(id, patch){ if (ed) ed.setSceneLight(id, patch); }
+function sceneLightRemove(id){
+  if (ed){ ed.removeSceneLight(id); refreshSceneLights(); flash('Lumière « '+id+' » supprimée (session)'); }
+}
+
+function refreshSSR(){
+  if (!ed || !ed.ssrParams) return;
+  var s = ed.ssrParams();
+  var box = document.getElementById('ssr-box');
+  if (box && s.supported === false){
+    box.style.opacity = '.5';
+    box.title = 'SSR indisponible (WebGL1 ou pipeline non chargé).';
+  }
+  document.getElementById('f-ssr-on').checked      = s.enabled;
+  document.getElementById('f-ssr-strength').value  = s.strength;
+  document.getElementById('f-ssr-falloff').value   = s.falloff;
+  document.getElementById('f-ssr-rough').value     = s.roughnessFactor;
+  document.getElementById('f-ssr-thick').value     = s.thickness;
+  document.getElementById('f-ssr-blur').value      = s.blur;
+  document.getElementById('v-ssr-strength').textContent = (+s.strength).toFixed(2);
+  document.getElementById('v-ssr-falloff').textContent  = (+s.falloff).toFixed(1);
+  document.getElementById('v-ssr-rough').textContent    = (+s.roughnessFactor).toFixed(2);
+  document.getElementById('v-ssr-thick').textContent    = (+s.thickness).toFixed(2);
+  document.getElementById('v-ssr-blur').textContent     = (+s.blur).toFixed(3);
+}
+
+function ambSetSSR(){
+  if (!ed) return;
+  var enabled  = document.getElementById('f-ssr-on').checked;
+  var strength = parseFloat(document.getElementById('f-ssr-strength').value);
+  var falloff  = parseFloat(document.getElementById('f-ssr-falloff').value);
+  var rough    = parseFloat(document.getElementById('f-ssr-rough').value);
+  var thick    = parseFloat(document.getElementById('f-ssr-thick').value);
+  var blur     = parseFloat(document.getElementById('f-ssr-blur').value);
+  document.getElementById('v-ssr-strength').textContent = strength.toFixed(2);
+  document.getElementById('v-ssr-falloff').textContent  = falloff.toFixed(1);
+  document.getElementById('v-ssr-rough').textContent    = rough.toFixed(2);
+  document.getElementById('v-ssr-thick').textContent    = thick.toFixed(2);
+  document.getElementById('v-ssr-blur').textContent     = blur.toFixed(3);
+  ed.setSSR({ enabled:enabled, strength:strength, falloff:falloff, roughnessFactor:rough, thickness:thick, blur:blur });
+  if (enabled) flash('SSR activé — juge le rendu, désactive pour revenir à l’original');
+  else flash('SSR désactivé — rendu d’origine');
+}
+
+function ambSetAO(){
+  if (!ed) return;
+  var enabled = document.getElementById('f-ao-on').checked;
+  var strength = parseFloat(document.getElementById('f-ao-strength').value);
+  var radius = parseFloat(document.getElementById('f-ao-radius').value);
+  var base = parseFloat(document.getElementById('f-ao-base').value);
+  document.getElementById('v-ao-strength').textContent = strength.toFixed(2);
+  document.getElementById('v-ao-radius').textContent = radius.toFixed(1);
+  document.getElementById('v-ao-base').textContent = base.toFixed(2);
+  ed.setAO({ enabled: enabled, strength: strength, radius: radius, base: base });
+}
+
+function ambAddLight(kind){
+  if (!ed) return;
+  var def = ed.addLight(kind);
+  refreshLightList();
+  flash('Lumière ' + kind + ' ajoutée');
+}
+
+function refreshLightList(){
+  if (!ed || !ed.lights) return;
+  var list = document.getElementById('light-list');
+  var lights = ed.lights();
+  if (!lights.length){ list.innerHTML = '<p class="hint" style="font-size:.7rem;">Aucune lumière éditable.</p>'; return; }
+  list.innerHTML = '';
+  lights.forEach(function(l){
+    var col = l.color ? rgbToHex(l.color) : '#ffffff';
+    var hasPos = !!l.position;
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#0d1220;padding:.6rem;border-radius:8px;margin-bottom:.55rem;';
+    card.innerHTML =
+      '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem;">'+
+        '<b style="font-size:.76rem;color:#c7d0e4;flex:1;">'+l.id+'</b>'+
+        '<label style="display:flex;align-items:center;gap:.25rem;font-size:.68rem;color:#9fb4ce;cursor:pointer;flex:0 0 auto;" title="Afficher et manipuler (axes déplacement + rotation)">'+
+          '<input type="checkbox" onchange="ambToggleGizmo(\''+l.id+'\',this.checked)"> 👁 axes'+
+        '</label>'+
+        (hasPos ? '<button class="btn" style="width:auto;flex:0 0 auto;padding:.3rem .5rem;" onclick="ambPlaceLight(\''+l.id+'\')">📍 Placer</button>' : '')+
+        '<button class="btn sec" style="width:auto;flex:0 0 auto;padding:.3rem .5rem;" onclick="ambRemoveLight(\''+l.id+'\')">✕</button>'+
+      '</div>'+
+      '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.35rem;">'+
+        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Intensité</label>'+
+        '<input type="range" min="0" max="5" step="0.1" value="'+(l.intensity!=null?l.intensity:1.5)+'" style="flex:1;" oninput="ambUpdateLight(\''+l.id+'\',{intensity:parseFloat(this.value)})">'+
+      '</div>'+
+      '<div style="display:flex;gap:.4rem;align-items:center;'+(l.range!=null?'':'display:none;')+'margin-bottom:.35rem;">'+
+        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Portée</label>'+
+        '<input type="range" min="1" max="80" step="1" value="'+(l.range!=null?l.range:40)+'" style="flex:1;" oninput="ambUpdateLight(\''+l.id+'\',{range:parseFloat(this.value)})">'+
+      '</div>'+
+      '<div style="display:flex;gap:.4rem;align-items:center;">'+
+        '<label style="font-size:.7rem;color:#6f7c99;flex:0 0 62px;">Couleur</label>'+
+        '<input type="color" value="'+col+'" style="flex:0 0 auto;width:40px;height:26px;padding:0;border:none;background:none;cursor:pointer;" oninput="ambUpdateLight(\''+l.id+'\',{color:hexToRgb(this.value)})">'+
+      '</div>';
+    list.appendChild(card);
+  });
+}
+
+function ambUpdateLight(id, patch){ if (ed) ed.updateLight(id, patch); }
+function ambRemoveLight(id){ if (ed){ ed.detachGizmo && ed.detachGizmo(); ed.removeLight(id); refreshLightList(); flash('Lumière supprimée'); } }
+function ambToggleGizmo(id, on){
+  if (!ed) return;
+  if (on){
+    // Un seul gizmo à la fois : décoche visuellement les autres cases
+    document.querySelectorAll('#light-list input[type=checkbox]').forEach(function(cb){
+      if (cb.getAttribute('onchange') && cb.getAttribute('onchange').indexOf(id) < 0) cb.checked = false;
+    });
+    ed.attachGizmo(id);
+    flash('Axes actifs — déplace/oriente la lumière dans la vue 3D');
+  } else {
+    ed.detachGizmo();
+  }
+}
+function ambPlaceLight(id){
+  lightPlaceId = id;
+  if (ed && ed.armLightPlacement) ed.armLightPlacement(id);
+  flash('Clique dans la vue 3D à l\'endroit voulu pour placer la lumière');
+}
+
+function rgbToHex(rgb){
+  var to2 = function(v){ var h = Math.round(Math.max(0,Math.min(1,v))*255).toString(16); return h.length<2?'0'+h:h; };
+  return '#'+to2(rgb[0])+to2(rgb[1])+to2(rgb[2]);
+}
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  return [parseInt(hex.slice(0,2),16)/255, parseInt(hex.slice(2,4),16)/255, parseInt(hex.slice(4,6),16)/255];
+}
+
+function downloadLighting(){
+  if (!ed || !ed.lightingConfigJSON){ flash('Éditeur non prêt'); return; }
+  var blob = new Blob([ed.lightingConfigJSON()], { type:'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lighting-config.json';
+  a.click();
+  flash('lighting-config.json téléchargé');
+}
+
+function v(id){ return (document.getElementById(id).value || '').trim(); }
+
+function undo(){
+  if (!ed) return;
+  if (ed.undo()) flash('↶ Annulé');
+  else flash('Rien à annuler');
+}
+
+function resetCote(cote){
+  if (!ed) return;
+  const mani = JSON.parse(ed.manifest());
+  if (!mani.dimensions) mani.dimensions = {};
+  mani.dimensions[cote] = [];
+  propertyData.dimensions = mani.dimensions;
+  // On doit retracer via le viewer
+  const frame = document.getElementById('vw').contentWindow;
+  if (frame.__ed) frame.__ed.manifest = ()=>JSON.stringify(mani);
+  frame.propertyData.dimensions = mani.dimensions;
+  frame.hudUpdate();
+  refresh();
+  flash('Cotation ' + cote + ' reinitialisee');
+}
+
+function capture(){
+  if (!ed) return;
+  const photos = v('f-photos').split(',').map(function(x){return x.trim();}).filter(Boolean);
+  const label = ed.capture(v('f-id'), v('f-label'), v('f-room'), photos);
+  ['f-id','f-label','f-room','f-photos'].forEach(function(k){ document.getElementById(k).value=''; });
+  flash('✅  ' + label +'  placé');
+  refresh();
+}
+
+let povEnCours = false;  // true si un POV est en cours de placement/édition
+
+function setPovColor(hex){
+  if (ed && ed.setPovColor) ed.setPovColor(hex);
+}
+
+function placerPov(){
+  if (!ed) return;
+  povEnCours = true;
+  tab('pov');
+  // Réinitialise la hauteur à 0 (sol) AVANT de placer
+  var fh = document.getElementById('f-height'); if (fh) fh.value = 0;
+  var lab = document.getElementById('h-height-val'); if (lab) lab.textContent = '0 m';
+  ed.setMode('pov');
+  document.getElementById('b-place-pov').style.display = 'none';
+  document.getElementById('b-cancel-pov').style.display = 'block';
+  document.getElementById('b-voir').style.display = 'block';
+  document.getElementById('b-valider').style.display = 'block';
+  flash('Clique dans la vue 3D — le POV se pose au sol, règle la hauteur ensuite');
+}
+
+function annulerPov(){
+  if (!ed) return;
+  ed.annulerPov();
+  povEnCours = false;
+  ed.setMode(null);
+  document.getElementById('b-place-pov').style.display = 'block';
+  document.getElementById('b-cancel-pov').style.display = 'none';
+  document.getElementById('b-voir').style.display = 'none';
+  document.getElementById('b-valider').style.display = 'none';
+  flash('❌ Annulé');
+}
+
+function setHauteurPov(h){
+  if (!ed) return;
+  ed.setHauteurPov(h);
+  document.getElementById('h-height-val').textContent = h + ' m';
+}
+
+function voirPov(){
+  if (!ed) return;
+  ed.voirPov();
+  document.getElementById('b-voir').style.display = 'none';
+  document.getElementById('b-valider').style.display = 'block';
+  flash('Tu peux maintenant orienter ta vue. Clique Valider quand c\'est bon.');
+}
+
+function editerPovExistant(id, label){
+  if (!ed) return;
+  const poi = ed.editerPov(id);
+  if (!poi) return;
+  document.getElementById('f-id').value = poi.id;
+  document.getElementById('f-label').value = poi.label || label;
+  document.getElementById('f-room').value = poi.roomId || '';
+  document.getElementById('f-photos').value = (poi.photos||[]).join(', ');
+  const h = poi.camPos[1];
+  document.getElementById('f-height').value = h;
+  document.getElementById('h-height-val').textContent = h.toFixed(2) + ' m';
+  povEnCours = true;
+  tab('pov');
+  document.getElementById('b-place-pov').style.display = 'block';
+  document.getElementById('b-cancel-pov').style.display = 'block';
+  document.getElementById('b-voir').style.display = 'block';
+  document.getElementById('b-valider').style.display = 'none';
+  flash('✏️ Édition de « ' + label + ' » — tu peux placer, ajuster la hauteur et voir');
+}
+
+function validerPov(){
+  if (!ed) return;
+  const id = (document.getElementById('f-id').value || '').trim();
+  const label = (document.getElementById('f-label').value || '').trim();
+  const room = (document.getElementById('f-room').value || '').trim();
+  const photos = (document.getElementById('f-photos').value || '')
+    .split(',').map(x=>x.trim()).filter(Boolean);
+  const nom = ed.validerPov(id, label, room, photos);
+  if (nom){
+    ['f-id','f-label','f-room','f-photos'].forEach(k=>document.getElementById(k).value='');
+    document.getElementById('f-height').value = 0;
+    povEnCours = false;
+    ed.setMode(null);
+    document.getElementById('b-place-pov').style.display = 'block';
+    document.getElementById('b-cancel-pov').style.display = 'none';
+    document.getElementById('b-voir').style.display = 'none';
+    document.getElementById('b-valider').style.display = 'none';
+    flash('✅ « ' + nom + ' » validé');
+    refresh();
+  }
+}
+
+function ajouterPiece(){
+  if (!ed) return;
+  const champ = document.getElementById('f-newpiece');
+  const nom = (champ.value || '').trim();
+  if (!nom){ flash('Donne un nom à la pièce'); champ.focus(); return; }
+  const i = ed.ajouterPiece(nom);
+  champ.value = '';
+  refresh();
+  flash('➕ « ' + nom +' » ajoutée — clique 📍 Placer pour la poser');
+}
+
+function supprimerPiece(i, nom){
+  if (!ed) return;
+  ed.supprimerPiece(i);
+  refresh();
+  flash('🗑️ « ' + nom + ' » supprimée');
+}
+
+function setDimGen(key, val){
+  if (!ed) return;
+  ed.setDimensionGeneral(key, val);
+  flash('Dimension ' + key + ' mise à jour');
+}
+
+function setRectangular(is){
+  if (!ed) return;
+  ed.setRectangular(is);
+  flash(is ? '▭ Bien rectangulaire' : '◇ Bien non-rectangulaire');
+}
+
+function setOffsetDim(val){
+  if (!ed) return;
+  ed.setDimOffsets('dimOffset', val);
+  flash('Espacement extérieures : ' + val + ' px');
+}
+
+function setOffsetSeg(val){
+  if (!ed) return;
+  ed.setDimOffsets('segOffset', val);
+  flash('Espacement segments : ' + val + ' px');
+}
+
+function setOffsetRoom(val){
+  if (!ed) return;
+  ed.setDimOffsets('roomDimOffset', val);
+  flash('Espacement pièces : ' + val + ' px');
+}
+
+function refresh(){
+  if (!ed) return;
+
+  // Charger les cotations générales
+  const dg = ed.dimensionsGeneral();
+  document.getElementById('f-dim-top').value = dg.top || '';
+  document.getElementById('f-dim-bottom').value = dg.bottom || '';
+  document.getElementById('f-dim-left').value = dg.left || '';
+  document.getElementById('f-dim-right').value = dg.right || '';
+  document.getElementById('f-not-rect').checked = !ed.isRectangular();
+
+  // Charger les offsets des cotations
+  const off = ed.dimOffsets();
+  document.getElementById('f-offset-dim').value = off.dimOffset || 170;
+  document.getElementById('f-offset-seg').value = off.segOffset || 110;
+  document.getElementById('f-offset-room').value = off.roomDimOffset || 36;
+
+  const pl = document.getElementById('pov-list');
+  const pois = ed.pois();
+  pl.innerHTML = '';
+  pois.forEach(function(p){
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<span class="nm">' + p.label + '</span>';
+    const a = document.createElement('button');
+    a.textContent = 'Voir'; a.onclick = function(){ ed.voir(p.id); };
+    const ed_btn = document.createElement('button');
+    ed_btn.textContent = '✏️'; ed_btn.title = 'Éditer ce POV'; ed_btn.onclick = function(){ editerPovExistant(p.id, p.label); };
+    const b = document.createElement('button');
+    b.textContent = '✕';    b.onclick = function(){ ed.supprimer(p.id); refresh(); };
+    row.appendChild(a); row.appendChild(ed_btn); row.appendChild(b);
+    pl.appendChild(row);
+  });
+
+  const cl = document.getElementById('cot-list');
+  cl.innerHTML = '';
+  ed.cotations().forEach(function(c){
+    const row = document.createElement('div');
+    row.className = 'row';
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.innerHTML = '<b>' + c.cote + '</b>';
+    row.appendChild(nm);
+    
+    if (c.segs.length){
+      c.segs.forEach(function(seg, i){
+        const inp = document.createElement('input');
+        inp.type = 'number';
+        inp.step = '0.01';
+        inp.value = seg.toFixed(2);
+        inp.style.cssText = 'flex:0 0 60px;margin-left:.3rem;font-size:.76rem;padding:.2rem;background:#0d1220;border:1px solid #263149;color:#e8ecf6;border-radius:4px;';
+        inp.onchange = function(){
+          const v = parseFloat(inp.value);
+          if (!isNaN(v) && v > 0.01){
+            c.segs[i] = v;
+            updateCotFromEditor(c.cote, c.segs);
+          } else {
+            inp.value = seg.toFixed(2);
+          }
+        };
+        row.appendChild(inp);
+        if (i < c.segs.length-1) {
+          const plus = document.createElement('span');
+          plus.textContent = '+';
+          plus.style.cssText = 'margin:0 .2rem;color:#6f7c99;';
+          row.appendChild(plus);
+        }
+      });
+    } else {
+      const sp = document.createElement('span');
+      sp.style.color = '#6f7c99';
+      sp.textContent = '— aucune coupure —';
+      row.appendChild(sp);
+    }
+    cl.appendChild(row);
+  });
+
+  const listePieces = ed.pieces();
+
+  // Menu deroulant roomId de l'onglet POV, alimente par les pieces
+  const selRoom = document.getElementById('f-room');
+  if (selRoom){
+    const garde = selRoom.value;
+    selRoom.innerHTML = '<option value="">— pièce (optionnel) —</option>';
+    listePieces.forEach(function(p){
+      const o = document.createElement('option');
+      o.value = p.name;
+      o.textContent = p.name;
+      selRoom.appendChild(o);
+    });
+    selRoom.value = garde;   // conserve la selection si la piece existe toujours
+  }
+
+  const ql = document.getElementById('piece-list');
+  if (ql){
+    ql.innerHTML = '';
+    listePieces.forEach(function(p){
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.style.flexWrap = 'wrap';
+
+      const nom = document.createElement('input');
+      nom.value = p.name;
+      nom.style.cssText = 'flex:1 1 100%;margin-bottom:.35rem;';
+      nom.onchange = function(){ ed.renommer(p.i, nom.value); flash('✏️ Renommé'); };
+      row.appendChild(nom);
+
+      const coords = document.createElement('div');
+      coords.style.cssText = 'flex:1 1 100%;display:flex;gap:.3rem;margin-bottom:.35rem;';
+      const inpX = document.createElement('input');
+      inpX.type = 'number'; inpX.placeholder = 'X (m)'; inpX.step = '0.01';
+      inpX.value = (p.pos && p.pos[0]) || 0;
+      inpX.style.cssText = 'flex:1;';
+      inpX.onchange = function(){ ed.setPositionPiece(p.i, inpX.value, inpZ.value); flash('Position mise à jour'); };
+      const inpZ = document.createElement('input');
+      inpZ.type = 'number'; inpZ.placeholder = 'Z (m)'; inpZ.step = '0.01';
+      inpZ.value = (p.pos && p.pos[1]) || 0;
+      inpZ.style.cssText = 'flex:1;';
+      inpZ.onchange = function(){ ed.setPositionPiece(p.i, inpX.value, inpZ.value); flash('Position mise à jour'); };
+      coords.appendChild(inpX); coords.appendChild(inpZ);
+      row.appendChild(coords);
+
+      const col = document.createElement('input');
+      col.type = 'color';
+      col.value = p.color || '#0046FE';
+      col.title = 'Couleur du texte';
+      col.style.cssText = 'flex:0 0 34px;height:28px;padding:2px;margin:0 .3rem 0 0;';
+      col.oninput = function(){ ed.setCouleur(p.i, col.value); };
+      row.appendChild(col);
+
+      const raz = document.createElement('button');
+      raz.textContent = '⟲';
+      raz.title = 'Couleur par défaut';
+      raz.onclick = function(){ ed.setCouleur(p.i, ''); refresh(); };
+      row.appendChild(raz);
+
+      const tail = document.createElement('input');
+      tail.type = 'number'; tail.min = '6'; tail.max = '48'; tail.step = '1';
+      tail.value = p.size || 14;
+      tail.title = 'Taille du texte (px)';
+      tail.style.cssText = 'flex:0 0 58px;margin:0 .3rem;';
+      tail.onchange = function(){ ed.setTaille(p.i, tail.value); };
+      row.appendChild(tail);
+
+      const plc = document.createElement('button');
+      plc.textContent = '📍 Placer';
+      plc.onclick = function(){
+        ed.armerPlacement(p.i);
+        flash('Clique sur le plan pour poser « ' + p.name + ' »');
+      };
+      row.appendChild(plc);
+
+      const sup = document.createElement('button');
+      sup.textContent = '✕';
+      sup.title = 'Supprimer cette pièce';
+      sup.style.cssText = 'margin-left:auto;';
+      sup.onclick = function(){ supprimerPiece(p.i, p.name); };
+      row.appendChild(sup);
+
+      ql.appendChild(row);
+    });
+  }
+
+  document.getElementById('st').textContent =
+    pois.length + ' POV · manifest a jour en memoire';
+}
+
+function download(){
+  if (!ed) return;
+  const blob = new Blob([ed.manifest()], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'manifest.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  flash('💾 manifest.json téléchargé');
+}
+
+// Contrôles matériaux — liste dynamique groupée par catégorie (sections repliables)
+function vwWin(){
+  const f = document.getElementById('vw');
+  return f && f.contentWindow ? f.contentWindow : null;
+}
+
+// Libellés + config d'affichage des contrôles par catégorie (côté éditeur)
+const CTRL_META = {
+  tint:         { label: 'Teinte',       type: 'color' },
+  thickness:    { label: 'Épaisseur',    min: 0, max: 2, step: 0.02 },
+  refraction:   { label: 'Transparence', min: 0, max: 1, step: 0.05 },
+  reflection:   { label: 'Clarté',       min: 0, max: 3, step: 0.05 },
+  roughness:    { label: 'Rugosité',     min: 0, max: 1, step: 0.01 },
+  ior:          { label: 'Déformation',  min: 1, max: 2, step: 0.01 },
+  alpha:        { label: 'Opacité α',    min: 0, max: 1, step: 0.01 }
+};
+
+/* ============================================================================
+   MATÉRIAUX — dossiers PIÈCE › sous-dossiers TYPE (style boutons de l'éditeur)
+   Regroupe via getMaterialsByRoom (viewer) ; propriétés complètes via inspector*.
+   ============================================================================ */
+let matOpenRoom = {};   // "pièce" -> bool
+let matOpenType = {};   // "pièce::type" -> bool
+let matOpenMat  = {};   // matId -> bool (propriétés dépliées)
+
+const MAT_TYPE_LABEL = { glass:'Verre', wood:'Bois', plastic:'Plastique', metal:'Métal', ceramic:'Céramique' };
+
+function inspectorRefresh(){
+  const w = vwWin();
+  const cont = document.getElementById('mat-tree');
+  if (!cont) return;
+  if (!w || !w.getMaterialsByRoom){
+    cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">⏳ Viewer pas prêt.</p>';
+    return;
+  }
+  let data;
+  try { data = w.getMaterialsByRoom(); }
+  catch(e){ cont.innerHTML = '<p class="hint" style="color:#e8cfa4;">❌ '+e.message+'</p>'; return; }
+  const rooms = data.rooms || {};
+  let roomKeys = Object.keys(rooms);
+  if (!roomKeys.length){
+    cont.innerHTML = '<p class="hint">Aucun matériau trouvé.</p>';
+    return;
+  }
+  roomKeys.sort(function(a,b){ if(a==='Non classé')return 1; if(b==='Non classé')return -1; return a.localeCompare(b); });
+
+  cont.innerHTML = '';
+  roomKeys.forEach(function(room){
+    const typeMap = rooms[room] || {};
+    const nb = Object.values(typeMap).reduce(function(s,a){return s+a.length;},0);
+    if (!nb) return;
+    if (matOpenRoom[room] === undefined) matOpenRoom[room] = false;
+    const rOpen = matOpenRoom[room];
+
+    const roomBtn = document.createElement('button');
+    roomBtn.className = 'tab';
+    roomBtn.style.cssText = 'width:100%;text-align:left;margin-bottom:.4rem;display:flex;justify-content:space-between;align-items:center;'+(rOpen?'background:#4a6cff;border-color:#4a6cff;color:#fff;':'');
+    roomBtn.innerHTML = '<span>🏠 '+room+' <span style="opacity:.6;font-weight:500;">('+nb+')</span></span><span style="opacity:.7;">'+(rOpen?'▾':'▸')+'</span>';
+    roomBtn.onclick = function(){ matOpenRoom[room] = !matOpenRoom[room]; inspectorRefresh(); };
+    cont.appendChild(roomBtn);
+
+    if (!rOpen) return;
+    const typeKeys = Object.keys(MAT_TYPE_LABEL).filter(function(t){ return typeMap[t] && typeMap[t].length; });
+    Object.keys(typeMap).forEach(function(t){ if (typeKeys.indexOf(t)<0) typeKeys.push(t); });
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin:0 0 .5rem .8rem;';
+    typeKeys.forEach(function(type){
+      const items = typeMap[type] || [];
+      if (!items.length) return;
+      const tk = room+'::'+type;
+      if (matOpenType[tk] === undefined) matOpenType[tk] = false;
+      const tOpen = matOpenType[tk];
+
+      const typeBtn = document.createElement('button');
+      typeBtn.className = 'tab';
+      typeBtn.style.cssText = 'width:100%;text-align:left;margin-bottom:.35rem;font-size:.72rem;display:flex;justify-content:space-between;align-items:center;'+(tOpen?'background:#26325a;border-color:#3a4a7a;color:#fff;':'');
+      typeBtn.innerHTML = '<span>'+(MAT_TYPE_LABEL[type]||type)+' <span style="opacity:.6;font-weight:500;">('+items.length+')</span></span><span style="opacity:.7;">'+(tOpen?'▾':'▸')+'</span>';
+      typeBtn.onclick = function(){ matOpenType[tk] = !matOpenType[tk]; inspectorRefresh(); };
+      wrap.appendChild(typeBtn);
+
+      if (!tOpen) return;
+      const inner = document.createElement('div');
+      inner.style.cssText = 'margin:0 0 .5rem .8rem;';
+      items.forEach(function(mat){
+        inner.appendChild(buildMatCard(mat.id, mat.name));
+      });
+      wrap.appendChild(inner);
+    });
+    cont.appendChild(wrap);
+  });
+}
+
+/* Une carte matériau : en-tête cliquable (nom) + propriétés dépliables. */
+function buildMatCard(matId, matName){
+  const w = vwWin();
+  const card = document.createElement('div');
+  card.style.cssText = 'border:1px solid #263149;border-radius:8px;margin-bottom:.4rem;overflow:hidden;';
+  if (matOpenMat[matId] === undefined) matOpenMat[matId] = false;
+  const open = matOpenMat[matId];
+
+  const head = document.createElement('div');
+  head.style.cssText = 'padding:.5rem .7rem;cursor:pointer;background:#111a2b;display:flex;justify-content:space-between;align-items:center;user-select:none;';
+  head.innerHTML = '<span style="font-size:.75rem;color:#c7d0e4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+matName+'</span><span style="color:#6f7c99;font-size:.72rem;">'+(open?'▾':'▸')+'</span>';
+  head.onclick = function(){ matOpenMat[matId] = !matOpenMat[matId]; inspectorRefresh(); };
+  card.appendChild(head);
+
+  if (open && w && w.inspectorGetMaterial){
+    const d = w.inspectorGetMaterial(matId);
+    const body = document.createElement('div');
+    body.style.cssText = 'padding:.6rem .7rem;background:#0d1220;';
+    if (d) body.innerHTML = matPropsHtml(d);
+    else body.innerHTML = '<p class="hint">Introuvable.</p>';
+    card.appendChild(body);
+  }
+  return card;
+}
+
+function matPropsHtml(d){
+  const id = d.id;
+  let html = '';
+  html += insSlider('Opacité (alpha)', id, 'alpha', 0, 1, 0.01, d.alpha);
+  html += insColor('Émissif', id, 'emissiveColor', d.emissiveColor);
+  html += insToggle('Faces arrière', id, 'backFaceCulling', d.backFaceCulling);
+  html += insTransparency(id, d.transparencyMode);
+  if (d.isPBR){
+    html += insColor('Albedo', id, 'albedoColor', d.albedoColor);
+    html += insSlider('Métallique', id, 'metallic', 0, 1, 0.01, d.metallic);
+    html += insSlider('Rugosité', id, 'roughness', 0, 1, 0.01, d.roughness);
+    html += insSlider('Reflets env.', id, 'environmentIntensity', 0, 3, 0.05, d.environmentIntensity);
+    if (d.hasSubSurface){
+      html += '<div style="border-top:1px solid #1c2740;margin:.5rem 0;padding-top:.4rem;font-size:.68rem;color:#6f7c99;">Transmission</div>';
+      html += insToggle('Réfraction', id, 'refractionEnabled', d.refractionEnabled);
+      html += insSlider('Intensité réfr.', id, 'refractionIntensity', 0, 1, 0.01, d.refractionIntensity);
+      html += insSlider('IOR', id, 'indexOfRefraction', 1, 2.5, 0.01, d.indexOfRefraction);
+      html += insSlider('Épaisseur', id, 'maximumThickness', 0, 5, 0.05, d.maximumThickness);
+      html += insColor('Teinte', id, 'tintColor', d.tintColor);
+    }
+  } else {
+    html += insColor('Diffus', id, 'diffuseColor', d.diffuseColor);
+    html += insColor('Spéculaire', id, 'specularColor', d.specularColor);
+  }
+  return html;
+}
+
+function insSlider(label, id, key, min, max, step, val){
+  if (typeof val !== 'number') val = 0;
+  const disp = (max === 1) ? Math.round(val*100)+'%' : val.toFixed(2);
+  return '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
+    '<label style="font-size:.7rem;color:#9fb4ce;flex:0 0 96px;">'+label+'</label>'+
+    '<input type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'" style="flex:1;" '+
+      'oninput="insSet('+id+',\''+key+'\',parseFloat(this.value),this.nextElementSibling,'+max+')">'+
+    '<span style="flex:0 0 38px;font-size:.68rem;text-align:right;color:#c7d0e4;">'+disp+'</span></div>';
+}
+function insColor(label, id, key, val){
+  return '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
+    '<label style="font-size:.7rem;color:#9fb4ce;flex:0 0 96px;">'+label+'</label>'+
+    '<input type="color" value="'+(val||'#000000')+'" style="flex:1;height:26px;padding:2px;background:#0d1220;border:1px solid #263149;border-radius:6px;cursor:pointer;" '+
+      'oninput="insSet('+id+',\''+key+'\',this.value)"></div>';
+}
+function insToggle(label, id, key, val){
+  return '<label style="display:flex;align-items:center;gap:.5rem;font-size:.7rem;color:#9fb4ce;margin-bottom:.4rem;cursor:pointer;">'+
+    '<input type="checkbox" '+(val?'checked':'')+' onchange="insSet('+id+',\''+key+'\',this.checked)"><span>'+label+'</span></label>';
+}
+function insTransparency(id, mode){
+  const opts = [['-1','(auto)'],['0','Opaque'],['1','Alpha test'],['2','Alpha blend'],['3','Test+blend']];
+  let s = '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem;">'+
+    '<label style="font-size:.7rem;color:#9fb4ce;flex:0 0 96px;">Transparence</label>'+
+    '<select style="flex:1;margin:0;" onchange="insSet('+id+',\'transparencyMode\',this.value)">';
+  opts.forEach(function(o){ s += '<option value="'+o[0]+'"'+(String(mode)===o[0]?' selected':'')+'>'+o[1]+'</option>'; });
+  s += '</select></div>';
+  return s;
+}
+function insSet(id, key, value, labelEl, max){
+  if (labelEl) labelEl.textContent = (max===1) ? Math.round(value*100)+'%' : (typeof value==='number'?value.toFixed(2):value);
+  const w = vwWin();
+  if (w && w.inspectorSetMaterial) w.inspectorSetMaterial(id, key, value);
+}
+
+function diagnostiquerVerre(){
+  const w = vwWin();
+  const box = document.getElementById('glass-diag');
+  if (!box) return;
+  if (!w){
+    box.innerHTML = '<p class="hint" style="color:#e8cfa4;">⏳ Viewer pas prêt.</p>';
+    return;
+  }
+  // 1) TOUS les noms de matériaux vus par le viewer (vérif nomenclature)
+  var allHtml = '';
+  if (w.listAllMaterialNames){
+    var names = [];
+    try { names = w.listAllMaterialNames(); } catch(e){}
+    allHtml = '<div style="background:#0d1220;border:1px solid #263149;border-radius:8px;'+
+      'padding:.5rem .6rem;margin-bottom:.8rem;font-size:.7rem;font-family:ui-monospace,monospace;color:#c7d0e4;">'+
+      '<div style="color:#6f7c99;margin-bottom:.4rem;">📋 '+names.length+' matériau(x) vus par le viewer :</div>'+
+      names.map(function(n){
+        var ok = /^m_[^_]+_(glass|wood|plastic|metal|ceramic|verre|bois|plastique|métal|céramique|ceramique)_/i.test(n);
+        return '<div style="color:'+(ok?'#7dd3fc':'#e8cfa4')+';">'+(ok?'✓ ':'⚠ ')+n+'</div>';
+      }).join('')+
+      '<div style="color:#6f7c99;margin-top:.4rem;font-family:inherit;">✓ = suit <code>M_&lt;pièce&gt;_&lt;type&gt;_*</code> · ⚠ = hors convention (→ « Non classé »)</div>'+
+      '</div>';
+  }
+  if (!w.diagnoseGlass){ box.innerHTML = allHtml; return; }
+  let rows;
+  try { rows = w.diagnoseGlass(); }
+  catch(e){ box.innerHTML = allHtml + '<p class="hint" style="color:#e8cfa4;">❌ '+e.message+'</p>'; return; }
+  if (!rows || !rows.length){
+    box.innerHTML = allHtml + '<div style="background:#2a1f12;border:1px solid #5a4526;color:#e8cfa4;'+
+      'padding:.7rem;border-radius:8px;font-size:.74rem;line-height:1.5;">'+
+      '⚠️ Aucun mesh de verre détecté par réfraction.</div>';
+    return;
+  }
+  let html = allHtml + '<div style="background:#0d1220;border:1px solid #263149;border-radius:8px;'+
+    'padding:.5rem .6rem;margin-bottom:.8rem;font-size:.7rem;font-family:ui-monospace,monospace;'+
+    'color:#c7d0e4;overflow-x:auto;">'+
+    '<div style="color:#6f7c99;margin-bottom:.4rem;">'+rows.length+' mesh(es) verre détecté(s) :</div>';
+  rows.forEach(function(r){
+    html += '<div style="border-top:1px solid #1c2740;padding:.4rem 0;">'+
+      '<div style="color:#e8ecf6;font-weight:600;">'+r.material+' <span style="color:#6f7c99;">('+r.mesh+' · '+r.type+')</span></div>'+
+      '<div>réfraction: <b style="color:'+(r.refractionEnabled?'#7dd3fc':'#8b96ad')+'">'+r.refractionEnabled+'</b>'+
+      ' · int: '+r.refractionIntensity+' · IOR: '+r.ior+' · épais.: '+r.maxThickness+'</div>'+
+      '</div>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+  flash('🔍 '+rows.length+' verre · '+(w.listAllMaterialNames?w.listAllMaterialNames().length:'?')+' matériaux');
+}
+</script>
+</body>
+</html>

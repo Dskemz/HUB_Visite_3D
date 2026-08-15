@@ -1,0 +1,111 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MISE EN PLACE D'UNE VISITE 3D V1
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ÉTAPE 1 — CRÉER LE DOSSIER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Nom du dossier : <agence>-<ville>-<référence>
+Format : minuscules-tirets (ex: era-rambouillet-0845529)
+Localisation : public/properties/
+
+Exemple :
+  public/properties/era-rambouillet-0845529/
+
+ÉTAPE 2 — DÉPÔSER LES GLB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Obligatoire :
+  • walls.glb (les murs / l'enveloppe) — NE PAS RENOMMER
+  
+Optionnel (automatiquement intégré) :
+  • plafond.glb (le plafond)
+  • salon.glb, cuisine.glb, chambre.glb, etc. (les pièces)
+  
+Format : minuscules-tirets (salon.glb, pas Salon.glb)
+
+À cette étape, les GLB sont des exports Blender bruts (WebP OK, pas besoin de compression Draco).
+
+ÉTAPE 3 — OPTIMISER LES GLB (optionnel mais recommandé)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Compresse la géométrie (Draco) et convertit les textures en KTX2 (GPU-native :
+plus léger en mémoire vidéo et upload plus rapide, surtout sur mobile).
+Tout se fait en local via un encodeur WebAssembly — AUCUN logiciel à installer.
+
+Deux options :
+
+  ✓ OPTION A — Double-clic (plus simple) :
+    → Glisse un ou plusieurs .glb (ou un dossier entier) sur
+      visite-tools/optimiser-glb.bat
+    → Il produit <fichier>-optimized.glb à côté de chaque original
+    → Remplace les fichiers originaux par les -optimized.glb
+
+  ✓ OPTION B — Ligne de commande :
+    node visite-tools/optimiser-glb.js public/properties/era-rambouillet-0845529
+    → Optimise TOUS les .glb du dossier d'un coup
+    (ou passe un seul fichier : ...optimiser-glb.js .../salon.glb)
+    → Produit les <fichier>-optimized.glb ; remplace ensuite les originaux
+
+Option qualité : ajoute --uastc pour des textures de qualité maximale
+(fichiers plus lourds ; à réserver aux scènes où l'ETC1S par défaut se voit).
+
+Première utilisation : le script installe ses outils localement dans visite-tools/
+(~30-60 Mo, 1 à 3 min selon la connexion). Les fois suivantes : direct.
+Compter ~30 à 90 s d'encodage par pièce (c'est l'encodage KTX2, c'est normal).
+Note : n'optimise pas les tout petits GLB (< ~100 Ko) — le KTX2 a un coût fixe
+qui les ferait grossir ; le rapport affiche le avant/après pour chaque fichier.
+
+ÉTAPE 4 — GÉNÉRER LE MANIFEST ET ENREGISTRER DANS LE HUB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Lance la commande (depuis D:\HUB_Visite_3D\HUB_Visite_3D\) :
+
+  node visite-tools/nouvelle-visite.js <nom-dossier> --agence <agence> --ville "<ville>" --nom "<titre>"
+
+Exemple complet :
+  node visite-tools/nouvelle-visite.js era-rambouillet-0845529 --agence era --ville "Rambouillet" --nom "Réf. 0845529 — Rambouillet"
+
+Ça génère :
+  • public/properties/era-rambouillet-0845529/manifest.json (automatique, liste les pièces)
+  • Enregistrement dans le hub (la visite apparaît sous ERA → Rambouillet → "Réf. 0845529...")
+
+ÉTAPE 5 — RÉGLER LES POV ET LE PLAN (dans l'éditeur)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ouvrir l'éditeur :
+  viewer-edit.html?property=era-rambouillet-0845529&agency=era
+
+Là tu :
+  • Places les POV (points de vue) sur le plan
+  • Ajoutes les photos à chaque POV
+  • Règles les libellés du plan
+  • Ajoutes les cotations
+  • Ajustes l'ambiance (lumière, AO, HDR…)
+
+Quand c'est bon, télécharger le manifest mis à jour via le bouton 💾 et le remettre dans le dossier.
+
+ÉTAPE 6 — PUBLIER
+━━━━━━━━━━━━━━━━━━
+Git push depuis D:\HUB_Visite_3D\HUB_Visite_3D\ :
+
+  git add .
+  git commit -m "visite era-rambouillet-0845529"
+  git push
+
+La visite est alors en ligne sur Vercel.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+POINTS DE VIGILANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Le nom du dossier DOIT être en minuscules-tirets (era-rambouillet-0845529, pas ERA-Rambouillet)
+✓ walls.glb doit s'appeler EXACTEMENT ainsi (avec le "s" final)
+✓ PowerShell doit être ouvert dans D:\HUB_Visite_3D\HUB_Visite_3D\ pour lancer les commandes
+✓ Avant la commande nouvelle-visite.js, vérifie que le dossier contient au moins walls.glb
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALTERNATIVE : MODE AUTO (watcher)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Si tu préfères NE PAS lancer la commande nouvelle-visite.js à chaque fois :
+
+  Double-clic visite-tools/surveiller.bat (ou : node visite-tools/surveiller.js)
+
+Le watcher tourne en fond et régénère les manifest.json automatiquement dès que tu déposes/modifies des GLB.
+Dans ce cas, il faut quand même enregistrer manuellement dans le hub (éditer public/properties-index.json).

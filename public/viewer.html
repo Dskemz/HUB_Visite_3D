@@ -1574,6 +1574,102 @@
     .bi-dpe-badge[data-dpe="F"]{ background: #e57830; }
     .bi-dpe-badge[data-dpe="G"]{ background: #d6302f; }
     .bi-dpe-label{ font-size: 0.82rem; color: rgba(255,255,255,0.72); }
+    /* ── GES (Gaz à Effet de Serre) - pendant du DPE ── */
+    .bi-ges-badge{
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 10px;
+      font-size: 1.1rem; font-weight: 800; font-family: 'Inter', sans-serif;
+      color: #fff; line-height: 1; background: #6b46c1;
+    }
+    .bi-ges-badge[data-ges="A"]{ background: #f5f5f5; color: #222; }
+    .bi-ges-badge[data-ges="B"]{ background: #d5d5d5; color: #222; }
+    .bi-ges-badge[data-ges="C"]{ background: #b7b7b7; color: #222; }
+    .bi-ges-badge[data-ges="D"]{ background: #9a9a9a; }
+    .bi-ges-badge[data-ges="E"]{ background: #7a7a7a; }
+    .bi-ges-badge[data-ges="F"]{ background: #545454; }
+    .bi-ges-badge[data-ges="G"]{ background: #2f2f2f; }
+    /* ── Description longue ── */
+    .bi-description{
+      padding: 0 20px; margin: 4px 0 0;
+      font-size: 0.85rem; line-height: 1.5;
+      color: rgba(255,255,255,0.72);
+      font-style: italic;
+    }
+    /* ── Badges annexes (cave, parking, ascenseur...) ── */
+    .bi-badges{
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 0 20px; margin-top: 4px;
+    }
+    .bi-badge{
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-size: 0.72rem; font-weight: 500;
+      color: rgba(255,255,255,0.82);
+    }
+    .bi-badge svg{ width: 12px; height: 12px; }
+    /* ── Lignes info clé/valeur ── */
+    .bi-info-grid{
+      display: grid; grid-template-columns: auto 1fr; gap: 6px 14px;
+      padding: 0 20px;
+    }
+    .bi-info-label{
+      font-size: 0.75rem; color: rgba(255,255,255,0.55);
+      letter-spacing: 0.02em;
+    }
+    .bi-info-val{
+      font-size: 0.78rem; font-weight: 600; text-align: right;
+      color: rgba(255,255,255,0.92);
+    }
+    /* ── Référence en tête ── */
+    .bi-ref{
+      display: inline-block; margin-top: 4px;
+      padding: 2px 8px; border-radius: 6px;
+      background: rgba(255,255,255,0.06);
+      font-size: 0.68rem; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+    }
+    /* ── Honoraires bloc ── */
+    .bi-honoraires{
+      margin: 4px 20px 0; padding: 10px 12px;
+      background: rgba(217, 119, 87, 0.08);
+      border: 1px solid rgba(217, 119, 87, 0.18);
+      border-radius: 10px;
+      font-size: 0.78rem;
+    }
+    .bi-honoraires-title{
+      font-weight: 700; color: var(--brand-accent, #d97757);
+      display: block; margin-bottom: 4px;
+      font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .bi-honoraires-val{ color: rgba(255,255,255,0.92); font-weight: 600; }
+    .bi-honoraires-charge{ color: rgba(255,255,255,0.55); font-size: 0.7rem; margin-top: 2px; display: block; }
+    /* ── Contact agent ── */
+    .bi-agent-block{
+      margin: 4px 20px 0; padding: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+    }
+    .bi-agent-photo{
+      width: 48px; height: 48px; border-radius: 50%; object-fit: cover;
+      flex: 0 0 auto;
+    }
+    .bi-agent-row{ display: flex; align-items: center; gap: 12px; }
+    .bi-agent-info{ display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+    .bi-agent-name-lg{ font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.92); }
+    .bi-agent-role{ font-size: 0.72rem; color: rgba(255,255,255,0.55); }
+    .bi-agent-contact{ display: flex; gap: 8px; margin-top: 8px; }
+    .bi-agent-contact a{
+      flex: 1; padding: 7px 8px; border-radius: 8px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.85); text-decoration: none;
+      font-size: 0.75rem; text-align: center; font-weight: 500;
+      transition: background .18s ease;
+    }
+    .bi-agent-contact a:hover{ background: rgba(255,255,255,0.10); }
     /* ── Lignes financières ── */
     .bi-finance{
       display: grid; grid-template-columns: 1fr auto; gap: 6px 14px;
@@ -6128,7 +6224,6 @@ function __fillBienInfo(){
   var pd = (typeof propertyData!=='undefined' && propertyData) ? propertyData : {};
   var brand = (typeof window.__BRAND__!=='undefined' && window.__BRAND__) ? window.__BRAND__ : {};
 
-  // Nb de pièces depuis les POV du manifest
   var nbPieces = (pd.poi && pd.poi.length) ? pd.poi.length
                : (pd.rooms ? (Array.isArray(pd.rooms)? pd.rooms.length : pd.rooms) : null);
 
@@ -6145,17 +6240,17 @@ function __fillBienInfo(){
   // ── 2. PRIX ──
   if (pd.price != null) {
     var prixStr = (typeof pd.price === 'number')
-      ? pd.price.toLocaleString('fr-FR') + ' \u20AC'
+      ? pd.price.toLocaleString('fr-FR') + ' €'
       : pd.price;
     html += '<div class="bi-price"><span class="bi-price-label">Prix de vente</span>' + prixStr + '</div>';
   }
 
-  // ── 3. CHIFFRES CLÉS (surface, pièces, chambres) ──
+  // ── 3. CHIFFRES CLÉS ──
   var stats = [];
-  if (pd.surface != null) stats.push(['Surface', pd.surface + ' m\u00B2']);
-  if (nbPieces != null) stats.push(['Pi\u00E8ces', String(nbPieces)]);
+  if (pd.surface != null) stats.push(['Surface', pd.surface + ' m²']);
+  if (nbPieces != null) stats.push(['Pièces', String(nbPieces)]);
   if (pd.chambres != null) stats.push(['Chambres', String(pd.chambres)]);
-  if (pd.etage != null) stats.push(['\u00C9tage', String(pd.etage)]);
+  if (pd.etage != null) stats.push(['Étage', String(pd.etage)]);
   if (stats.length) {
     html += '<div class="bi-stats">';
     stats.forEach(function(s){
@@ -6164,21 +6259,92 @@ function __fillBienInfo(){
     html += '</div>';
   }
 
-  // ── 4. TECHNIQUE & FINANCIER : DPE + taxes ──
-  var hasFinance = (pd.dpe || pd.taxeFonciere != null || pd.charges != null);
-  if (hasFinance) {
+  // ── 4. RÉFÉRENCE & TYPE ──
+  if (pd.reference || pd.type) {
     html += '<div class="bi-sep"></div>';
-    html += '<div class="bi-section-title">Technique &amp; Financier</div>';
+    html += '<div class="bi-info-grid">';
+    if (pd.reference) {
+      html += '<div class="bi-ref"><span class="bi-ref-label">Référence</span><span class="bi-ref-val">' + pd.reference + '</span></div>';
+    }
+    if (pd.type) {
+      html += '<div><span class="bi-info-label">Type de propriété</span><span class="bi-info-val">' + pd.type + '</span></div>';
+    }
+    html += '</div>';
+  }
+
+  // ── 5. DESCRIPTION ──
+  if (pd.description) {
+    html += '<div class="bi-sep"></div>';
+    html += '<div class="bi-description">' + pd.description + '</div>';
+  }
+
+  // ── 6. CARACTÉRISTIQUES DÉTAILLÉES ──
+  var characteristics = [];
+  if (pd.yearBuilt || pd.anneeConstruction) {
+    characteristics.push(['Année de construction', String(pd.yearBuilt || pd.anneeConstruction)]);
+  }
+  if (pd.heating || pd.chauffage) {
+    characteristics.push(['Chauffage', pd.heating || pd.chauffage]);
+  }
+  if (pd.orientation) {
+    characteristics.push(['Orientation', pd.orientation]);
+  }
+  if (pd.condition || pd.etat) {
+    characteristics.push(['État', pd.condition || pd.etat]);
+  }
+  if (characteristics.length) {
+    html += '<div class="bi-sep"></div>';
+    html += '<div class="bi-section-title">Caractéristiques</div>';
+    html += '<div class="bi-info-grid">';
+    characteristics.forEach(function(c){
+      html += '<div><span class="bi-info-label">' + c[0] + '</span><span class="bi-info-val">' + c[1] + '</span></div>';
+    });
+    html += '</div>';
+  }
+
+  // ── 7. ÉQUIPEMENTS (badges) ──
+  var equipments = [];
+  if (pd.hasCellar || pd.cave) equipments.push('Cave');
+  if (pd.hasParking || pd.parking) equipments.push('Parking');
+  if (pd.hasElevator || pd.ascenseur) equipments.push('Ascenseur');
+  if (pd.hasBalcony || pd.balcon) equipments.push('Balcon');
+  if (pd.hasTerrace || pd.terrasse) equipments.push('Terrasse');
+  if (pd.hasGarden || pd.jardin) equipments.push('Jardin');
+  if (equipments.length) {
+    html += '<div class="bi-sep"></div>';
+    html += '<div class="bi-section-title">Équipements</div>';
+    html += '<div class="bi-badges">';
+    equipments.forEach(function(e){
+      html += '<span class="bi-badge">' + e + '</span>';
+    });
+    html += '</div>';
+  }
+
+  // ── 8. DIAGNOSTIC ÉNERGÉTIQUE (DPE + GES) ──
+  var hasDiagnostic = (pd.dpe || pd.ges || pd.taxeFonciere != null || pd.charges != null);
+  if (hasDiagnostic) {
+    html += '<div class="bi-sep"></div>';
+    html += '<div class="bi-section-title">Diagnostic &amp; Financiér</div>';
+
     if (pd.dpe) {
       var letter = String(pd.dpe).charAt(0).toUpperCase();
       html += '<div class="bi-dpe-row">';
       html += '<span class="bi-dpe-badge" data-dpe="' + letter + '">' + letter + '</span>';
-      html += '<span class="bi-dpe-label">Diagnostic \u00E9nerg\u00E9tique (DPE)</span>';
+      html += '<span class="bi-dpe-label">Diagnostic Énergétique (DPE)</span>';
       html += '</div>';
     }
+
+    if (pd.ges) {
+      var gesLetter = String(pd.ges).charAt(0).toUpperCase();
+      html += '<div class="bi-dpe-row">';
+      html += '<span class="bi-ges-badge" data-ges="' + gesLetter + '">' + gesLetter + '</span>';
+      html += '<span class="bi-dpe-label">Émission GES</span>';
+      html += '</div>';
+    }
+
     var fins = [];
-    if (pd.taxeFonciere != null) fins.push(['Taxe fonci\u00E8re', typeof pd.taxeFonciere==='number' ? pd.taxeFonciere.toLocaleString('fr-FR') + ' \u20AC/an' : pd.taxeFonciere]);
-    if (pd.charges != null) fins.push(['Charges copro', typeof pd.charges==='number' ? pd.charges.toLocaleString('fr-FR') + ' \u20AC/mois' : pd.charges]);
+    if (pd.taxeFonciere != null) fins.push(['Taxe foncière', typeof pd.taxeFonciere==='number' ? pd.taxeFonciere.toLocaleString('fr-FR') + ' €/an' : pd.taxeFonciere]);
+    if (pd.charges != null) fins.push(['Charges copro', typeof pd.charges==='number' ? pd.charges.toLocaleString('fr-FR') + ' €/mois' : pd.charges]);
     if (fins.length) {
       html += '<div class="bi-finance">';
       fins.forEach(function(f){
@@ -6188,7 +6354,19 @@ function __fillBienInfo(){
     }
   }
 
-  // ── 5. POINTS FORTS ──
+  // ── 9. HONORAIRES D'AGENCE ──
+  if (pd.agencyFees || pd.honoraires) {
+    html += '<div class="bi-sep"></div>';
+    html += '<div class="bi-honoraires">';
+    html += '<span class="bi-honor-label">Honoraires d\'agence</span>';
+    var honorStr = (typeof (pd.agencyFees || pd.honoraires) === 'number')
+      ? (pd.agencyFees || pd.honoraires).toLocaleString('fr-FR') + ' €'
+      : (pd.agencyFees || pd.honoraires);
+    html += '<span class="bi-honor-val">' + honorStr + '</span>';
+    html += '</div>';
+  }
+
+  // ── 10. POINTS FORTS ──
   var highlights = pd.highlights || pd.pointsForts || pd.atouts || null;
   if (highlights && Array.isArray(highlights) && highlights.length) {
     html += '<div class="bi-sep"></div>';
@@ -6198,17 +6376,59 @@ function __fillBienInfo(){
     html += '</ul>';
   }
 
-  // ── 6. AGENCE (sans doublon RDV — le bouton RDV est en haut à droite) ──
-  var agentName = pd.agent || brand.agencyName || brand.label || '';
-  if (agentName) {
+  // ── 11. CONTACT AGENT ──
+  var hasAgent = (pd.agentName || pd.agent || pd.agentPhone || pd.agentEmail || pd.agentPhoto);
+  if (hasAgent) {
     html += '<div class="bi-sep"></div>';
-    html += '<div style="padding:0 20px 4px; text-align:center;">';
-    html += '<span class="bi-agent-name">' + agentName + '</span>';
+    html += '<div class="bi-section-title">Contact</div>';
+    html += '<div class="bi-agent-block">';
+    if (pd.agentPhoto) {
+      html += '<img class="bi-agent-photo" src="' + pd.agentPhoto + '" alt="Agent" />';
+    }
+    html += '<div class="bi-agent-info">';
+    if (pd.agentName || pd.agent) {
+      html += '<div class="bi-agent-name">' + (pd.agentName || pd.agent) + '</div>';
+    }
+    html += '<div class="bi-agent-row">';
+    if (pd.agentPhone) html += '<a href="tel:' + pd.agentPhone + '" class="bi-agent-contact">☎ ' + pd.agentPhone + '</a>';
+    if (pd.agentEmail) html += '<a href="mailto:' + pd.agentEmail + '" class="bi-agent-contact">✏ Email</a>';
+    html += '</div>';
+    if (pd.agentBroker) {
+      html += '<div class="bi-agent-broker">' + pd.agentBroker + '</div>';
+    }
+    html += '</div>';
     html += '</div>';
   }
-  // Fallback si absolument rien
+
+  // ── 12. MENTIONS LÉGALES ──
+  var hasLegal = (pd.mandate || pd.brokerCardNumber || pd.rcs);
+  if (hasLegal) {
+    html += '<div class="bi-sep"></div>';
+    html += '<div class="bi-legal" style="font-size:0.75em; color:#999; line-height:1.4;">';
+    if (pd.mandate) html += '<div>Mandat: ' + pd.mandate + '</div>';
+    if (pd.brokerCardNumber) html += '<div>Carte pro: ' + pd.brokerCardNumber + '</div>';
+    if (pd.rcs) html += '<div>RCS: ' + pd.rcs + '</div>';
+    html += '</div>';
+  }
+
+  // ── 13. INFO COPROPRIÉTÉ ──
+  if (pd.copro || pd.copropriete) {
+    var coproInfo = pd.copro || pd.copropriete;
+    html += '<div class="bi-sep"></div>';
+    html += '<div class="bi-section-title">Copropriété</div>';
+    html += '<div class="bi-info-grid">';
+    if (coproInfo.nbLots) html += '<div><span class="bi-info-label">Nombre de lots</span><span class="bi-info-val">' + coproInfo.nbLots + '</span></div>';
+    if (coproInfo.syndicFees) {
+      var synStr = (typeof coproInfo.syndicFees === 'number')
+        ? coproInfo.syndicFees.toLocaleString('fr-FR') + ' €/mois'
+        : coproInfo.syndicFees;
+      html += '<div><span class="bi-info-label">Cotisation syndic</span><span class="bi-info-val">' + synStr + '</span></div>';
+    }
+    html += '</div>';
+  }
+
   if (!pd.name && !pd.price && !pd.surface && !nbPieces) {
-    html = '<div class="bien-info-empty">Informations bient\u00F4t disponibles.</div>';
+    html = '<div class="bien-info-empty">Informations bientôt disponibles.</div>';
   }
 
   container.innerHTML = html;
