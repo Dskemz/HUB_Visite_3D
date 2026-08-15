@@ -4531,50 +4531,26 @@ function loadRoomsAsync() {
 }
 
 /* Affiche/masque les éléments d'une pièce. Indépendant et cumulable.
-   Recentre le GLB en douceur à chaque clic (jamais de cut).
-   Utilise layerMask (technique pro Babylon pour show/hide sans perturber le pipeline
-   de rendu : pas de re-parse des shadow casters, pas de perte de MSAA, pas de
-   recompilation de shaders — juste un bit-flag lu par la caméra au moment du render). */
-const __ROOM_LAYER_ON  = 0x0FFFFFFF;  // Toutes les caméras rendent le mesh
-const __ROOM_LAYER_OFF = 0x00000000;  // Aucune caméra ne rend le mesh
-
+   Recentre le GLB en douceur à chaque clic (jamais de cut). */
 function toggleRoom(id, on) {
   const node = roomNodes[id];
   const st = roomState[id];
   if (!node || !st || !st.loaded) return;
   st.enabled = !!on;
-  const meshes = node.getChildMeshes ? node.getChildMeshes() : [];
-  const mask = on ? __ROOM_LAYER_ON : __ROOM_LAYER_OFF;
-  for (let i = 0; i < meshes.length; i++) meshes[i].layerMask = mask;
+  node.setEnabled(!!on);
   // NOTE : on NE recadre PAS la caméra. Afficher/masquer un élément ne doit jamais
   // déplacer la vue (sinon la caméra recule pour "tout voir").
 }
 
-/* Tout afficher / tout masquer.
-   OPTIM CRUCIALE : layerMask est la technique pro Babylon pour show/hide sans lag.
-   - setEnabled → recompile shadow render list = lag + freeze
-   - isVisible → peut perturber le pipeline de rendu (MSAA, AO, aliasing visible)
-   - layerMask → simple bit-flag lu au moment du render par la caméra.
-     Pas de recompilation, pas de re-parse, pas de perte d'anti-aliasing. */
+/* Tout afficher / tout masquer */
 function setAllRooms(on) {
-  const t0 = performance.now();
-  const mask = on ? __ROOM_LAYER_ON : __ROOM_LAYER_OFF;
-  let total = 0;
   roomList.forEach(r => {
     const st = roomState[r.id];
     if (st && st.loaded && !st.failed) {
       st.enabled = !!on;
-      const node = roomNodes[r.id];
-      if (node) {
-        const meshes = node.getChildMeshes ? node.getChildMeshes() : [];
-        for (let i = 0; i < meshes.length; i++) {
-          meshes[i].layerMask = mask;
-          total++;
-        }
-      }
+      if (roomNodes[r.id]) roomNodes[r.id].setEnabled(!!on);
     }
   });
-  console.log(`⚡ setAllRooms(${on}) : ${(performance.now()-t0).toFixed(1)}ms sur ${total} meshes de ${roomList.length} pièces`);
   if (!isFirstPerson) rebuildPoiList();
 }
 
@@ -4583,10 +4559,7 @@ function setAllRooms(on) {
 
    STRATÉGIE BOUTON : caché (display: none) au démarrage, aucun espace réservé
    dans la boîte à outils. Dès qu'AU MOINS UNE pièce charge, il apparaît
-   avec display: flex (préserve le centrage du SVG dans .rail-btn).
-
-   PERFORMANCE : setAllRooms() utilise mesh.isVisible (léger, natif) au lieu de
-   node.setEnabled() (qui force re-parse des shadow casters = lag massif). */
+   avec display: flex (préserve le centrage du SVG dans .rail-btn). */
 let furnishedVisible = true;
 
 function showFurnishedButton() {
