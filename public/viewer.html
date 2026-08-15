@@ -4558,15 +4558,21 @@ function setAllRooms(on) {
    (roomNodes) en une seule fois. Le bouton du rail reflète l'état.
 
    STRATÉGIE BOUTON : caché (display: none) au démarrage, aucun espace réservé
-   dans la boîte à outils. Dès qu'AU MOINS UNE pièce charge, il apparaît
-   avec display: flex (préserve le centrage du SVG dans .rail-btn). */
-let furnishedVisible = true;
+   dans la boîte à outils. Apparaît quand TOUTES les pièces sont chargées.
+
+   VRAI FIX : furnishedVisible DOIT être initialisé selon CONFIG.roomsStartVisible.
+   Avant, furnishedVisible=true par défaut mais roomsStartVisible=false → décalage :
+   les meubles étaient invisibles au démarrage, le 1er clic les cachait déjà (rien
+   ne changeait visuellement), le 2ème clic les affichait pour de vrai. */
+let furnishedVisible = !!(typeof CONFIG !== 'undefined' && CONFIG.roomsStartVisible);
 
 function showFurnishedButton() {
   const btn = document.getElementById('btn-furnished');
   if (btn && btn.style.display === 'none') {
     btn.style.display = 'flex';   // FLEX (pas block !) → respecte le style .rail-btn
   }
+  // Sync l'état visuel du bouton (pastille active si meubles cachés)
+  if (btn) btn.classList.toggle('active', !furnishedVisible);
 }
 
 function toggleFurnished() {
