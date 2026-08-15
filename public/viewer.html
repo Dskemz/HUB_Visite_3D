@@ -2037,7 +2037,7 @@
     <button class="rail-btn" id="btn-help" onclick="toggleHelp()" data-tip="Aide" title="Aide et raccourcis" aria-label="Aide et raccourcis clavier">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 013.5 2.3c0 1.5-2 1.7-2 3M12 17h.01"/></svg><span class="measure-lbl">Aide</span>
     </button>
-    <button class="rail-btn" id="btn-furnished" onclick="toggleFurnished()" data-tip="Meublé / Vide" title="Afficher ou masquer les meubles" aria-label="Meublé / Vide" style="visibility: hidden;">
+    <button class="rail-btn" id="btn-furnished" onclick="toggleFurnished()" data-tip="Meublé / Vide" title="Afficher ou masquer les meubles" aria-label="Meublé / Vide" style="display: none;">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M16 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M2 18h20M4 15V9a2 2 0 012-2h12a2 2 0 012 2v6"/><path d="M8 13h8" stroke-linecap="round"/></svg>
     </button>
   </div>
@@ -4510,7 +4510,8 @@ function loadRoomsAsync() {
         if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
 
-        // Dès qu'une pièce est chargée, révéler le bouton meublé/vide (préserve l'espace, pas de layout shift)
+        // Dès qu'une pièce est chargée, révéler le bouton meublé/vide
+        // (le cadre s'agrandit pour intégrer le nouveau bouton, animation naturelle)
         showFurnishedButton();
       } catch (err) {
         roomState[r.id].failed = true;
@@ -4557,49 +4558,63 @@ function setAllRooms(on) {
 /* V2.6 — Toggle global meublé/vide. Bascule TOUS les nodes de meubles
    (roomNodes) en une seule fois. Le bouton du rail reflète l'état.
 
-   OPTIM LAG : les post-process (SSAO2 + SSR) recalculent leurs buffers écran
-   à chaque changement de visibilité de meshes → lag massif au toggle.
-   Solution : on les DÉTACHE juste avant le toggle et on les RATTACHE juste après,
-   avec un délai court. Invisible pour l'utilisateur (~80ms).
+   STRATÉGIE BOUTON : caché (display: none) au démarrage, aucun espace réservé
+   dans la boîte à outils. Dès qu'AU MOINS UNE pièce charge, il apparaît
+   avec display: flex (préserve le centrage du SVG, pas display: block qui casserait
+   le layout du .rail-btn).
 
-   STRATÉGIE BOUTON : le bouton est caché (visibility: hidden) au démarrage.
-   Dès qu'AU MOINS UNE pièce charge, on le rend visible. Pas de layout shift
-   car visibility préserve l'espace du bouton dans le rail.
+   ANTI-LAG :
+   1. Bloque le bouton pendant l'opération (évite le double-clic qui inversait tout)
+   2. Détache AO+SSR AVANT (les post-process écran étaient le vrai coupable du lag)
+   3. requestAnimationFrame → laisse le browser peindre l'état "clic pressé" AVANT
+      de commencer le traitement lourd → l'utilisateur voit un feedback immédiat
+   4. Rattache AO+SSR 100ms après (invisible à l'œil)
 */
 let furnishedVisible = true;
+let __furnishedBusy   = false;  // Verrou anti double-clic
 
 function showFurnishedButton() {
   const btn = document.getElementById('btn-furnished');
-  if (btn && btn.style.visibility === 'hidden') {
-    btn.style.visibility = 'visible';
+  if (btn && btn.style.display === 'none') {
+    btn.style.display = 'flex';   // FLEX (pas block !) → respecte le style .rail-btn
   }
 }
 
 function toggleFurnished() {
+  if (__furnishedBusy) return;  // Ignore les clics pendant qu'on toggle
+  __furnishedBusy = true;
+
   furnishedVisible = !furnishedVisible;
 
-  // OPTIM : désactive temporairement les post-process AO/SSR pendant le toggle
-  // pour éviter la re-composition écran complète qui cause le lag.
+  const btn = document.getElementById('btn-furnished');
+  if (btn) {
+    btn.classList.toggle('active', !furnishedVisible);
+    btn.style.opacity = '0.5';   // Feedback visuel "en cours"
+  }
+
+  // Détache les post-process AVANT le toggle (les vrais coupables du lag)
   const aoWasEnabled  = window.__AO_STATE__  && window.__AO_STATE__.enabled;
   const ssrWasEnabled = window.__SSR_STATE__ && window.__SSR_STATE__.enabled;
-
   try {
     if (aoWasEnabled  && window.setAO)  window.setAO({ enabled: false });
     if (ssrWasEnabled && window.setSSR) window.setSSR({ enabled: false });
   } catch(_) {}
 
-  setAllRooms(furnishedVisible);
+  // Laisse le browser peindre l'état "cliqué" AVANT le traitement lourd,
+  // puis fait le toggle → l'utilisateur voit un feedback immédiat, pas de freeze
+  requestAnimationFrame(() => {
+    setAllRooms(furnishedVisible);
 
-  const btn = document.getElementById('btn-furnished');
-  if (btn) btn.classList.toggle('active', !furnishedVisible);
-
-  // Réactive les post-process après stabilisation (invisible à l'œil, ~80ms)
-  setTimeout(() => {
-    try {
-      if (aoWasEnabled  && window.setAO)  window.setAO({ enabled: true });
-      if (ssrWasEnabled && window.setSSR) window.setSSR({ enabled: true });
-    } catch(_) {}
-  }, 80);
+    // Rattache les post-process après stabilisation (invisible ~100ms)
+    setTimeout(() => {
+      try {
+        if (aoWasEnabled  && window.setAO)  window.setAO({ enabled: true });
+        if (ssrWasEnabled && window.setSSR) window.setSSR({ enabled: true });
+      } catch(_) {}
+      if (btn) btn.style.opacity = '';
+      __furnishedBusy = false;
+    }, 100);
+  });
 }
 
 /* Recentre le GLB global dans la zone visible avec la marge configurée, en douceur.
