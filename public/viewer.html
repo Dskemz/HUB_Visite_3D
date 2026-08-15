@@ -4571,15 +4571,16 @@ function showFurnishedButton() {
   if (btn && btn.style.display === 'none') {
     btn.style.display = 'flex';   // FLEX (pas block !) → respecte le style .rail-btn
   }
-  // Sync l'état visuel du bouton (pastille active si meubles cachés)
-  if (btn) btn.classList.toggle('active', !furnishedVisible);
+  // Pastille active = meubles VISIBLES (logique inversée : bouton coché = meublé)
+  if (btn) btn.classList.toggle('active', furnishedVisible);
 }
 
 function toggleFurnished() {
   furnishedVisible = !furnishedVisible;
   setAllRooms(furnishedVisible);
   const btn = document.getElementById('btn-furnished');
-  if (btn) btn.classList.toggle('active', !furnishedVisible);
+  // Pastille active = meubles VISIBLES (logique inversée)
+  if (btn) btn.classList.toggle('active', furnishedVisible);
 }
 
 /* Recentre le GLB global dans la zone visible avec la marge configurée, en douceur.
