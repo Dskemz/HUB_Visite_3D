@@ -2639,8 +2639,25 @@ async function init() {
   // d'ombre (frustum orthographique de la directionnelle) reste à l'origine, à
   // l'intérieur du bâtiment, et ne projette rien de cohérent.
   shadowLight.position = new BABYLON.Vector3(...dl.direction).scale(-40);
-  shadowLight.autoUpdateExtends = true;     // recalcule le frustum sur les meshes
-  shadowLight.autoCalcShadowZBounds = true; // ajuste les bornes de profondeur
+  // OPTIM : on garde autoUpdateExtends=true INITIALEMENT pour que Babylon calcule
+  // les bornes optimales pendant le chargement des GLB (murs + meubles), puis on
+  // VERROUILLE ces bornes une fois pour toutes via lockShadowBounds() (appelé
+  // depuis frameModel() après chargement complet). Sans ce verrou, chaque toggle
+  // meublé/vide déclenchait un recalcul complet du frustum d'ombre sur 100+ meshes
+  // → lag énorme visible à chaque clic.
+  shadowLight.autoUpdateExtends = true;
+  shadowLight.autoCalcShadowZBounds = true;
+
+  // Verrou des ombres : à appeler UNE SEULE FOIS après chargement complet des GLB.
+  // Fige le frustum d'ombre pour éliminer le lag lors des toggles de visibilité.
+  window.lockShadowBounds = function() {
+    if (window.__shadowBoundsLocked) return;
+    // Force un dernier calcul avec les meshes actuellement visibles
+    try { shadowGenerator.getShadowMap().refreshRate = BABYLON.RenderTargetTexture.REFRESHRATE_RENDER_ONEVERYFRAME; } catch(_) {}
+    shadowLight.autoUpdateExtends = false;
+    shadowLight.autoCalcShadowZBounds = false;
+    window.__shadowBoundsLocked = true;
+  };
 
   // ========== OMBRES SOLAIRES DOUCES & RÉALISTES ==========
   // Avant : aucun mesh n'était enregistré comme projecteur → pas d'ombre du tout,
@@ -4523,6 +4540,13 @@ function loadRoomsAsync() {
         refreshFirstPersonPanelIfRoom(r.id);
       }
     }
+    // OPTIM : toutes les pièces sont chargées. On laisse Babylon calculer les bornes
+    // d'ombre pendant quelques frames avec les meubles visibles, puis on VERROUILLE
+    // définitivement le frustum. Sans ça, chaque toggle meublé/vide recalcule les
+    // bornes sur 100+ meshes → lag massif. Après verrou : toggle instantané.
+    setTimeout(() => {
+      try { if (window.lockShadowBounds) window.lockShadowBounds(); } catch(_) {}
+    }, 500);
   }, CONFIG.roomsLoadDelay || 0);
 }
 
@@ -4540,13 +4564,22 @@ function toggleRoom(id, on) {
 
 /* Tout afficher / tout masquer */
 function setAllRooms(on) {
-  roomList.forEach(r => {
-    const st = roomState[r.id];
-    if (st && st.loaded && !st.failed) {
-      st.enabled = !!on;
-      if (roomNodes[r.id]) roomNodes[r.id].setEnabled(!!on);
-    }
-  });
+  // OPTIM : bloquer temporairement le mécanisme "dirty" des matériaux évite
+  // que Babylon recompile/recalcule les shaders et l'AO à chaque setEnabled().
+  // On groupe les N mises à jour en un seul recalcul GPU final.
+  const prevBlock = scene.blockMaterialDirtyMechanism;
+  scene.blockMaterialDirtyMechanism = true;
+  try {
+    roomList.forEach(r => {
+      const st = roomState[r.id];
+      if (st && st.loaded && !st.failed) {
+        st.enabled = !!on;
+        if (roomNodes[r.id]) roomNodes[r.id].setEnabled(!!on);
+      }
+    });
+  } finally {
+    scene.blockMaterialDirtyMechanism = prevBlock;
+  }
   if (!isFirstPerson) rebuildPoiList();
   // Idem : pas de recadrage caméra sur "tout afficher / tout masquer".
 }
