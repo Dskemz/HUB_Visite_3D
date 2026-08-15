@@ -2037,7 +2037,7 @@
     <button class="rail-btn" id="btn-help" onclick="toggleHelp()" data-tip="Aide" title="Aide et raccourcis" aria-label="Aide et raccourcis clavier">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 013.5 2.3c0 1.5-2 1.7-2 3M12 17h.01"/></svg><span class="measure-lbl">Aide</span>
     </button>
-    <button class="rail-btn" id="btn-furnished" onclick="toggleFurnished()" data-tip="Meublé / Vide" title="Afficher ou masquer les meubles" aria-label="Meublé / Vide">
+    <button class="rail-btn" id="btn-furnished" onclick="toggleFurnished()" data-tip="Meublé / Vide" title="Afficher ou masquer les meubles" aria-label="Meublé / Vide" style="display: none;">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M16 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M2 18h20M4 15V9a2 2 0 012-2h12a2 2 0 012 2v6"/><path d="M8 13h8" stroke-linecap="round"/></svg>
     </button>
   </div>
@@ -4510,6 +4510,8 @@ function loadRoomsAsync() {
   roomList.forEach(r => { roomState[r.id] = { loaded: false, enabled: false, failed: false }; });
   if (!isFirstPerson) rebuildPoiList();
 
+  // Bouton meublé/vide reste caché au démarrage (sera affiché à la 1ère pièce chargée)
+
   const base = CONFIG.assetsBase(CONFIG.propertyId);
 
   // Chargement SÉQUENTIEL (un GLB à la fois) pour éviter de saturer le décodage Draco
@@ -4526,6 +4528,9 @@ function loadRoomsAsync() {
         applyGlassTreatment(node); // vitres du mobilier/pièce : transparence claire
         if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
+
+        // Dès qu'une pièce est chargée, montrer le bouton meublé/vide (invisible avant)
+        showFurnishedButton();
       } catch (err) {
         roomState[r.id].failed = true;
         console.warn(`⚠️ Pièce « ${r.label} » (${r.glb}) non chargée :`, err);
@@ -4585,11 +4590,27 @@ function setAllRooms(on) {
 }
 
 /* V2.6 — Toggle global meublé/vide. Bascule TOUS les nodes de meubles
-   (roomNodes) en une seule fois. Le bouton du rail reflète l'état. */
+   (roomNodes) en une seule fois. Le bouton du rail reflète l'état.
+
+   STRATÉGIE CHARGEMENT (progressive/invisible) :
+   - Bouton CACHÉ (display: none) au démarrage (aucune pièce chargée)
+   - Bouton VISIBLE (display: block) dès qu'AU MOINS UNE pièce charge
+   - Zéro état "disabled confus" — soit le bouton existe et fonctionne, soit il n'existe pas
+   - Propre, professionnel, pas de layout shift important
+*/
 let furnishedVisible = true;
+
+function showFurnishedButton() {
+  const btn = document.getElementById('btn-furnished');
+  if (btn && btn.style.display === 'none') {
+    btn.style.display = 'block';
+  }
+}
+
 function toggleFurnished() {
   furnishedVisible = !furnishedVisible;
   setAllRooms(furnishedVisible);
+
   const btn = document.getElementById('btn-furnished');
   if (btn) btn.classList.toggle('active', !furnishedVisible);
 }
