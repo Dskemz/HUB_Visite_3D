@@ -2037,7 +2037,7 @@
     <button class="rail-btn" id="btn-help" onclick="toggleHelp()" data-tip="Aide" title="Aide et raccourcis" aria-label="Aide et raccourcis clavier">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 013.5 2.3c0 1.5-2 1.7-2 3M12 17h.01"/></svg><span class="measure-lbl">Aide</span>
     </button>
-    <button class="rail-btn" id="btn-furnished" onclick="toggleFurnished()" data-tip="Meublé / Vide" title="Afficher ou masquer les meubles" aria-label="Meublé / Vide" style="display: none;">
+    <button class="rail-btn" id="btn-furnished" onclick="toggleFurnished()" data-tip="Meublé / Vide" title="Afficher ou masquer les meubles" aria-label="Meublé / Vide" style="visibility: hidden;">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M16 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M2 18h20M4 15V9a2 2 0 012-2h12a2 2 0 012 2v6"/><path d="M8 13h8" stroke-linecap="round"/></svg>
     </button>
   </div>
@@ -2639,25 +2639,8 @@ async function init() {
   // d'ombre (frustum orthographique de la directionnelle) reste à l'origine, à
   // l'intérieur du bâtiment, et ne projette rien de cohérent.
   shadowLight.position = new BABYLON.Vector3(...dl.direction).scale(-40);
-  // OPTIM : on garde autoUpdateExtends=true INITIALEMENT pour que Babylon calcule
-  // les bornes optimales pendant le chargement des GLB (murs + meubles), puis on
-  // VERROUILLE ces bornes une fois pour toutes via lockShadowBounds() (appelé
-  // depuis frameModel() après chargement complet). Sans ce verrou, chaque toggle
-  // meublé/vide déclenchait un recalcul complet du frustum d'ombre sur 100+ meshes
-  // → lag énorme visible à chaque clic.
-  shadowLight.autoUpdateExtends = true;
-  shadowLight.autoCalcShadowZBounds = true;
-
-  // Verrou des ombres : à appeler UNE SEULE FOIS après chargement complet des GLB.
-  // Fige le frustum d'ombre pour éliminer le lag lors des toggles de visibilité.
-  window.lockShadowBounds = function() {
-    if (window.__shadowBoundsLocked) return;
-    // Force un dernier calcul avec les meshes actuellement visibles
-    try { shadowGenerator.getShadowMap().refreshRate = BABYLON.RenderTargetTexture.REFRESHRATE_RENDER_ONEVERYFRAME; } catch(_) {}
-    shadowLight.autoUpdateExtends = false;
-    shadowLight.autoCalcShadowZBounds = false;
-    window.__shadowBoundsLocked = true;
-  };
+  shadowLight.autoUpdateExtends = true;     // recalcule le frustum sur les meshes
+  shadowLight.autoCalcShadowZBounds = true; // ajuste les bornes de profondeur
 
   // ========== OMBRES SOLAIRES DOUCES & RÉALISTES ==========
   // Avant : aucun mesh n'était enregistré comme projecteur → pas d'ombre du tout,
@@ -4510,8 +4493,6 @@ function loadRoomsAsync() {
   roomList.forEach(r => { roomState[r.id] = { loaded: false, enabled: false, failed: false }; });
   if (!isFirstPerson) rebuildPoiList();
 
-  // Bouton meublé/vide reste caché au démarrage (sera affiché à la 1ère pièce chargée)
-
   const base = CONFIG.assetsBase(CONFIG.propertyId);
 
   // Chargement SÉQUENTIEL (un GLB à la fois) pour éviter de saturer le décodage Draco
@@ -4529,7 +4510,7 @@ function loadRoomsAsync() {
         if (window.refreshGlassRefractionDeferred) window.refreshGlassRefractionDeferred(3);
         console.log(`✅ Pièce « ${r.label} » chargée (${r.glb})`);
 
-        // Dès qu'une pièce est chargée, montrer le bouton meublé/vide (invisible avant)
+        // Dès qu'une pièce est chargée, révéler le bouton meublé/vide (préserve l'espace, pas de layout shift)
         showFurnishedButton();
       } catch (err) {
         roomState[r.id].failed = true;
@@ -4545,13 +4526,6 @@ function loadRoomsAsync() {
         refreshFirstPersonPanelIfRoom(r.id);
       }
     }
-    // OPTIM : toutes les pièces sont chargées. On laisse Babylon calculer les bornes
-    // d'ombre pendant quelques frames avec les meubles visibles, puis on VERROUILLE
-    // définitivement le frustum. Sans ça, chaque toggle meublé/vide recalcule les
-    // bornes sur 100+ meshes → lag massif. Après verrou : toggle instantané.
-    setTimeout(() => {
-      try { if (window.lockShadowBounds) window.lockShadowBounds(); } catch(_) {}
-    }, 500);
   }, CONFIG.roomsLoadDelay || 0);
 }
 
@@ -4569,22 +4543,13 @@ function toggleRoom(id, on) {
 
 /* Tout afficher / tout masquer */
 function setAllRooms(on) {
-  // OPTIM : bloquer temporairement le mécanisme "dirty" des matériaux évite
-  // que Babylon recompile/recalcule les shaders et l'AO à chaque setEnabled().
-  // On groupe les N mises à jour en un seul recalcul GPU final.
-  const prevBlock = scene.blockMaterialDirtyMechanism;
-  scene.blockMaterialDirtyMechanism = true;
-  try {
-    roomList.forEach(r => {
-      const st = roomState[r.id];
-      if (st && st.loaded && !st.failed) {
-        st.enabled = !!on;
-        if (roomNodes[r.id]) roomNodes[r.id].setEnabled(!!on);
-      }
-    });
-  } finally {
-    scene.blockMaterialDirtyMechanism = prevBlock;
-  }
+  roomList.forEach(r => {
+    const st = roomState[r.id];
+    if (st && st.loaded && !st.failed) {
+      st.enabled = !!on;
+      if (roomNodes[r.id]) roomNodes[r.id].setEnabled(!!on);
+    }
+  });
   if (!isFirstPerson) rebuildPoiList();
   // Idem : pas de recadrage caméra sur "tout afficher / tout masquer".
 }
@@ -4592,27 +4557,49 @@ function setAllRooms(on) {
 /* V2.6 — Toggle global meublé/vide. Bascule TOUS les nodes de meubles
    (roomNodes) en une seule fois. Le bouton du rail reflète l'état.
 
-   STRATÉGIE CHARGEMENT (progressive/invisible) :
-   - Bouton CACHÉ (display: none) au démarrage (aucune pièce chargée)
-   - Bouton VISIBLE (display: block) dès qu'AU MOINS UNE pièce charge
-   - Zéro état "disabled confus" — soit le bouton existe et fonctionne, soit il n'existe pas
-   - Propre, professionnel, pas de layout shift important
+   OPTIM LAG : les post-process (SSAO2 + SSR) recalculent leurs buffers écran
+   à chaque changement de visibilité de meshes → lag massif au toggle.
+   Solution : on les DÉTACHE juste avant le toggle et on les RATTACHE juste après,
+   avec un délai court. Invisible pour l'utilisateur (~80ms).
+
+   STRATÉGIE BOUTON : le bouton est caché (visibility: hidden) au démarrage.
+   Dès qu'AU MOINS UNE pièce charge, on le rend visible. Pas de layout shift
+   car visibility préserve l'espace du bouton dans le rail.
 */
 let furnishedVisible = true;
 
 function showFurnishedButton() {
   const btn = document.getElementById('btn-furnished');
-  if (btn && btn.style.display === 'none') {
-    btn.style.display = 'block';
+  if (btn && btn.style.visibility === 'hidden') {
+    btn.style.visibility = 'visible';
   }
 }
 
 function toggleFurnished() {
   furnishedVisible = !furnishedVisible;
+
+  // OPTIM : désactive temporairement les post-process AO/SSR pendant le toggle
+  // pour éviter la re-composition écran complète qui cause le lag.
+  const aoWasEnabled  = window.__AO_STATE__  && window.__AO_STATE__.enabled;
+  const ssrWasEnabled = window.__SSR_STATE__ && window.__SSR_STATE__.enabled;
+
+  try {
+    if (aoWasEnabled  && window.setAO)  window.setAO({ enabled: false });
+    if (ssrWasEnabled && window.setSSR) window.setSSR({ enabled: false });
+  } catch(_) {}
+
   setAllRooms(furnishedVisible);
 
   const btn = document.getElementById('btn-furnished');
   if (btn) btn.classList.toggle('active', !furnishedVisible);
+
+  // Réactive les post-process après stabilisation (invisible à l'œil, ~80ms)
+  setTimeout(() => {
+    try {
+      if (aoWasEnabled  && window.setAO)  window.setAO({ enabled: true });
+      if (ssrWasEnabled && window.setSSR) window.setSSR({ enabled: true });
+    } catch(_) {}
+  }, 80);
 }
 
 /* Recentre le GLB global dans la zone visible avec la marge configurée, en douceur.
@@ -7537,62 +7524,32 @@ init();
     var e = document.getElementById('cine-entry');
     if (!e) return;
 
-    // 1) L'écran d'entrée disparaît (fade 1s) — feedback immédiat du clic
+    // 1) L'écran d'entrée disparaît (fade 1s)
     e.classList.remove('show');
     e.classList.add('gone');
 
-    // 2) Séquence "reveal" : dissout le voile + lance l'animation caméra + HUD.
-    //    ATTEND DEUX conditions AVANT de démarrer :
-    //     (a) __sceneReady === true (loadWalls terminée → playIntroCameraMove exposée)
-    //     (b) fin de la transition CSS de #cine-entry (~1s, écran d'accueil dissous)
-    //    Sans (a) : window.playIntroCameraMove n'existe pas encore → skip silencieux
-    //               (bug observé : utilisateur clique avant fin du chargement du GLB)
-    //    Sans (b) : l'animation caméra joue derrière l'écran d'accueil opaque → invisible
-    //               (avec easeOutCubic, ~90% du mouvement se fait avant 1s → on ne voit rien)
-    var revealStarted = false;
-    function startReveal() {
-      if (revealStarted) return;
-      revealStarted = true;
-
-      var veil = document.getElementById('reveal-veil');
-      if (veil) {
-        requestAnimationFrame(function(){
-          requestAnimationFrame(function(){ veil.classList.add('dissolved'); });
-        });
-      }
-
-      // ANIMATION CAMÉRA D'ENTRÉE — dézoom cinématique 2.2s (easeOutCubic)
-      try { if (typeof window.playIntroCameraMove === 'function') window.playIntroCameraMove(); } catch(_) {}
-
-      // HUD staggered — après le début du reveal
-      setTimeout(function(){
-        document.body.classList.add('hud-reveal-ready');
-      }, 600);
-
-      if (typeof window.cineWake==='function') window.cineWake();
+    // 2) Le voile de reveal (au-dessus du canvas) se dissout → le GLB apparaît
+    //    en fondu. Fiable car c'est un div CSS, pas le canvas WebGL lui-même.
+    var veil = document.getElementById('reveal-veil');
+    if (veil) {
+      // rAF pour garantir que la transition CSS est bien prise en compte
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ veil.classList.add('dissolved'); });
+      });
     }
 
-    // Deux flags à valider avant startReveal()
-    var entryGone = false;
-    var sceneReady = false;
-    function tryStart(){ if (entryGone && sceneReady) startReveal(); }
+    // 3) ANIMATION CAMÉRA D'ENTRÉE — mouvement 3D indéniable AVANT navigation.
+    //    Dézoom cinématique : on démarre plus proche + légèrement décalé, puis
+    //    on rejoint le cadrage initial en douceur. L'utilisateur VOIT la maquette
+    //    bouger. Navigation bloquée pendant l'animation (isAnimating = true).
+    try { if (typeof window.playIntroCameraMove === 'function') window.playIntroCameraMove(); } catch(_) {}
 
-    // Flag (b) : écran d'accueil complètement dissous (transition CSS = 1s)
-    setTimeout(function(){ entryGone = true; tryStart(); }, 1000);
+    // 4) HUD staggered — après le début du reveal
+    setTimeout(function(){
+      document.body.classList.add('hud-reveal-ready');
+    }, 600);
 
-    // Flag (a) : scène 3D prête (loadWalls terminée, playIntroCameraMove exposée).
-    // Poll léger 50ms, timeout de sécurité 15s (au-delà : dégradé gracieux sans animation caméra).
-    var t0 = Date.now();
-    function pollScene() {
-      if (window.__sceneReady && typeof window.playIntroCameraMove === 'function') {
-        sceneReady = true; tryStart();
-      } else if (Date.now() - t0 < 15000) {
-        setTimeout(pollScene, 50);
-      } else {
-        sceneReady = true; tryStart();     // dégradé gracieux : lance le reveal sans anim
-      }
-    }
-    pollScene();
+    if (typeof window.cineWake==='function') window.cineWake();
   };
 
   // (playIntroCameraMove est défini dans le script principal, où camera/scene/
