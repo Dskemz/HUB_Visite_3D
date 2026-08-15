@@ -1611,8 +1611,11 @@
     .bi-badge svg{ width: 12px; height: 12px; }
     /* ── Lignes info clé/valeur ── */
     .bi-info-grid{
-      display: grid; grid-template-columns: auto 1fr; gap: 14px 20px;
+      display: flex; flex-direction: column; gap: 14px;
       padding: 0 20px;
+    }
+    .bi-info-grid > div{
+      display: flex; justify-content: space-between; align-items: center; gap: 20px;
     }
     .bi-info-label{
       font-size: 0.75rem; color: rgba(255,255,255,0.55);
