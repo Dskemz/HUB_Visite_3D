@@ -1611,16 +1611,19 @@
     .bi-badge svg{ width: 12px; height: 12px; }
     /* ── Lignes info clé/valeur ── */
     .bi-info-grid{
-      display: grid; grid-template-columns: auto 1fr; gap: 6px 14px;
-      padding: 0 20px;
+      display: grid; grid-template-columns: auto 1fr; gap: 10px 20px;
+      padding: 0 20px; row-gap: 14px;
+    }
+    .bi-info-grid > div{
+      display: flex; justify-content: space-between; align-items: center; gap: 20px;
     }
     .bi-info-label{
       font-size: 0.75rem; color: rgba(255,255,255,0.55);
-      letter-spacing: 0.02em;
+      letter-spacing: 0.02em; text-transform: uppercase; font-weight: 500;
     }
     .bi-info-val{
-      font-size: 0.78rem; font-weight: 600; text-align: right;
-      color: rgba(255,255,255,0.92);
+      font-size: 0.82rem; font-weight: 700; text-align: right;
+      color: #ffffff;
     }
     /* ── Référence en tête ── */
     .bi-ref{
@@ -1665,7 +1668,7 @@
     .bi-agent-contact a{
       flex: 1; padding: 7px 8px; border-radius: 8px;
       background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.85); text-decoration: none;
+      color: #ffffff; text-decoration: none;
       font-size: 0.75rem; text-align: center; font-weight: 500;
       transition: background .18s ease;
     }
