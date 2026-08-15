@@ -1611,29 +1611,32 @@
     .bi-badge svg{ width: 12px; height: 12px; }
     /* ── Lignes info clé/valeur ── */
     .bi-info-grid{
-      display: grid; grid-template-columns: auto 1fr; gap: 10px 20px;
-      padding: 0 20px; row-gap: 14px;
-    }
-    .bi-info-grid > div{
-      display: flex; justify-content: space-between; align-items: center; gap: 20px;
+      display: grid; grid-template-columns: auto 1fr; gap: 6px 14px;
+      padding: 0 20px;
     }
     .bi-info-label{
       font-size: 0.75rem; color: rgba(255,255,255,0.55);
-      letter-spacing: 0.02em; text-transform: uppercase; font-weight: 500;
+      letter-spacing: 0.02em;
     }
     .bi-info-val{
-      font-size: 0.82rem; font-weight: 700; text-align: right;
-      color: #ffffff;
+      font-size: 0.78rem; font-weight: 600; text-align: right;
+      color: rgba(255,255,255,0.92);
     }
     /* ── Référence en tête ── */
     .bi-ref{
-      display: block; margin-top: 8px;
+      display: block; margin-top: 8px; margin-bottom: 0;
       padding: 8px 12px; border-radius: 8px;
       background: rgba(255,255,255,0.06);
       font-size: 0.75rem; font-weight: 600;
       letter-spacing: 0.05em; text-transform: uppercase;
       color: rgba(255,255,255,0.70);
-      white-space: nowrap;
+    }
+    .bi-ref-label{
+      display: block; font-size: 0.7rem; color: rgba(255,255,255,0.50);
+      margin-bottom: 3px;
+    }
+    .bi-ref-val{
+      display: block; font-size: 0.8rem; color: #ffffff;
     }
     /* ── Honoraires bloc ── */
     .bi-honoraires{
