@@ -2266,11 +2266,15 @@
         --m3-safe-l: env(safe-area-inset-left, 0px);
         --m3-safe-r: env(safe-area-inset-right, 0px);
       }
+      /* IMPORTANT : NE PAS forcer pointer-events:auto sur .m3-sheet ni .m3-scrim.
+         Chacun a sa propre règle (auto UNIQUEMENT quand .show est appliqué).
+         Sinon le scrim (position:fixed;inset:0) bloquerait TOUS les clics et
+         toute la navigation 3D en permanence. */
       #m3-root button,
       #m3-root a,
-      #m3-root input,
-      #m3-root .m3-sheet,
-      #m3-root .m3-scrim { pointer-events: auto; }
+      #m3-root input { pointer-events: auto; }
+      #m3-root .m3-sheet.show,
+      #m3-root .m3-scrim.show { pointer-events: auto; }
 
       /* =====================  HEADER MINIMAL (transparent)  =====================
          Uniquement le compteur de pièces visitées (le titre est dans .rdv-topright
