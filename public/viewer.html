@@ -4726,23 +4726,26 @@ function wrapAlphaNear(current, target) {
       var p = Math.min((performance.now() - t0) / DUR, 1);
       var k = 1 - Math.pow(1 - p, 3);  // easeOutCubic
 
+      // IMPORTANT : setTarget() appelle rebuildAnglesAndRadius() en interne,
+      // ce qui ÉCRASE alpha/beta/radius. On doit donc poser le target EN PREMIER
+      // puis écrire alpha/beta/radius APRÈS pour que nos valeurs gagnent.
+      camera._target.copyFrom(BABYLON.Vector3.Lerp(s.t, homeT, k));
       camera.alpha  = s.a + (homeA - s.a) * k;
       camera.beta   = s.b + (homeB - s.b) * k;
       camera.radius = s.r + (homeR - s.r) * k;
       camera.fov    = s.f + (homeF - s.f) * k;
-      camera.setTarget(BABYLON.Vector3.Lerp(s.t, homeT, k));
 
       if (p >= 1) {
         // Terminé
         scene.onBeforeRenderObservable.remove(animObs);
         animObs = null;
 
-        // Valeurs exactes
+        // Valeurs exactes — même ordre : target d'abord, angles après
+        camera._target.copyFrom(homeT);
         camera.alpha  = homeA;
         camera.beta   = homeB;
         camera.radius = homeR;
         camera.fov    = homeF;
-        camera.setTarget(homeT.clone());
 
         // Remettre les limites
         if (modelBounds) {
@@ -4770,18 +4773,20 @@ function wrapAlphaNear(current, target) {
   // === Alias resetView pour compatibilité (exitFirstPerson, toggleViewMode) ===
   window.resetView = goHome;
 
-  // === Brancher le clic directement ===
-  document.addEventListener('DOMContentLoaded', function() {
-    var b = document.getElementById('recenter-home');
-    if (b) {
-      b.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        goHome();
-      });
-      console.log('[Recenter] Bouton branché via addEventListener');
-    }
-  });
+  // === Brancher le clic IMMÉDIATEMENT ===
+  // (DOMContentLoaded a déjà été émis car ce code tourne après des await dans init())
+  var b = document.getElementById('recenter-home');
+  if (b) {
+    b.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[Recenter] CLIC détecté');
+      goHome();
+    });
+    console.log('[Recenter] ✅ Bouton branché via addEventListener');
+  } else {
+    console.error('[Recenter] ❌ Bouton #recenter-home introuvable dans le DOM !');
+  }
 
 })();
 
