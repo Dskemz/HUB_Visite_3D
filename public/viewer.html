@@ -2159,6 +2159,32 @@
       .pl-hero{ aspect-ratio: 16 / 11; }
     }
 
+    /* ====== SWITCH « MEUBLES DE LA PIÈCE » (mode POV uniquement) ======
+       Barre horizontale alignée avec les éléments du drawer glassmorphism.
+       Apparaît entre la description et la grille des autres pièces. */
+    .pov-room-switch {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.7rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: rgba(255,255,255,0.04);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    .pov-switch-label {
+      display: flex; align-items: center; gap: 0.5rem;
+      color: rgba(255,255,255,0.88); font-size: 0.86rem; font-weight: 600;
+      min-width: 0;
+    }
+    .pov-switch-label svg {
+      width: 16px; height: 16px; flex: 0 0 auto;
+      stroke: rgba(255,255,255,0.60); stroke-width: 1.8; fill: none;
+    }
+    .pov-switch-label .room-status {
+      font-size: 0.72rem; font-weight: 400; color: rgba(255,255,255,0.40);
+      margin-left: 0.3rem;
+    }
+
     /* Le rail masqué en mode éditeur (?edit=1) — l'éditeur garde ses propres outils */
     html.edit-mode .tool-rail, html.edit-mode .tour-topbar,
     html.edit-mode .rdv-overlay, html.edit-mode .bien-info{ display: none !important; }
@@ -5419,7 +5445,41 @@ function renderPanelContent(activePoi) {
       <span>Revenir à la visite</span>
     </button>` : '';
 
-  // --- Assemblage final (structure unifiée : header → hero → description → grille → back)
+  // --- Switch « Meubles de la pièce » (mode POV uniquement)
+  //     Affiché uniquement si la pièce courante a un GLB de meubles déclaré.
+  let roomSwitchHTML = '';
+  if (activePoi) {
+    const roomId = activePoi.roomId || activePoi.id;
+    const room = (typeof roomList !== 'undefined') ? roomList.find(r => r.id === roomId) : null;
+    if (room) {
+      const st = (typeof roomState !== 'undefined' && roomState[roomId]) ? roomState[roomId] : {};
+      const isLoaded = !!(st.loaded && !st.failed);
+      const isEnabled = !!st.enabled;
+      const disabledAttr = isLoaded ? '' : 'disabled';
+      const checkedAttr  = isEnabled ? 'checked' : '';
+      const statusHTML   = st.failed  ? '<span class="room-status">indisponible</span>'
+                         : !st.loaded ? '<span class="room-status">chargement…</span>'
+                         : '';
+      roomSwitchHTML = `
+        <div class="pov-room-switch">
+          <div class="pov-switch-label">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span>Meubles de la pièce</span>
+            ${statusHTML}
+          </div>
+          <label class="switch" title="${isEnabled ? 'Masquer les meubles' : 'Afficher les meubles'}">
+            <input type="checkbox" ${checkedAttr} ${disabledAttr}
+                   onchange="toggleRoom('${roomId}', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>`;
+    }
+  }
+
+  // --- Assemblage final (structure unifiée : header → hero → description → switch meubles → grille → back)
   const bodyClass = activePoi ? 'pl-body' : 'pl-body pl-overview';
   panel.innerHTML = `
     <div class="panel-header">
@@ -5431,6 +5491,7 @@ function renderPanelContent(activePoi) {
     <div class="${bodyClass}">
       ${heroHTML}
       ${descHTML}
+      ${roomSwitchHTML}
       ${gridHTML}
       ${backPillHTML}
     </div>
