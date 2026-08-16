@@ -4593,7 +4593,7 @@ function resetView() {
   var hA = initialFraming.alpha, hB = initialFraming.beta, hR = initialFraming.radius, hT = initialFraming.target;
   camera.alpha = wrapAlphaNear(camera.alpha, hA);
   var s = { a: camera.alpha, b: camera.beta, r: camera.radius, f: camera.fov, t: camera.target.clone() };
-  var DUR = 2500, t0 = performance.now();
+  var DUR = 3500, t0 = performance.now();
   currentAnimObserver = scene.onBeforeRenderObservable.add(function() {
     var p = Math.min((performance.now() - t0) / DUR, 1);
     var k = 1 - Math.pow(1 - p, 3);
@@ -4601,11 +4601,12 @@ function resetView() {
     camera.alpha  = s.a + (hA - s.a) * k;
     camera.beta   = s.b + (hB - s.b) * k;
     camera.radius = s.r + (hR - s.r) * k;
+    camera.fov    = s.f + (defaultFov - s.f) * k;
     if (p >= 1) {
       scene.onBeforeRenderObservable.remove(currentAnimObserver);
       currentAnimObserver = null;
       camera._target.copyFrom(hT);
-      camera.alpha = hA; camera.beta = hB; camera.radius = hR;
+      camera.alpha = hA; camera.beta = hB; camera.radius = hR; camera.fov = defaultFov;
       if (modelBounds) {
         camera.lowerRadiusLimit = modelBounds.radius * (typeof zoomInRatio === 'function' ? zoomInRatio() : 0.3);
         camera.upperRadiusLimit = hR * CONFIG.zoomOutLimitRatio;
@@ -5224,12 +5225,13 @@ function enterFirstPerson(poi) {
   camera.lowerBetaLimit = 0.01;
   camera.upperBetaLimit = Math.PI - 0.01;
 
-  const totalFrames = 100;
-  let frame = 0;
+  // Entrée en POV : animation basée sur le temps (ms), pas sur les frames,
+  // pour une durée constante quelle que soit la fréquence d'affichage.
+  const ENTER_DUR = 3000; // 3s — vol d'approche doux
+  const t0Enter = performance.now();
 
   currentAnimObserver = scene.onBeforeRenderObservable.add(() => {
-    frame++;
-    const t = Math.min(frame / totalFrames, 1);
+    const t = Math.min((performance.now() - t0Enter) / ENTER_DUR, 1);
     const eased = easeInOut(t);
 
     const vpNow = startVp + (targetVp - startVp) * eased;
