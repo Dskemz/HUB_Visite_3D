@@ -5485,8 +5485,8 @@ function renderPanelContent(activePoi) {
     <div class="panel-header">
       ${backHeaderHTML}
       <span class="ph-title">${headerTitle}</span>
-      <button class="panel-close" onclick="togglePoiPanel()"
-              title="Fermer le panneau" aria-label="Fermer le panneau">&#10005;</button>
+      <button class="panel-close" onclick="closePanelOrExitPOV()"
+              title="${activePoi ? 'Revenir à la visite' : 'Fermer le panneau'}" aria-label="${activePoi ? 'Revenir à la visite' : 'Fermer le panneau'}">&#10005;</button>
     </div>
     <div class="${bodyClass}">
       ${heroHTML}
@@ -7079,6 +7079,19 @@ function setHudVisible(on) {
 /* ============================================================================
    TOGGLE PANNEAU POI (OUVERT/FERMÉ)
    ============================================================================ */
+/* Ferme le panneau OU sort du POV si on y est actuellement.
+   Appelé par le bouton croix (×) pour une meilleure ergonomie :
+   en POV, fermer le panneau = revenir à la visite d'ensemble. */
+function closePanelOrExitPOV() {
+  if (isFirstPerson) {
+    // On est en POV : sortir du POV (ce qui ferme aussi le panneau)
+    exitFirstPerson();
+  } else {
+    // Vue d'ensemble : juste fermer le panneau
+    togglePoiPanel();
+  }
+}
+
 function togglePoiPanel() {
   isPoiPanelOpen = !isPoiPanelOpen;
   const panel = document.getElementById('poi-panel');
