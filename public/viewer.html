@@ -1250,19 +1250,14 @@
        Survol : l'anneau intérieur grossit jusqu'à l'anneau externe,
        le point central grossit légèrement. Transition 150 ms. */
     #poi-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:5; }
-    .poi-mark { pointer-events:auto; cursor:pointer; transition: transform .22s ease; }
+    .poi-mark { pointer-events:auto; cursor:pointer; }
     .poi-mark .pm-outer,
     .poi-mark .pm-inner { fill:none; stroke:currentColor; stroke-width:1.4; }
     .poi-mark .pm-dot   { fill:currentColor; }
-    /* Emission diffuse au repos : glow doux sur l'anneau externe uniquement */
-    .poi-mark .pm-outer { filter:url(#pov-glow); transition: filter .25s ease, opacity .25s ease; }
     .poi-mark .pm-inner,
-    .poi-mark .pm-dot   { transform-box:fill-box; transform-origin:center; transition:transform .18s ease; }
-    /* Survol : l'emission disparait, l'animation du bouton prend le relais + leger grossissement */
-    .poi-mark:hover { transform: scale(1.15); }
-    .poi-mark:hover .pm-outer { filter:none; }
-    .poi-mark:hover .pm-inner { transform:scale(1.636); }
-    .poi-mark:hover .pm-dot   { transform:scale(1.7); }
+    .poi-mark .pm-dot   { transform-box:fill-box; transform-origin:center; transition:transform .15s ease; }
+    .poi-mark:hover .pm-inner { transform:scale(1.636); }  /* r 5.5 → 9 : rejoint l'anneau externe */
+    .poi-mark:hover .pm-dot   { transform:scale(1.7); }    /* point central un peu plus présent */
 
     /* ============================================================
        ===  V2 GLASSMORPHISM PREMIUM (visionOS) — refonte visuelle ===
@@ -2225,12 +2220,6 @@
 
   <!-- MARQUEURS POI (overlay vectoriel, positionné par projection 3D→écran) -->
   <svg id="poi-svg" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <filter id="pov-glow" x="-60%" y="-60%" width="220%" height="220%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
-        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-      </filter>
-    </defs>
     <g id="poi-markers"></g>
   </svg>
 
