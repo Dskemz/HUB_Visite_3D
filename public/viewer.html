@@ -2703,7 +2703,7 @@ async function init() {
   });
 
   camera.lowerBetaLimit = 0.05;
-  camera.upperBetaLimit = Math.PI / 2 + 0.15;
+  camera.upperBetaLimit = Math.PI / 2;   // bloque la camera au niveau du sol — jamais en dessous
 
   // --- SKYBOX DÉGRADÉ RADIAL (gris centre → blanc bords) ---
   const skybox = BABYLON.MeshBuilder.CreateSphere('skybox', { diameter: 2000, segments: 64 }, scene);
@@ -4573,7 +4573,7 @@ function resetView() {
   camera.upperRadiusLimit = null;
   // Restaurer les limites d'angle vertical de navigation
   camera.lowerBetaLimit = 0.05;
-  camera.upperBetaLimit = Math.PI / 2 + 0.15;
+  camera.upperBetaLimit = Math.PI / 2;
 
   // États de départ et d'arrivée
   const startViewportWidth = getEffectiveViewportWidthAtStart(); // largeur utile de départ
@@ -6265,7 +6265,7 @@ function playTopViewAnimation() {
 
   // S'assurer qu'on est en perspective pour l'animation
   camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
-  camera.upperBetaLimit = Math.PI / 2 + 0.15;
+  camera.upperBetaLimit = Math.PI / 2;
   camera.lowerBetaLimit = 0.001;
 
   const finalBeta = 0.001; // ~0° = directement au-dessus (vraie vue top)
