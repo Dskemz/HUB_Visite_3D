@@ -2426,7 +2426,9 @@
         opacity: 0; pointer-events: none;
         transition: opacity .3s ease, background .3s ease;
       }
-      .m3-scrim.show { opacity: 1; pointer-events: auto; background: rgba(0,0,0,0.45); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+      /* IMPORTANT : PAS de backdrop-filter sur le scrim actif — sinon le GLB
+         apparaît flou derrière la sheet. On garde juste un léger assombrissement. */
+      .m3-scrim.show { opacity: 1; pointer-events: auto; background: rgba(0,0,0,0.28); }
       .m3-sheet {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 570;
         max-height: 62vh; display: flex; flex-direction: column;
@@ -2443,6 +2445,19 @@
       .m3-sheet.show { transform: translateY(0); }
       .m3-grip { width: 42px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.32); margin: 12px auto 6px; flex: 0 0 auto; }
       .m3-sheet h2 { color: #fff; font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 1.15rem; margin: 4px 0 2px; }
+      /* Bandeau de tête sheet détail : bouton retour + titre alignés */
+      .m3-sheet-head { display: flex; align-items: center; gap: 10px; margin: 4px 0 2px; }
+      .m3-sheet-head h2 { margin: 0; flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .m3-back {
+        flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+        padding: 7px 12px 7px 9px; border-radius: 999px;
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+        color: rgba(255,255,255,0.92); font-family: inherit; font-size: 0.78rem; font-weight: 600;
+        cursor: pointer; -webkit-tap-highlight-color: transparent;
+        transition: background .18s ease, border-color .18s ease;
+      }
+      .m3-back:active { background: rgba(255,255,255,0.14); }
+      .m3-back svg { width: 14px; height: 14px; }
       .m3-sheet p.m3-desc { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin: 0 0 12px; }
       .m3-sheet-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
@@ -8520,7 +8535,13 @@ init();
 
   <section class="m3-sheet" id="m3-room-sheet" aria-label="Détail de la pièce">
     <div class="m3-grip"></div>
-    <h2 id="m3-room-name">Pièce</h2>
+    <div class="m3-sheet-head">
+      <button type="button" class="m3-back" id="m3-room-back" aria-label="Retour à la liste des pièces">
+        <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        <span>Pièces</span>
+      </button>
+      <h2 id="m3-room-name">Pièce</h2>
+    </div>
     <p class="m3-desc" id="m3-room-desc"></p>
     <div class="m3-sheet-scroll">
       <div id="m3-room-switch-wrap"></div>
@@ -8694,6 +8715,17 @@ init();
     buildCarousel(poi);
     showSheet('m3-room-sheet');
     markVisited(poi.id);
+    // Navigation caméra vers la pièce ciblée → le GLB en fond montre le POV
+    // de la pièce dans la bande haute, en même temps que la sheet monte.
+    try { if (poi && poi.id) call('goToPOI', poi.id); } catch(e){}
+  }
+  function backToRoomsList(){
+    // Retour à la liste depuis le détail d'une pièce
+    var b=$('m3-room-sheet'); if(b) b.classList.remove('show');
+    buildRooms();
+    var a=$('m3-rooms-sheet'); if(a){ a.classList.add('show'); }
+    haptic(6);
+    // La sheet reste ouverte → pas besoin de fitCanvasToSheet (déjà ouvert)
   }
   function matchRoom(poi){
     var rl=roomsData();
@@ -8854,6 +8886,9 @@ init();
        ce qui est spécifique au mobile : le compteur, les sheets et la mesure. */
     var fab = $('m3-pieces-fab');
     if (fab) fab.addEventListener('click', function(){ buildRooms(); showSheet('m3-rooms-sheet'); haptic(8); });
+
+    var back = $('m3-room-back');
+    if (back) back.addEventListener('click', backToRoomsList);
 
     $('m3-measure-validate').addEventListener('click', tapCenter);
     $('m3-measure-cancel').addEventListener('click', endMeasure);
