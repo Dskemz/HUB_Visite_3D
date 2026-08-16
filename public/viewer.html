@@ -2233,11 +2233,21 @@
     #m3-root { display: none; }
 
     @media (max-width: 900px) {
-      /* --- On repart de zéro : l'ancien chrome mobile est neutralisé --- */
+      /* --- MOBILE V3 : on RÉUTILISE le rail d'outils et le bouton RDV du desktop
+             (déjà responsive < 820px : rail horizontal en bas, RDV en haut à droite).
+             On masque seulement la topbar (redondante avec notre header compact)
+             et le panneau latéral (remplacé par des bottom sheets). --- */
       .tour-topbar,
-      .rdv-topright,
-      .tool-rail,
       .right-panel-wrapper { display: none !important; }
+
+      /* On désactive notre rail custom et notre footer custom : redondants
+         avec ce que fait déjà le desktop. Le rail existant (.tool-rail) est
+         déjà horizontal en bas et le RDV (.rdv-topright) est en haut à droite. */
+      #m3-rail, #m3-footer { display: none !important; }
+
+      /* La pilule RDV du desktop se repositionne en haut à droite compacte */
+      .rdv-topright { top: calc(6px + env(safe-area-inset-top, 0px)) !important; right: 8px !important; }
+      .rdv-topright .rdv-pill { padding: 8px 14px !important; font-size: 0.82rem !important; }
 
       /* --- Racine de l'UI mobile --- */
       #m3-root {
@@ -2262,38 +2272,46 @@
       #m3-root .m3-sheet,
       #m3-root .m3-scrim { pointer-events: auto; }
 
-      /* =====================  HEADER (zone morte)  ===================== */
+      /* =====================  HEADER MINIMAL (transparent)  =====================
+         Uniquement le compteur de pièces visitées (le titre est dans .rdv-topright
+         ou dans la topbar desktop qu'on garde masquée). AUCUN fond opaque. */
       #m3-header {
-        position: fixed; top: 0; left: 0; right: 0;
-        height: calc(46px + var(--m3-safe-t));
-        padding: calc(4px + var(--m3-safe-t)) 12px 4px;
-        display: flex; align-items: center; gap: 10px;
-        background: linear-gradient(180deg, rgba(var(--m3-navy-rgb),0.72) 0%, rgba(var(--m3-navy-rgb),0) 100%);
-        pointer-events: none;
+        position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 8px;
+        display: flex; align-items: center; gap: 8px;
+        background: transparent; padding: 0;
+        pointer-events: none;                    /* le fond ne capture rien */
+        height: auto; right: auto;
       }
-      #m3-logo {
-        flex: 0 0 auto; height: 30px; max-width: 96px;
-        display: flex; align-items: center;
-        opacity: 0.95;
-      }
-      #m3-logo img, #m3-logo svg { height: 26px; width: auto; display: block; }
-      #m3-title {
-        flex: 1 1 auto; min-width: 0;
-        font-family: 'Fraunces', Georgia, serif; font-weight: 400;
-        font-size: 0.98rem; letter-spacing: -0.01em; color: rgba(255,255,255,0.94);
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        text-shadow: 0 1px 8px rgba(0,0,0,0.5);
-      }
+      #m3-logo, #m3-title { display: none; }    /* pas de logo/titre en doublon */
       #m3-counter {
-        flex: 0 0 auto;
-        display: inline-flex; align-items: center; gap: 5px;
-        font-size: 0.74rem; font-weight: 600; color: #fff;
-        background: rgba(var(--m3-accent-rgb),0.22);
-        border: 1px solid rgba(var(--m3-accent-rgb),0.45);
-        padding: 3px 9px; border-radius: 999px;
-        -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 0.76rem; font-weight: 600; color: #fff;
+        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
+        border: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        padding: 6px 11px; border-radius: 999px;
+        -webkit-backdrop-filter: blur(var(--glass-blur,20px)); backdrop-filter: blur(var(--glass-blur,20px));
+        box-shadow: var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+        pointer-events: auto;
       }
-      #m3-counter svg { width: 12px; height: 12px; stroke: #fff; fill: none; stroke-width: 2; }
+      #m3-counter svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+      /* Bouton flottant « Pièces » — ouvre la bottom sheet des pièces.
+         Style identique à .lum-pill (glassmorphisme verre fumé). */
+      #m3-pieces-fab {
+        position: fixed; left: 8px;
+        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 10px 16px; border-radius: 999px;
+        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
+        border: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        -webkit-backdrop-filter: blur(var(--glass-blur,20px)); backdrop-filter: blur(var(--glass-blur,20px));
+        box-shadow: var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+        color: #fff; font-family: inherit; font-size: 0.86rem; font-weight: 600;
+        cursor: pointer; -webkit-tap-highlight-color: transparent;
+        pointer-events: auto; z-index: 315;
+      }
+      #m3-pieces-fab svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+      #m3-pieces-fab:active { transform: scale(0.97); }
 
       /* =====================  RAIL LATÉRAL GAUCHE  ===================== */
       #m3-rail {
@@ -8481,6 +8499,12 @@ init();
     </div>
   </footer>
 
+  <!-- Bouton flottant « Pièces » : ouvre la bottom sheet -->
+  <button id="m3-pieces-fab" type="button" aria-label="Voir les pièces">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+    <span>Pièces</span>
+  </button>
+
   <!-- SCRIM + SHEETS -->
   <div class="m3-scrim" id="m3-scrim"></div>
 
@@ -8701,7 +8725,7 @@ init();
     chromeVisible(true); haptic(8);
   }
   function chromeVisible(on){
-    ['m3-header','m3-footer','m3-rail'].forEach(function(id){ var el=$(id); if(el) el.style.visibility = on?'':'hidden'; });
+    ['m3-header','m3-pieces-fab'].forEach(function(id){ var el=$(id); if(el) el.style.visibility = on?'':'hidden'; });
   }
   function tapCenter(){
     var c=cnv(); if(!c) return;
@@ -8775,13 +8799,11 @@ init();
 
   /* ======================  CÂBLAGE ÉVÉNEMENTS  ======================= */
   function bind(){
-    $('m3-furnished').addEventListener('click', function(){ call('toggleFurnished'); setActive(this, furnishedOn()); haptic(8); });
-    $('m3-cotations').addEventListener('click', function(){ call('toggleViewMode'); setTimeout(function(){ setActive($('m3-cotations'), isTop()); applyFov(); }, 60); haptic(8); });
-    $('m3-measure').addEventListener('click', toggleMeasure);
-    $('m3-gyro').addEventListener('click', toggleGyro);
-
-    $('m3-photos').addEventListener('click', function(){ buildRooms(); showSheet('m3-rooms-sheet'); });
-    $('m3-rdv').addEventListener('click', function(){ call('openRdv'); haptic(10); });
+    /* Le rail d'outils et le bouton RDV du desktop sont désormais utilisés
+       tels quels sur mobile (déjà responsive < 820px). On câble uniquement
+       ce qui est spécifique au mobile : le compteur, les sheets et la mesure. */
+    var fab = $('m3-pieces-fab');
+    if (fab) fab.addEventListener('click', function(){ buildRooms(); showSheet('m3-rooms-sheet'); haptic(8); });
 
     $('m3-measure-validate').addEventListener('click', tapCenter);
     $('m3-measure-cancel').addEventListener('click', endMeasure);
@@ -8804,20 +8826,12 @@ init();
   /* ======================  SYNC PÉRIODIQUE LÉGER  ======================= */
   function sync(){
     if(!isPhone()) return;
-    syncTitle();
     updateCounter();
-    setActive($('m3-furnished'), furnishedOn());
-    setActive($('m3-cotations'), isTop());
   }
 
   /* ======================  DÉMARRAGE  ======================= */
   function boot(){
-    initLogo(); initContact(); bind(); syncTitle(); updateCounter();
-    // Observe le titre du viewer pour le refléter dans le header mobile
-    try {
-      var src=$('header-title');
-      if (src && window.MutationObserver){ new MutationObserver(syncTitle).observe(src, {childList:true, subtree:true, characterData:true}); }
-    } catch(e){}
+    bind(); updateCounter();
     // Attend que la caméra soit prête pour appliquer le FOV portrait
     var tries=0;
     var wait=setInterval(function(){ tries++; if(cam()){ clearInterval(wait); applyFov(); buildRooms(); } else if(tries>60){ clearInterval(wait); } }, 250);
