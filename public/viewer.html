@@ -1250,14 +1250,20 @@
        Survol : l'anneau intérieur grossit jusqu'à l'anneau externe,
        le point central grossit légèrement. Transition 150 ms. */
     #poi-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:5; }
-    .poi-mark { pointer-events:auto; cursor:pointer; }
+    .poi-mark { pointer-events:auto; cursor:pointer; filter:url(#pov-glow); }
     .poi-mark .pm-outer,
     .poi-mark .pm-inner { fill:none; stroke:currentColor; stroke-width:1.4; }
     .poi-mark .pm-dot   { fill:currentColor; }
+    .poi-mark .pm-outer { opacity:0.85; animation: povPulse 3s ease-in-out infinite; }
     .poi-mark .pm-inner,
-    .poi-mark .pm-dot   { transform-box:fill-box; transform-origin:center; transition:transform .15s ease; }
-    .poi-mark:hover .pm-inner { transform:scale(1.636); }  /* r 5.5 → 9 : rejoint l'anneau externe */
-    .poi-mark:hover .pm-dot   { transform:scale(1.7); }    /* point central un peu plus présent */
+    .poi-mark .pm-dot   { transform-box:fill-box; transform-origin:center; transition:transform .18s ease, opacity .18s ease; }
+    .poi-mark:hover { filter:url(#pov-glow) drop-shadow(0 0 6px currentColor); }
+    .poi-mark:hover .pm-inner { transform:scale(1.636); }
+    .poi-mark:hover .pm-dot   { transform:scale(1.7); }
+    @keyframes povPulse {
+      0%, 100% { opacity:0.7; }
+      50%      { opacity:1; }
+    }
 
     /* ============================================================
        ===  V2 GLASSMORPHISM PREMIUM (visionOS) — refonte visuelle ===
@@ -2220,6 +2226,12 @@
 
   <!-- MARQUEURS POI (overlay vectoriel, positionné par projection 3D→écran) -->
   <svg id="poi-svg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="pov-glow" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
+        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+      </filter>
+    </defs>
     <g id="poi-markers"></g>
   </svg>
 
