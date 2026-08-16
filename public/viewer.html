@@ -84,8 +84,14 @@
       --photo-ratio: 4 / 3;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--brand-navy); }
-    
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      /* Fond atmosphérique bleu nuit profond + noir, style studio sombre premium */
+      background:
+        radial-gradient(ellipse 55% 45% at 62% 55%, rgba(28,32,52,0.55) 0%, transparent 70%),
+        radial-gradient(ellipse 35% 28% at 22% 72%, rgba(18,22,38,0.40) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 80% at 38% 28%, #12141b 0%, #0b0c10 50%, #070708 100%);
+    }
+
     #canvas {
       width: 100%; height: 100%; display: block; outline: none; touch-action: none;
     }
@@ -94,7 +100,10 @@
        Placé au-dessus du canvas mais SOUS l'écran d'entrée (z 1200) et le HUD. */
     #reveal-veil {
       position: fixed; inset: 0; z-index: 40;
-      background: radial-gradient(ellipse 110% 80% at 50% 38%, #16171c, #0d0e12 55%, #0a0a0c);
+      background:
+        radial-gradient(ellipse 55% 45% at 62% 55%, rgba(28,32,52,0.55) 0%, transparent 70%),
+        radial-gradient(ellipse 35% 28% at 22% 72%, rgba(18,22,38,0.40) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 80% at 38% 28%, #12141b 0%, #0b0c10 50%, #070708 100%);
       pointer-events: none;
       opacity: 1;
       transition: opacity 1.25s cubic-bezier(.22,.61,.36,1);
@@ -650,7 +659,13 @@
     /* Cover VISIBLE DES L'OUVERTURE — fond OPAQUE noir profond organique.
        Aucune transparence vers le viewer : le modele 3D ne transparait pas.
        Degradé radial subtil pour eviter l'aplat numerique plat. */
-    #cine-entry { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; text-align: center; opacity: 1; visibility: visible; background: radial-gradient(ellipse 110% 80% at 50% 38%, #16171c, #0d0e12 55%, #0a0a0c); transition: opacity 1s cubic-bezier(.22,.61,.36,1), visibility 1s; }
+    #cine-entry { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; text-align: center; opacity: 1; visibility: visible;
+      background:
+        radial-gradient(ellipse 55% 45% at 62% 55%, rgba(28,32,52,0.55) 0%, transparent 70%),
+        radial-gradient(ellipse 35% 28% at 22% 72%, rgba(18,22,38,0.40) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 80% at 38% 28%, #12141b 0%, #0b0c10 50%, #070708 100%);
+      transition: opacity 1s cubic-bezier(.22,.61,.36,1), visibility 1s;
+    }
     #cine-entry.show { opacity: 1; visibility: visible; }
     #cine-entry.gone { opacity: 0; visibility: hidden; pointer-events: none; }
     .cine-entry-in { max-width: 700px; padding: 0 24px; opacity: 1; }
@@ -772,7 +787,11 @@
     /* Fond global : neutre très sombre au boot pour éviter tout flash de couleur
        (avant que la scène 3D ne prenne le relais). Compatible avec toutes les
        chartes agence — le brand-navy garde son rôle dans les composants marqués. */
-    html, body{ background: #0a0d13; }
+    html, body{ background:
+      radial-gradient(ellipse 55% 45% at 62% 55%, rgba(28,32,52,0.55) 0%, transparent 70%),
+      radial-gradient(ellipse 35% 28% at 22% 72%, rgba(18,22,38,0.40) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 80% at 38% 28%, #12141b 0%, #0b0c10 50%, #070708 100%);
+    }
     .hidden { display: none !important; }
     
 
@@ -1287,27 +1306,47 @@
       isolation: isolate;
     }
     .lum-pill > *{ position: relative; z-index: 1; }
-    /* Bordure lumineuse STATIQUE continue autour de toute la pilule.
-       Au repos : liseree tres douce qui pulse lentement en intensite.
-       Au survol : liseree franche + glow externe. Aucun mouvement rotatif. */
+    /* Bordure lumineuse : SPOT LUMINEUX qui TOURNE lentement le long du contour.
+       Au repos : un arc lumineux de ~70° glisse en continu (JS anime --sweep-a).
+       Au survol : le spot s'arrête, la bordure s'allume franchement + glow externe.
+       Discret, premium — jamais tape-a-l'oeil. */
     .lum-pill::before{
       content:''; position:absolute; inset:0; border-radius:inherit; padding:1.2px;
-      background: linear-gradient(180deg,
-        rgba(var(--brand-accent-rgb),0.85),
-        rgba(var(--brand-accent-rgb),0.55) 50%,
-        rgba(var(--brand-accent-rgb),0.85));
+      background: conic-gradient(
+        from var(--sweep-a, 0deg) at 50% 50%,
+        rgba(var(--brand-accent-rgb),0.00)   0deg,
+        rgba(var(--brand-accent-rgb),0.24)  22deg,
+        rgba(var(--brand-accent-rgb),0.55)  38deg,
+        rgba(var(--brand-accent-rgb),0.24)  54deg,
+        rgba(var(--brand-accent-rgb),0.00)  76deg,
+        rgba(var(--brand-accent-rgb),0.00) 360deg
+      );
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor; mask-composite: exclude;
-      opacity: .35; pointer-events: none;
-      transition: opacity .3s ease;
-      animation: lumBreath 3.6s ease-in-out infinite;
+      opacity: 1; pointer-events: none;
+      transition: opacity .3s ease, background .3s ease;
     }
     .lum-pill:hover{
       border-color: rgba(var(--brand-accent-rgb),0.65);
-      box-shadow: 0 0 28px rgba(var(--brand-accent-rgb),0.55), var(--glass-shadow);
+      box-shadow:
+        0 0 22px rgba(var(--brand-accent-rgb),0.42),
+        0 0 42px rgba(var(--brand-accent-rgb),0.20),
+        var(--glass-shadow);
       transform: translateY(-1px);
     }
-    .lum-pill:hover::before{ opacity: 1; animation: none; }
+    /* Au survol : contour entierement allume selon l'angulaire (fort en haut) */
+    .lum-pill:hover::before{
+      background: conic-gradient(
+        from 180deg at 50% 50%,
+        rgba(var(--brand-accent-rgb),0.00)   0deg,
+        rgba(var(--brand-accent-rgb),0.18)  60deg,
+        rgba(var(--brand-accent-rgb),0.42) 130deg,
+        rgba(var(--brand-accent-rgb),0.55) 180deg,
+        rgba(var(--brand-accent-rgb),0.42) 230deg,
+        rgba(var(--brand-accent-rgb),0.18) 300deg,
+        rgba(var(--brand-accent-rgb),0.00) 360deg
+      );
+    }
     .lum-pill:active{ transform: translateY(0) scale(.985); }
     .lum-pill svg{ width: 18px; height: 18px; fill: currentColor; }
 
@@ -1321,11 +1360,32 @@
       z-index: 40; display: flex; flex-direction: column; align-items: center;
       gap: 6px; padding: 10px 8px;
       background: var(--glass-bg);
-      -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%); backdrop-filter: blur(var(--glass-blur)) saturate(140%);
       border: 1px solid var(--glass-brd);
-      border-radius: 22px;
-      box-shadow: var(--glass-shadow);
+      border-radius: 999px;
+      box-shadow:
+        0 20px 60px rgba(0,0,0,0.65),
+        0 4px 16px rgba(0,0,0,0.40),
+        inset 0 1px 0 rgba(255,255,255,0.12);
       pointer-events: auto;
+      isolation: isolate;
+    }
+    /* Reflet angulaire sur le contour : plus fort en haut (source lumiere), quasi nul en bas */
+    .tool-rail::before{
+      content:''; position:absolute; inset:0; border-radius: inherit; padding: 1px;
+      background: conic-gradient(
+        from 180deg at 50% 50%,
+        rgba(255,255,255,0.00)   0deg,
+        rgba(255,255,255,0.06)  60deg,
+        rgba(255,255,255,0.16) 130deg,
+        rgba(255,255,255,0.22) 180deg,
+        rgba(255,255,255,0.16) 230deg,
+        rgba(255,255,255,0.06) 300deg,
+        rgba(255,255,255,0.00) 360deg
+      );
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      pointer-events: none;
     }
     /* Bouton d'outil : icône nue, aucune bordure ni fond propre au repos */
     .rail-btn{
@@ -1368,9 +1428,38 @@
     /* -----------------------------------------------------------------
        BLOC TITRE + "i" (haut-gauche, pt.4) et PILULE RDV (pt.6)
        ----------------------------------------------------------------- */
+    /* Bloc titre + "i" : envelopper le tout dans une pilule verre glassmorphism.
+       Le fond flou + liseré uniforme forment l'ecrin premium demande dans le doc. */
     .tour-topbar{
       position: fixed; top: 18px; left: 18px; z-index: 45;
-      display: flex; align-items: center; gap: 12px;
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 9px 14px 9px 18px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%); backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+      border: 1px solid var(--glass-brd);
+      border-radius: 999px;
+      box-shadow:
+        0 20px 60px rgba(0,0,0,0.55),
+        0 4px 16px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.11);
+      pointer-events: auto;
+      isolation: isolate;
+    }
+    /* Reflet angulaire (plus fort en haut) sur le liseré de la pilule titre */
+    .tour-topbar::before{
+      content:''; position:absolute; inset:0; border-radius: inherit; padding: 1px;
+      background: conic-gradient(
+        from 180deg at 50% 50%,
+        rgba(255,255,255,0.00)   0deg,
+        rgba(255,255,255,0.06)  60deg,
+        rgba(255,255,255,0.16) 130deg,
+        rgba(255,255,255,0.22) 180deg,
+        rgba(255,255,255,0.16) 230deg,
+        rgba(255,255,255,0.06) 300deg,
+        rgba(255,255,255,0.00) 360deg
+      );
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
       pointer-events: none;
     }
     /* Pilule "Prendre RDV" : haut a droite, au-dessus du panneau */
@@ -1379,28 +1468,33 @@
       pointer-events: none;
     }
     .rdv-topright .rdv-pill{ pointer-events: auto; }
-    /* Titre = TEXTE NU (pas de pilule, pas de fond) ; seul le "i" est cliquable */
+    /* Titre dans la pilule verre */
     .tour-topbar .tp-name{
-      font-family: 'Fraunces', Georgia, serif; font-weight: 500;
-      font-size: 1.15rem; letter-spacing: -0.01em; color: #fff; line-height: 1;
+      position: relative; z-index: 1;
+      font-family: 'Fraunces', Georgia, serif; font-weight: 400;
+      font-size: 1.02rem; letter-spacing: -0.01em; color: rgba(255,255,255,0.90); line-height: 1;
       white-space: nowrap; max-width: 46vw; overflow: hidden; text-overflow: ellipsis;
-      text-shadow: 0 2px 14px rgba(0,0,0,0.55);
-      pointer-events: none;   /* le titre n'est pas un bouton */
+      pointer-events: none;
     }
     .info-dot{
-      flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
+      position: relative; z-index: 1;
+      flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
       display: inline-flex; align-items: center; justify-content: center;
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.28);
-      color: rgba(255,255,255,0.7);
-      font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 600;
-      font-size: 0.9rem; cursor: pointer; pointer-events: auto;
-      transition: color .2s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+      border: 1px solid rgba(255,255,255,0.20);
+      color: rgba(255,255,255,0.55);
+      font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 500;
+      font-size: 0.82rem; cursor: pointer; pointer-events: auto;
+      transition: color .22s ease, border-color .25s ease, box-shadow .25s ease, background .22s ease;
     }
     .info-dot:hover{
-      color: #fff; border-color: rgba(var(--brand-accent-rgb),0.8);
-      background: rgba(var(--brand-accent-rgb),0.12);
-      box-shadow: 0 0 14px rgba(var(--brand-accent-rgb),0.45);
+      color: #fff;
+      border-color: rgba(var(--brand-accent-rgb),0.75);
+      background: rgba(var(--brand-accent-rgb),0.08);
+      box-shadow:
+        0 0 12px rgba(var(--brand-accent-rgb),0.40),
+        0 0 22px rgba(var(--brand-accent-rgb),0.22),
+        inset 0 1px 0 rgba(var(--brand-accent-rgb),0.18);
     }
     /* La pilule RDV réutilise .lum-pill ; padding propre au texte */
     .rdv-pill{ padding: 11px 20px; font-size: 0.9rem; }
@@ -1803,22 +1897,57 @@
     .cine-guide svg{ fill: #fff; }
 
     /* "Commencer la visite" (cover) → pilule verre lumineuse (pt.2)
-       On neutralise l'aplat plein et on applique la matière .lum-pill. */
+       Spot lumineux tournant sur le contour, comme .lum-pill mais un peu plus present
+       car c'est LE CTA principal de la cover. */
     .cine-enter-btn{
+      position: relative;
       background: var(--glass-bg-strong) !important;
-      -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%); backdrop-filter: blur(var(--glass-blur)) saturate(140%);
       border: 1px solid var(--glass-brd) !important;
       border-radius: 999px !important;
       box-shadow: var(--glass-shadow) !important;
       overflow: visible; isolation: isolate;
+      transition: box-shadow .3s ease, border-color .3s ease, transform .15s ease;
     }
     .cine-enter-btn > *{ position: relative; z-index: 1; }
-    .cine-enter-btn::before{ display: none; }
+    /* Meme spot tournant que .lum-pill (JS anime --sweep-a) */
+    .cine-enter-btn::before{
+      content:''; display:block; position:absolute; inset:0; border-radius: inherit; padding: 1.2px;
+      background: conic-gradient(
+        from var(--sweep-a, 0deg) at 50% 50%,
+        rgba(var(--brand-accent-rgb),0.00)   0deg,
+        rgba(var(--brand-accent-rgb),0.28)  22deg,
+        rgba(var(--brand-accent-rgb),0.62)  38deg,
+        rgba(var(--brand-accent-rgb),0.28)  54deg,
+        rgba(var(--brand-accent-rgb),0.00)  76deg,
+        rgba(var(--brand-accent-rgb),0.00) 360deg
+      );
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      pointer-events: none;
+      transition: background .3s ease;
+    }
     .cine-enter-btn:hover{
       background: var(--glass-bg-strong) !important;
-      border-color: rgba(var(--brand-accent-rgb),0.65) !important;
-      box-shadow: 0 0 28px rgba(var(--brand-accent-rgb),0.55), var(--glass-shadow) !important;
+      border-color: rgba(var(--brand-accent-rgb),0.70) !important;
+      box-shadow:
+        0 0 26px rgba(var(--brand-accent-rgb),0.42),
+        0 0 48px rgba(var(--brand-accent-rgb),0.22),
+        var(--glass-shadow) !important;
       transform: translateY(-2px);
+    }
+    /* Au survol : contour entierement allume */
+    .cine-enter-btn:hover::before{
+      background: conic-gradient(
+        from 180deg at 50% 50%,
+        rgba(var(--brand-accent-rgb),0.00)   0deg,
+        rgba(var(--brand-accent-rgb),0.20)  60deg,
+        rgba(var(--brand-accent-rgb),0.48) 130deg,
+        rgba(var(--brand-accent-rgb),0.62) 180deg,
+        rgba(var(--brand-accent-rgb),0.48) 230deg,
+        rgba(var(--brand-accent-rgb),0.20) 300deg,
+        rgba(var(--brand-accent-rgb),0.00) 360deg
+      );
     }
     .cine-enter-btn svg{ fill: #fff; }
     /* Ecrin dark glassmorphism autour du bloc titre+bouton de la cover.
@@ -2055,8 +2184,8 @@
       .rail-btn[data-tip]::before{
         left: 50%; top: auto; bottom: calc(100% + 10px); transform: translateX(-50%);
       }
-      .tour-topbar{ top: 12px; left: 12px; right: 12px; }
-      .title-pill .tp-name{ max-width: 46vw; }
+      .tour-topbar{ top: 12px; left: 12px; right: auto; max-width: calc(100vw - 24px); }
+      .tour-topbar .tp-name{ max-width: calc(100vw - 90px); font-size: 0.95rem; }
     }
 
   </style>
@@ -7901,6 +8030,45 @@ init();
       closeIt();
     }
   }, true);
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SPOT LUMINEUX TOURNANT — anime --sweep-a sur toutes les pilules
+     lumineuses (.lum-pill, .cine-enter-btn). Utilise requestAnimationFrame
+     pour être garanti dans tous les navigateurs (pas de dépendance @property).
+     Se met en pause quand l'onglet est caché (économie CPU / batterie).
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  var PERIOD_LUM = 7000;   // ms pour un tour complet (RDV, boutons lumineux)
+  var PERIOD_CTA = 8000;   // ms pour "Commencer la visite"
+  var running = true, startTs = null;
+
+  function tick(ts){
+    if (!running) return;
+    if (startTs === null) startTs = ts;
+    var elapsed = ts - startTs;
+    var aLum = (elapsed % PERIOD_LUM) / PERIOD_LUM * 360;
+    var aCta = (elapsed % PERIOD_CTA) / PERIOD_CTA * 360;
+
+    /* On applique via CSS var pour eviter de recompiler la string du gradient
+       cote JS a chaque frame — c'est le navigateur qui l'interpole. */
+    var pills = document.querySelectorAll('.lum-pill, .rdv-pill');
+    for (var i = 0; i < pills.length; i++) pills[i].style.setProperty('--sweep-a', aLum.toFixed(1) + 'deg');
+
+    var ctas = document.querySelectorAll('.cine-enter-btn');
+    for (var j = 0; j < ctas.length; j++) ctas[j].style.setProperty('--sweep-a', aCta.toFixed(1) + 'deg');
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  /* Pause quand l'onglet est cache */
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden) { running = false; }
+    else { running = true; startTs = null; requestAnimationFrame(tick); }
+  });
 })();
 </script>
 </body>
