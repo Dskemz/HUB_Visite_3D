@@ -4517,6 +4517,7 @@ function wrapAlphaNear(current, target) {
 /* resetView() — utilisé par exitFirstPerson() et toggleViewMode() */
 function resetView() {
   if (!camera || !scene || !initialFraming) return;
+  setHudVisible(false); // masque les cotations (visibles uniquement en vue de dessus)
   if (currentAnimObserver) {
     try { scene.onBeforeRenderObservable.remove(currentAnimObserver); } catch(e){}
     currentAnimObserver = null;
