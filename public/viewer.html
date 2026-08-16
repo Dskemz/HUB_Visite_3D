@@ -4579,7 +4579,7 @@ function resetView() {
   var hA = initialFraming.alpha, hB = initialFraming.beta, hR = initialFraming.radius, hT = initialFraming.target;
   camera.alpha = wrapAlphaNear(camera.alpha, hA);
   var s = { a: camera.alpha, b: camera.beta, r: camera.radius, f: camera.fov, t: camera.target.clone() };
-  var DUR = 1200, t0 = performance.now();
+  var DUR = 1800, t0 = performance.now();
   currentAnimObserver = scene.onBeforeRenderObservable.add(function() {
     var p = Math.min((performance.now() - t0) / DUR, 1);
     var k = 1 - Math.pow(1 - p, 3);
