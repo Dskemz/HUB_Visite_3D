@@ -4363,7 +4363,7 @@ function frameModel(root) {
   if (typeof EDIT_MODE === 'undefined' || !EDIT_MODE) {
     try {
       var __span = Math.max(max.x - min.x, max.z - min.z) || 20;
-      var __floorSize = Math.max(60, __span * 12);
+      var __floorSize = Math.max(80, __span * 16);
       var __cx = (min.x + max.x) / 2, __cz = (min.z + max.z) / 2;
       var __floor = scene.getMeshByName('__infiniteFloor');
       if (!__floor) {
@@ -4399,11 +4399,15 @@ function frameModel(root) {
           'varying vec3 vWorldPos;',
           'varying vec3 vNormal;',
           'void main(){',
-          '  // Camera sous le sol -> face invisible (comme le plafond)',
           '  vec3 viewDir = normalize(uCamPos - vWorldPos);',
-          '  if (dot(vNormal, viewDir) < 0.0) discard;',
+          '  float facing = dot(vNormal, viewDir);',
+          '  // Fondu rasant : opaque vu d en haut, fondu doux quand la camera',
+          '  // frole le sol, transparent complet en dessous. Pas de discard brutal.',
+          '  float angleFade = smoothstep(-0.05, 0.18, facing);',
           '  float d = length(vWorldPos.xz - uCenter.xz);',
-          '  float a = 1.0 - smoothstep(uFadeStart, uFadeEnd, d);',
+          '  float radialFade = 1.0 - smoothstep(uFadeStart, uFadeEnd, d);',
+          '  float a = radialFade * angleFade;',
+          '  if (a < 0.002) discard;',
           '  float ndl = max(dot(vNormal, normalize(vec3(0.4,1.0,0.3))), 0.0);',
           '  vec3 col = uColor * (0.55 + 0.45 * ndl);',
           '  gl_FragColor = vec4(col, a);',
@@ -4420,8 +4424,8 @@ function frameModel(root) {
         });
         __fm.backFaceCulling = false;
         // Fondu : opaque dans la zone du modele, transparent aux bords
-        var __fadeStart = __span * 1.8;   // debut du fondu
-        var __fadeEnd   = __floorSize * 0.48; // fin du fondu (presque le bord du ground)
+        var __fadeStart = __span * 1.4;   // debut du fondu (plus tot)
+        var __fadeEnd   = __floorSize * 0.42; // fin du fondu (plus progressif)
         __fm.setVector3('uCenter', new BABYLON.Vector3(__cx, 0, __cz));
         __fm.setFloat('uFadeStart', __fadeStart);
         __fm.setFloat('uFadeEnd', __fadeEnd);
