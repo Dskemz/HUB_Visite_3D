@@ -848,20 +848,23 @@
       bottom: 1.2rem;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(14, 16, 22, 0.82);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-              backdrop-filter: blur(14px) saturate(140%);
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      color: rgba(255, 255, 255, 0.90);
-      padding: 0.5rem 1.1rem;
-      border-radius: 999px;
-      font-size: 0.82rem;
+      background: rgba(16, 18, 24, 0.88);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+              backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.95);
+      padding: 0.65rem 1.4rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
       font-weight: 500;
+      letter-spacing: 0.02em;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.4s;
+      transition: opacity 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
       z-index: 150;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      line-height: 1.5;
     }
     .fp-look-hint.show { opacity: 1; }
 
@@ -4597,6 +4600,9 @@ function resetView() {
         camera.upperRadiusLimit = hR * CONFIG.zoomOutLimitRatio;
         camera.minZ = modelBounds.radius * CONFIG.clipNearRatio;
       }
+      // Force le radius exact une seconde fois pour éviter tout décalage subtil
+      // (notamment si des changements de viewport ou FOV ont pu modifier la perception)
+      camera.radius = hR;
       if (typeof applyViewportShift === 'function') applyViewportShift(camera);
       try { camera.attachControl(cnv, true); } catch(e){}
       isAnimating = false;
