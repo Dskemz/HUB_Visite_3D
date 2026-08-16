@@ -8612,11 +8612,57 @@ init();
 
   /* ======================  SHEETS  ======================= */
   function showScrim(on){ var s=$('m3-scrim'); if(s) s.classList.toggle('show', !!on); }
-  function closeSheets(){ var a=$('m3-rooms-sheet'), b=$('m3-room-sheet'); if(a)a.classList.remove('show'); if(b)b.classList.remove('show'); showScrim(false); }
+  function closeSheets(){
+    var a=$('m3-rooms-sheet'), b=$('m3-room-sheet');
+    if(a)a.classList.remove('show'); if(b)b.classList.remove('show');
+    showScrim(false);
+    fitCanvasToSheet(false);
+  }
   function showSheet(id){
     var a=$('m3-rooms-sheet'), b=$('m3-room-sheet');
     if(a)a.classList.remove('show'); if(b)b.classList.remove('show');
     var el=$(id); if(el){ el.classList.add('show'); showScrim(true); haptic(8); }
+    fitCanvasToSheet(true);
+  }
+
+  /* ---- Recadrage 3D quand une bottom sheet monte ------------------------
+     La sheet occupe 62vh en bas. On réduit le canvas à la bande haute (38vh)
+     et on relance engine.resize() : Babylon rebalance l'aspect ratio et le
+     modèle reste centré → il apparaît naturellement dans le tiers haut de
+     l'écran, au-dessus de la sheet. Recadre aussi via computeFitRadiusForViewport
+     (fonction du viewer) si elle existe pour éviter que le modèle soit tronqué.
+     À la fermeture on rend le canvas plein écran + on rappelle le fit. */
+  var canvasResizeRAF=null;
+  function fitCanvasToSheet(sheetOpen){
+    if(!isPhone()) return;
+    var cv=cnv(); if(!cv) return;
+    cv.style.height = sheetOpen ? '38vh' : '';
+    cv.style.width  = '';
+    // engine.resize() sur la prochaine frame pour que le DOM soit stabilisé
+    if(canvasResizeRAF) cancelAnimationFrame(canvasResizeRAF);
+    canvasResizeRAF = requestAnimationFrame(function(){
+      try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
+      // Recadre le modèle dans la bande visible (dézoome si besoin) — évite
+      // que le GLB soit tronqué sur les côtés en aspect très rectangulaire.
+      try {
+        var c=cam(); if(!c || inPOV()) return;
+        var topView=isTop();
+        var fitR = null;
+        if (topView && typeof computeTopViewRadiusForViewport==='function') {
+          fitR = computeTopViewRadiusForViewport(1);
+        } else if (typeof computeFitRadiusForViewport==='function') {
+          fitR = computeFitRadiusForViewport(1);
+        }
+        if (fitR!=null && isFinite(fitR)) {
+          c.lowerRadiusLimit = null; c.upperRadiusLimit = null;
+          if (c.targetScreenOffset){ c.targetScreenOffset.x=0; c.targetScreenOffset.y=0; }
+          if (typeof modelBounds!=='undefined' && modelBounds && modelBounds.center && c.target){
+            c.target = modelBounds.center.clone();
+          }
+          c.radius = fitR;
+        }
+      } catch(e){}
+    });
   }
 
   /* Liste des pièces */
