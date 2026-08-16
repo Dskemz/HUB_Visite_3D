@@ -5520,6 +5520,14 @@ function showFirstPersonPhoto(poi) {
 
 /* Restaure le panneau "liste des pièces" et revient à la navigation orbite */
 function exitFirstPerson() {
+  // Ferme le panneau POV avant de revenir à la vue d'ensemble.
+  // Sans ça, le panneau reste ouvert en passant à "Explorer les pièces".
+  if (isPoiPanelOpen) {
+    isPoiPanelOpen = false;
+    const panel = document.getElementById('poi-panel');
+    if (panel) panel.classList.add('closed');
+    document.body.classList.remove('poi-panel-open');
+  }
   // resetView() gère tout via son bloc isFirstPerson (rebascule ArcRotate, markers, liste, etc.)
   resetView();
 }
