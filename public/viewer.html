@@ -2225,6 +2225,290 @@
       .tour-topbar .tp-name{ max-width: calc(100vw - 90px); font-size: 0.95rem; }
     }
 
+    /* ================================================================
+       MOBILE V3 — REFONTE COMPLÈTE (n'affecte QUE les écrans ≤ 900px).
+       Le desktop n'entre jamais dans ce bloc : rendu ordinateur intact.
+       Tout le chrome mobile est préfixé « m3- » pour éviter les collisions.
+       ================================================================ */
+    #m3-root { display: none; }
+
+    @media (max-width: 900px) {
+      /* --- On repart de zéro : l'ancien chrome mobile est neutralisé --- */
+      .tour-topbar,
+      .rdv-topright,
+      .tool-rail,
+      .right-panel-wrapper { display: none !important; }
+
+      /* --- Racine de l'UI mobile --- */
+      #m3-root {
+        display: block;
+        position: fixed; inset: 0;
+        z-index: 500;
+        pointer-events: none;               /* la 3D reste manipulable au travers */
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        --m3-accent: var(--brand-accent, #d97757);
+        --m3-accent-rgb: var(--brand-accent-rgb, 217,119,87);
+        --m3-navy-rgb: var(--brand-navy-rgb, 45,45,45);
+        --m3-glass: rgba(16,18,22,0.55);
+        --m3-brd: rgba(255,255,255,0.14);
+        --m3-safe-t: env(safe-area-inset-top, 0px);
+        --m3-safe-b: env(safe-area-inset-bottom, 0px);
+        --m3-safe-l: env(safe-area-inset-left, 0px);
+        --m3-safe-r: env(safe-area-inset-right, 0px);
+      }
+      #m3-root button,
+      #m3-root a,
+      #m3-root input,
+      #m3-root .m3-sheet,
+      #m3-root .m3-scrim { pointer-events: auto; }
+
+      /* =====================  HEADER (zone morte)  ===================== */
+      #m3-header {
+        position: fixed; top: 0; left: 0; right: 0;
+        height: calc(46px + var(--m3-safe-t));
+        padding: calc(4px + var(--m3-safe-t)) 12px 4px;
+        display: flex; align-items: center; gap: 10px;
+        background: linear-gradient(180deg, rgba(var(--m3-navy-rgb),0.72) 0%, rgba(var(--m3-navy-rgb),0) 100%);
+        pointer-events: none;
+      }
+      #m3-logo {
+        flex: 0 0 auto; height: 30px; max-width: 96px;
+        display: flex; align-items: center;
+        opacity: 0.95;
+      }
+      #m3-logo img, #m3-logo svg { height: 26px; width: auto; display: block; }
+      #m3-title {
+        flex: 1 1 auto; min-width: 0;
+        font-family: 'Fraunces', Georgia, serif; font-weight: 400;
+        font-size: 0.98rem; letter-spacing: -0.01em; color: rgba(255,255,255,0.94);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+      }
+      #m3-counter {
+        flex: 0 0 auto;
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 0.74rem; font-weight: 600; color: #fff;
+        background: rgba(var(--m3-accent-rgb),0.22);
+        border: 1px solid rgba(var(--m3-accent-rgb),0.45);
+        padding: 3px 9px; border-radius: 999px;
+        -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      }
+      #m3-counter svg { width: 12px; height: 12px; stroke: #fff; fill: none; stroke-width: 2; }
+
+      /* =====================  RAIL LATÉRAL GAUCHE  ===================== */
+      #m3-rail {
+        position: fixed; left: calc(8px + var(--m3-safe-l));
+        top: 50%; transform: translateY(-50%);
+        display: flex; flex-direction: column; gap: 8px;
+        padding: 8px; border-radius: 18px;
+        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
+        -webkit-backdrop-filter: blur(var(--glass-blur,20px)) saturate(140%); backdrop-filter: blur(var(--glass-blur,20px)) saturate(140%);
+        border: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        box-shadow: var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+      }
+      .m3-tool {
+        width: 44px; height: 44px;              /* cible tactile Apple HIG */
+        display: flex; align-items: center; justify-content: center;
+        background: transparent; border: 1px solid transparent; border-radius: 12px;
+        color: #fff; cursor: pointer; -webkit-tap-highlight-color: transparent;
+        transition: background .18s ease, border-color .18s ease, transform .12s ease;
+        position: relative;
+      }
+      .m3-tool svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+      .m3-tool:active { transform: scale(0.92); background: rgba(255,255,255,0.08); }
+      .m3-tool.active {
+        background: rgba(var(--m3-accent-rgb),0.20);
+        border-color: rgba(var(--m3-accent-rgb),0.55);
+        color: #fff;
+      }
+      .m3-tool.active::after {
+        content: ''; position: absolute; right: 4px; top: 4px;
+        width: 5px; height: 5px; border-radius: 50%;
+        background: var(--m3-accent);
+        box-shadow: 0 0 8px 1px rgba(var(--m3-accent-rgb),0.9);
+      }
+
+      /* =====================  FOOTER GLASSMORPHISM  ===================== */
+      #m3-footer {
+        position: fixed; left: 0; right: 0; bottom: 0;
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 14px calc(10px + var(--m3-safe-b));
+        background: var(--glass-bg, rgba(16,18,22,0.78));
+        -webkit-backdrop-filter: blur(var(--glass-blur,20px)) saturate(150%); backdrop-filter: blur(var(--glass-blur,20px)) saturate(150%);
+        border-top: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        box-shadow: 0 -8px 30px rgba(0,0,0,0.35);
+      }
+      /* ---- Boutons footer : base commune ---- */
+      .m3-btn {
+        min-height: 46px; border-radius: 999px;
+        font-family: inherit; font-size: 0.9rem; font-weight: 600;
+        cursor: pointer; -webkit-tap-highlight-color: transparent;
+        display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+        white-space: nowrap; position: relative; isolation: isolate;
+        transition: transform .12s ease, box-shadow .25s ease, border-color .25s ease;
+        -webkit-backdrop-filter: blur(var(--glass-blur,20px)); backdrop-filter: blur(var(--glass-blur,20px));
+      }
+      .m3-btn:active { transform: scale(0.96); }
+
+      /* Bouton secondaire « Photos » — pilule verre fumé neutre */
+      .m3-secondary {
+        flex: 0 1 auto; padding: 0 16px;
+        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
+        color: rgba(255,255,255,0.92);
+        border: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        box-shadow: var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+      }
+      .m3-secondary:hover, .m3-secondary:focus-visible {
+        border-color: rgba(255,255,255,0.24);
+        box-shadow: 0 0 14px rgba(255,255,255,0.08), var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+      }
+      .m3-secondary svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+      .m3-cta { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+
+      /* Boutons rapides WA / Appel — icône seule, pilule verre */
+      .m3-quick {
+        flex: 0 0 auto; width: 46px; height: 46px; border-radius: 999px;
+        display: none; align-items: center; justify-content: center;
+        text-decoration: none; color: rgba(255,255,255,0.92);
+        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
+        border: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        -webkit-backdrop-filter: blur(var(--glass-blur,20px)); backdrop-filter: blur(var(--glass-blur,20px));
+        box-shadow: var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+        transition: border-color .25s ease, box-shadow .25s ease;
+      }
+      .m3-quick.show { display: inline-flex; }
+      .m3-quick svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+      /* WhatsApp : accent vert doux */
+      .m3-quick.m3-call-wa {
+        border-color: rgba(37,211,102,0.35);
+        box-shadow: 0 0 12px rgba(37,211,102,0.18), var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+      }
+      .m3-quick.m3-call-wa:hover { border-color: rgba(37,211,102,0.65); }
+
+      /* Bouton primaire « Prendre RDV » — pilule lum (hérite de .lum-pill) */
+      .m3-primary {
+        flex: 1 1 auto; padding: 0 18px;
+        /* Le fond, le blur, la bordure et le spot lumineux viennent de .lum-pill ;
+           on surcharge seulement ce qui concerne la mise en page. */
+        border-radius: 999px !important;
+        min-height: 46px;
+        font-size: 0.9rem; font-weight: 600;
+      }
+      .m3-primary svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+
+      /* =====================  BOTTOM SHEETS  ===================== */
+      .m3-scrim {
+        position: fixed; inset: 0; z-index: 560;
+        background: rgba(0,0,0,0); -webkit-backdrop-filter: blur(0);
+        opacity: 0; pointer-events: none;
+        transition: opacity .3s ease, background .3s ease;
+      }
+      .m3-scrim.show { opacity: 1; pointer-events: auto; background: rgba(0,0,0,0.45); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+      .m3-sheet {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 570;
+        max-height: 62vh; display: flex; flex-direction: column;
+        padding: 0 16px calc(18px + var(--m3-safe-b));
+        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
+        -webkit-backdrop-filter: blur(var(--glass-blur,20px)) saturate(150%); backdrop-filter: blur(var(--glass-blur,20px)) saturate(150%);
+        border-top: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        border-radius: 22px 22px 0 0;
+        box-shadow: 0 -14px 40px rgba(0,0,0,0.4);
+        transform: translateY(110%);
+        transition: transform .34s cubic-bezier(0.16,1,0.3,1);
+        overflow: hidden;
+      }
+      .m3-sheet.show { transform: translateY(0); }
+      .m3-grip { width: 42px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.32); margin: 12px auto 6px; flex: 0 0 auto; }
+      .m3-sheet h2 { color: #fff; font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 1.15rem; margin: 4px 0 2px; }
+      .m3-sheet p.m3-desc { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin: 0 0 12px; }
+      .m3-sheet-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+      /* Liste des pièces */
+      .m3-rooms { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding: 6px 0 2px; }
+      .m3-room {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 12px; border-radius: 14px;
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
+        color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-align: left;
+      }
+      .m3-room:active { background: rgba(255,255,255,0.12); }
+      .m3-room.active { border-color: rgba(var(--m3-accent-rgb),0.6); background: rgba(var(--m3-accent-rgb),0.14); }
+      .m3-room .m3-room-thumb { width: 54px; height: 40px; flex: 0 0 auto; border-radius: 9px; overflow: hidden; background: rgba(255,255,255,0.08); }
+      .m3-room .m3-room-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .m3-room .m3-room-lbl { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .m3-room .m3-room-check { width: 18px; height: 18px; flex: 0 0 auto; opacity: 0; }
+      .m3-room.visited .m3-room-check { opacity: 1; }
+      .m3-room .m3-room-check svg { width: 100%; height: 100%; stroke: var(--m3-accent); stroke-width: 2.6; fill: none; }
+
+      /* Switch « meublé cette pièce » */
+      .m3-switch { display: flex; align-items: center; gap: 12px; padding: 12px 2px; color: #fff; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
+      .m3-switch input { display: none; }
+      .m3-switch .m3-slider { position: relative; width: 48px; height: 28px; flex: 0 0 auto; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; transition: background .25s ease; }
+      .m3-switch .m3-slider::before { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .25s ease; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+      .m3-switch input:checked + .m3-slider { background: var(--m3-accent); border-color: var(--m3-accent); }
+      .m3-switch input:checked + .m3-slider::before { transform: translateX(20px); }
+      .m3-switch input:disabled + .m3-slider { opacity: 0.45; }
+
+      /* Carrousel photos pièce */
+      .m3-carousel { position: relative; overflow: hidden; border-radius: 14px; background: rgba(255,255,255,0.05); margin: 8px 0 4px; aspect-ratio: 4/3; }
+      .m3-carousel-track { display: flex; height: 100%; transition: transform .3s cubic-bezier(0.16,1,0.3,1); }
+      .m3-slide { flex: 0 0 100%; min-width: 100%; height: 100%; }
+      .m3-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .m3-carousel-dots { display: flex; gap: 6px; justify-content: center; padding: 8px 0 2px; }
+      .m3-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); }
+      .m3-dot.active { background: var(--m3-accent); }
+      .m3-carousel-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(255,255,255,0.5); font-size: 0.85rem; }
+
+      /* =====================  MESURE ASSISTÉE  ===================== */
+      #m3-measure-ov {
+        position: fixed; inset: 0; z-index: 540; display: none;
+        pointer-events: none;
+      }
+      #m3-measure-ov.show { display: block; }
+      .m3-cross {
+        position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+        width: 54px; height: 54px; pointer-events: none;
+      }
+      .m3-cross::before, .m3-cross::after { content: ''; position: absolute; background: var(--m3-accent); box-shadow: 0 0 6px rgba(0,0,0,0.6); }
+      .m3-cross::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-1px); }
+      .m3-cross::after { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-1px); }
+      .m3-cross-ring { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 22px; height: 22px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 6px rgba(0,0,0,0.6); pointer-events: none; }
+      .m3-measure-hint {
+        position: fixed; top: calc(64px + var(--m3-safe-t)); left: 50%; transform: translateX(-50%);
+        background: rgba(14,16,22,0.85); color: #fff; font-size: 0.82rem; font-weight: 500;
+        padding: 8px 16px; border-radius: 999px; white-space: nowrap;
+        -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+        border: 1px solid var(--m3-brd);
+      }
+      .m3-measure-actions {
+        position: fixed; left: 0; right: 0; bottom: calc(84px + var(--m3-safe-b));
+        display: flex; gap: 10px; justify-content: center; pointer-events: none;
+      }
+      .m3-measure-actions button { pointer-events: auto; min-height: 48px; padding: 0 20px; border: none; border-radius: 14px; font-family: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
+      #m3-measure-validate { background: var(--m3-accent); color: #fff; box-shadow: 0 6px 18px rgba(var(--m3-accent-rgb),0.45); }
+      #m3-measure-cancel { background: rgba(255,255,255,0.14); color: #fff; border: 1px solid var(--m3-brd) !important; }
+
+      /* Toast discret (retours d'action) */
+      #m3-toast {
+        position: fixed; left: 50%; bottom: calc(150px + var(--m3-safe-b)); transform: translateX(-50%) translateY(8px);
+        background: rgba(14,16,22,0.9); color: #fff; font-size: 0.84rem; font-weight: 600;
+        padding: 9px 16px; border-radius: 999px; border: 1px solid var(--m3-brd);
+        -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+        opacity: 0; pointer-events: none; z-index: 600; transition: opacity .25s ease, transform .25s ease;
+      }
+      #m3-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      /* Le canvas 3D respecte header + footer : on ne masque rien d'important
+         derrière les barres. (Le moteur gère le ratio via engine.resize().) */
+    }
+
+    /* Paysage téléphone : rail plus compact, sheets un peu plus hautes */
+    @media (max-width: 900px) and (orientation: landscape) {
+      #m3-rail { gap: 6px; padding: 6px; }
+      .m3-tool { width: 42px; height: 42px; }
+      .m3-sheet { max-height: 82vh; }
+    }
   </style>
 </head>
 <body>
@@ -8142,6 +8426,406 @@ init();
     if (document.hidden) { running = false; }
     else { running = true; startTs = null; requestAnimationFrame(tick); }
   });
+})();
+</script>
+
+<!-- ============================================================================
+     MOBILE V3 — Chrome mobile complet (n'est visible que sur écrans ≤ 900px).
+     Rebranché sur l'API 3D existante : le desktop n'utilise jamais ce module.
+     ============================================================================ -->
+<div id="m3-root" aria-hidden="false">
+
+  <!-- HEADER (zone morte) : logo + titre + compteur de pièces -->
+  <header id="m3-header">
+    <div id="m3-logo"></div>
+    <div id="m3-title">Visite 3D</div>
+    <div id="m3-counter" title="Pièces explorées">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5L12 4l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>
+      <span id="m3-counter-txt">0/0</span>
+    </div>
+  </header>
+
+  <!-- RAIL LATÉRAL GAUCHE : Meublé / Cotations / Mesure / Gyroscope -->
+  <aside id="m3-rail" role="toolbar" aria-label="Outils de visite">
+    <button class="m3-tool" id="m3-furnished" title="Meublé / Vide" aria-label="Meublé ou vide">
+      <svg viewBox="0 0 24 24"><path d="M4 18v-3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3M6 13V9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4M4 18v2M20 18v2"/></svg>
+    </button>
+    <button class="m3-tool" id="m3-cotations" title="Cotations (vue de dessus)" aria-label="Cotations">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M3 6v3M8 6v2M13 6v2M18 6v2M21 6v3M3 14h18M3 14v4M21 14v4M3 18h18"/></svg>
+    </button>
+    <button class="m3-tool" id="m3-measure" title="Mesurer" aria-label="Mesurer une distance">
+      <svg viewBox="0 0 24 24"><path d="M2 12l10-10 10 10-10 10zM8 12h1M12 8v1M12 15v1M15 12h1"/></svg>
+    </button>
+    <button class="m3-tool" id="m3-gyro" title="Mode gyroscope" aria-label="Vue gyroscope">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="2.5"/></svg>
+    </button>
+  </aside>
+
+  <!-- FOOTER GLASSMORPHISM : Photos (secondaire) + Appel/WA + Prendre RDV (roi) -->
+  <footer id="m3-footer">
+    <button class="m3-btn m3-secondary" id="m3-photos" aria-label="Voir les photos">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.4"/><path d="M21 16l-5-5-6 6"/></svg>
+      <span>Photos</span>
+    </button>
+    <div class="m3-cta">
+      <a class="m3-quick m3-call-wa" id="m3-wa" href="#" target="_blank" rel="noopener" aria-label="WhatsApp">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.2-5.3A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 9.5c0 3 2 5 5 5"/></svg>
+      </a>
+      <a class="m3-quick" id="m3-call" href="#" aria-label="Appeler">
+        <svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L7.6 9.6a16 16 0 0 0 6 6l1.2-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg>
+      </a>
+      <button class="m3-btn m3-primary lum-pill" id="m3-rdv" aria-label="Prendre rendez-vous">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span>Prendre RDV</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- SCRIM + SHEETS -->
+  <div class="m3-scrim" id="m3-scrim"></div>
+
+  <section class="m3-sheet" id="m3-rooms-sheet" aria-label="Liste des pièces">
+    <div class="m3-grip"></div>
+    <h2>Visiter les pièces</h2>
+    <div class="m3-rooms" id="m3-rooms"></div>
+  </section>
+
+  <section class="m3-sheet" id="m3-room-sheet" aria-label="Détail de la pièce">
+    <div class="m3-grip"></div>
+    <h2 id="m3-room-name">Pièce</h2>
+    <p class="m3-desc" id="m3-room-desc"></p>
+    <div class="m3-sheet-scroll">
+      <div id="m3-room-switch-wrap"></div>
+      <div class="m3-carousel" id="m3-carousel"></div>
+      <div class="m3-carousel-dots" id="m3-carousel-dots"></div>
+    </div>
+  </section>
+
+  <!-- OVERLAY MESURE ASSISTÉE (croix centrale + validation) -->
+  <div id="m3-measure-ov">
+    <div class="m3-measure-hint">Visez un point avec la croix, puis validez</div>
+    <div class="m3-cross-ring"></div>
+    <div class="m3-cross"></div>
+    <div class="m3-measure-actions">
+      <button id="m3-measure-cancel">Terminer</button>
+      <button id="m3-measure-validate">✓ Placer le point</button>
+    </div>
+  </div>
+
+  <div id="m3-toast"></div>
+</div>
+
+<script>
+/* ============================================================================
+   MOBILE V3 — logique. IIFE autonome, rebranchée sur les fonctions du viewer.
+   Toutes les lectures des variables globales du viewer (camera, scene, …) sont
+   protégées par try/catch : si une fonction n'existe pas, on dégrade sans crash.
+   Rien ici ne s'exécute pour le desktop (gardes isPhone()).
+   ============================================================================ */
+(function MobileV3(){
+  'use strict';
+  var mq   = window.matchMedia('(max-width: 900px)');
+  var root = document.getElementById('m3-root');
+  if (!root) return;
+
+  var $ = function(id){ return document.getElementById(id); };
+  function isPhone(){ return mq.matches; }
+  function haptic(ms){ try { if (navigator.vibrate) navigator.vibrate(ms||10); } catch(e){} }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function cnv(){ return document.getElementById('canvas'); }
+
+  /* ---- Accès sûrs aux globales du viewer (variables let/const partagées) ---- */
+  function cam(){ try { return camera || null; } catch(e){ return null; } }
+  function scn(){ try { return scene  || null; } catch(e){ return null; } }
+  function inPOV(){ try { return !!isFirstPerson; } catch(e){ return false; } }
+  function isTop(){ try { return !!isTopView;    } catch(e){ return false; } }
+  function furnishedOn(){ try { return !!furnishedVisible; } catch(e){ return false; } }
+  function propData(){ try { return propertyData || null; } catch(e){ return null; } }
+  function assetsBase(){ try { return CONFIG.assetsBase(CONFIG.propertyId); } catch(e){ return './'; } }
+  function photoVer(){ try { return CONFIG.photoVersion; } catch(e){ return ''; } }
+  function pois(){ try { return (typeof poisInStableOrder==='function') ? (poisInStableOrder()||[]) : ((propData()&&propData().poi)||[]); } catch(e){ return []; } }
+  function labelOf(p){ try { return (typeof poiLabel==='function') ? poiLabel(p) : (p.label||p.id||'Pièce'); } catch(e){ return (p&&(p.label||p.id))||'Pièce'; } }
+  function roomsData(){ try { return roomList || []; } catch(e){ return []; } }
+  function roomStates(){ try { return roomState || {}; } catch(e){ return {}; } }
+  function call(name){ try { var f = window[name]; if (typeof f==='function') return f.apply(null, [].slice.call(arguments,1)); } catch(e){} }
+
+  /* ---- Toast ---- */
+  var toastT=null;
+  function toast(msg){ var t=$('m3-toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove('show'); }, 1900); }
+
+  function setActive(btn, on){ if(btn) btn.classList.toggle('active', !!on); }
+
+  /* ======================  HEADER : logo, titre, compteur  ================= */
+  function initLogo(){
+    var el=$('m3-logo'); if(!el) return;
+    try {
+      if (window.brandLogoHTML && window.__BRAND__) {
+        var html = window.brandLogoHTML(window.__BRAND__);
+        if (html) { el.innerHTML = html; return; }
+      }
+    } catch(e){}
+    var nm = (window.__BRAND__ && window.__BRAND__.name) || 'Visite 3D';
+    el.innerHTML = '<span style="font-weight:800;color:#fff;font-size:.9rem;white-space:nowrap;">'+esc(nm)+'</span>';
+  }
+  function syncTitle(){
+    var src=$('header-title'); var dst=$('m3-title');
+    if (src && dst && src.textContent) dst.textContent = src.textContent;
+  }
+  function updateCounter(){
+    var total = pois().length;
+    var seen = 0; try { seen = (window.__visited && window.__visited.size) || 0; } catch(e){}
+    if (seen > total) seen = total;
+    var t=$('m3-counter-txt'); if(t) t.textContent = seen+'/'+total;
+  }
+  function markVisited(id){
+    try { if (window.__visited && id && !window.__visited.has(id)) { window.__visited.add(id); haptic(6); } } catch(e){}
+    updateCounter(); buildRooms();
+  }
+
+  /* ======================  SHEETS  ======================= */
+  function showScrim(on){ var s=$('m3-scrim'); if(s) s.classList.toggle('show', !!on); }
+  function closeSheets(){ var a=$('m3-rooms-sheet'), b=$('m3-room-sheet'); if(a)a.classList.remove('show'); if(b)b.classList.remove('show'); showScrim(false); }
+  function showSheet(id){
+    var a=$('m3-rooms-sheet'), b=$('m3-room-sheet');
+    if(a)a.classList.remove('show'); if(b)b.classList.remove('show');
+    var el=$(id); if(el){ el.classList.add('show'); showScrim(true); haptic(8); }
+  }
+
+  /* Liste des pièces */
+  function buildRooms(){
+    var cont=$('m3-rooms'); if(!cont) return;
+    var list=pois(); var cur=''; try{ cur=currentPoiId; }catch(e){}
+    cont.innerHTML='';
+    if(!list.length){ cont.innerHTML='<div style="color:rgba(255,255,255,.6);font-size:.85rem;padding:8px 2px;">Aucune pièce déclarée.</div>'; return; }
+    list.forEach(function(poi){
+      var visited=false; try{ visited = window.__visited && window.__visited.has(poi.id); }catch(e){}
+      var active = poi.id===cur;
+      var row=document.createElement('button');
+      row.className='m3-room'+(visited?' visited':'')+(active?' active':'');
+      row.innerHTML =
+        '<span class="m3-room-lbl">'+esc(labelOf(poi))+'</span>'+
+        '<span class="m3-room-check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>';
+      row.addEventListener('click', function(){ openRoom(poi); });
+      cont.appendChild(row);
+    });
+  }
+
+  /* Détail d'une pièce : nom, description, switch meublé, carrousel */
+  var carPoi=null, carIndex=0, carUrls=[];
+  function openRoom(poi){
+    $('m3-room-name').textContent = labelOf(poi);
+    var d = poi.desc || poi.description || '';
+    var p=$('m3-room-desc'); p.textContent=d; p.style.display = d?'block':'none';
+    buildRoomSwitch(poi);
+    buildCarousel(poi);
+    showSheet('m3-room-sheet');
+    markVisited(poi.id);
+  }
+  function matchRoom(poi){
+    var rl=roomsData();
+    for (var i=0;i<rl.length;i++){
+      if (rl[i].id===poi.id) return rl[i];
+      if (labelOf(rl[i]).toLowerCase()===labelOf(poi).toLowerCase()) return rl[i];
+    }
+    return null;
+  }
+  function buildRoomSwitch(poi){
+    var wrap=$('m3-room-switch-wrap'); if(!wrap) return;
+    var r=matchRoom(poi);
+    if(!r){ wrap.innerHTML=''; return; }
+    var st = roomStates()[r.id] || {};
+    var checked = st.enabled ? 'checked' : '';
+    var disabled = (!st.loaded || st.failed) ? 'disabled' : '';
+    wrap.innerHTML =
+      '<label class="m3-switch">'+
+        '<input type="checkbox" id="m3-room-furnished" '+checked+' '+disabled+'>'+
+        '<span class="m3-slider"></span>'+
+        '<span>Afficher le mobilier de cette pièce</span>'+
+      '</label>';
+    var inp=$('m3-room-furnished');
+    if(inp) inp.addEventListener('change', function(){ call('toggleRoom', r.id, this.checked); haptic(6); });
+  }
+
+  /* Carrousel photos de la pièce (même URL que le lightbox du viewer) */
+  function photoURLs(poi){
+    var base=assetsBase(), pv=photoVer(), arr=[];
+    if (Array.isArray(poi.photos) && poi.photos.length) arr=poi.photos;
+    else if (poi.image) arr=[poi.image];
+    return arr.map(function(f){ return base+encodeURIComponent(f)+(pv?('?v='+pv):''); });
+  }
+  function buildCarousel(poi){
+    carPoi=poi; carIndex=0; carUrls=photoURLs(poi);
+    var car=$('m3-carousel'), dots=$('m3-carousel-dots');
+    if(!car) return;
+    if(!carUrls.length){
+      car.innerHTML='<div class="m3-carousel-empty">Pas de photo pour cette pièce</div>';
+      if(dots) dots.innerHTML=''; return;
+    }
+    var slides = carUrls.map(function(u){ return '<div class="m3-slide"><img src="'+esc(u)+'" alt="" onerror="this.parentNode.style.display=\'none\'"></div>'; }).join('');
+    car.innerHTML='<div class="m3-carousel-track" id="m3-carousel-track">'+slides+'</div>';
+    if(dots) dots.innerHTML = carUrls.map(function(_,i){ return '<span class="m3-dot'+(i===0?' active':'')+'"></span>'; }).join('');
+    // tap plein écran → réutilise le lightbox natif du viewer
+    car.onclick = function(){ try { if (typeof openPoiPhotosMobile==='function') openPoiPhotosMobile(poi); } catch(e){} };
+    initCarouselSwipe();
+  }
+  function goSlide(i){
+    var track=$('m3-carousel-track'); if(!track) return;
+    carIndex = Math.max(0, Math.min(i, carUrls.length-1));
+    track.style.transform='translateX('+(-carIndex*100)+'%)';
+    var dots=$('m3-carousel-dots'); if(dots){ [].forEach.call(dots.children, function(d,idx){ d.classList.toggle('active', idx===carIndex); }); }
+    haptic(4);
+  }
+  function initCarouselSwipe(){
+    var track=$('m3-carousel-track'); if(!track) return;
+    var x0=0, dx=0, drag=false;
+    track.addEventListener('touchstart', function(e){ drag=true; x0=e.touches[0].clientX; dx=0; track.style.transition='none'; }, {passive:true});
+    track.addEventListener('touchmove', function(e){ if(!drag) return; dx=e.touches[0].clientX-x0; track.style.transform='translateX(calc('+(-carIndex*100)+'% + '+dx+'px))'; }, {passive:true});
+    track.addEventListener('touchend', function(){ if(!drag) return; drag=false; track.style.transition=''; var w=track.clientWidth||1; if(dx<-w*0.22) goSlide(carIndex+1); else if(dx>w*0.22) goSlide(carIndex-1); else goSlide(carIndex); }, {passive:true});
+  }
+
+  /* ======================  MESURE ASSISTÉE  ======================= */
+  var measureOn=false;
+  function toggleMeasure(){
+    if(!measureOn){
+      call('toggleMeasure');                 // arme le vrai moteur de mesure du viewer
+      measureOn=true; setActive($('m3-measure'), true);
+      $('m3-measure-ov').classList.add('show');
+      chromeVisible(false);
+      toast('Mesure : visez puis « Placer le point »'); haptic(10);
+    } else { endMeasure(); }
+  }
+  function endMeasure(){
+    if(measureOn){ call('toggleMeasure'); }   // désarme
+    measureOn=false; setActive($('m3-measure'), false);
+    $('m3-measure-ov').classList.remove('show');
+    chromeVisible(true); haptic(8);
+  }
+  function chromeVisible(on){
+    ['m3-header','m3-footer','m3-rail'].forEach(function(id){ var el=$(id); if(el) el.style.visibility = on?'':'hidden'; });
+  }
+  function tapCenter(){
+    var c=cnv(); if(!c) return;
+    var r=c.getBoundingClientRect();
+    var x=r.left+r.width/2, y=r.top+r.height/2;
+    try {
+      c.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true,cancelable:true,clientX:x,clientY:y,pointerType:'touch',isPrimary:true,button:0}));
+      c.dispatchEvent(new PointerEvent('pointerup',   {bubbles:true,cancelable:true,clientX:x,clientY:y,pointerType:'touch',isPrimary:true,button:0}));
+      c.dispatchEvent(new MouseEvent('click', {bubbles:true,cancelable:true,clientX:x,clientY:y}));
+    } catch(e){
+      c.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,clientX:x,clientY:y}));
+      c.dispatchEvent(new MouseEvent('mouseup',  {bubbles:true,clientX:x,clientY:y}));
+    }
+    haptic(18);
+  }
+
+  /* ======================  FOV ADAPTATIF (portrait)  ======================= */
+  var baseFov=null;
+  function applyFov(){
+    if(!isPhone()) return;
+    var c=cam(); if(!c || inPOV()) return;
+    if(baseFov==null){ try { baseFov=(typeof defaultFov!=='undefined'&&defaultFov)?defaultFov:c.fov; } catch(e){ baseFov=c.fov; } }
+    var portrait = window.innerHeight >= window.innerWidth;
+    var target = portrait ? Math.min(1.2, baseFov*1.45) : baseFov;   // élargit en portrait, restaure en paysage
+    c.fov = target;
+    try { defaultFov = target; } catch(e){}   // conserve à la sortie des POV
+  }
+
+  /* ======================  GYROSCOPE  ======================= */
+  var gyroOn=false, gyroCam=null, savedCam=null;
+  function toggleGyro(){
+    var s=scn(), c=cam(); if(!s || !c) { toast('Scène non prête'); return; }
+    if(inPOV()){ toast('Sortez de la pièce pour la vue gyroscope'); return; }
+    if(!gyroOn){
+      var start=function(){
+        try {
+          gyroCam = new BABYLON.DeviceOrientationCamera('m3Gyro', c.position.clone(), s);
+          var tgt = (c.getTarget && c.getTarget()) || BABYLON.Vector3.Zero();
+          gyroCam.setTarget(tgt);
+          gyroCam.fov = c.fov;
+          try { c.detachControl(); } catch(e){}
+          savedCam = s.activeCamera;
+          s.activeCamera = gyroCam;
+          try { gyroCam.attachControl(cnv(), true); } catch(e){}
+          gyroOn=true; setActive($('m3-gyro'), true); haptic(15); toast('Vue gyroscope activée');
+        } catch(err){ toast('Gyroscope indisponible'); }
+      };
+      if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission==='function'){
+        DeviceOrientationEvent.requestPermission().then(function(p){ if(p==='granted') start(); else toast('Permission gyroscope refusée'); }).catch(function(){ toast('Gyroscope indisponible'); });
+      } else { start(); }
+    } else {
+      try {
+        if(gyroCam){ try { gyroCam.detachControl(); } catch(e){} }
+        s.activeCamera = savedCam || c;
+        try { c.attachControl(cnv(), true); } catch(e){}
+        if(gyroCam){ gyroCam.dispose(); gyroCam=null; }
+      } catch(e){}
+      gyroOn=false; setActive($('m3-gyro'), false); haptic(10); toast('Vue gyroscope désactivée');
+    }
+  }
+
+  /* ======================  CONTACT (tel / WhatsApp)  ======================= */
+  function initContact(){
+    var cfg = window.agencyConfig || {};
+    var tel = cfg.phone || (window.__BRAND__ && window.__BRAND__.phone);
+    var wa  = cfg.whatsapp || (window.__BRAND__ && window.__BRAND__.whatsapp);
+    var call=$('m3-call'), waEl=$('m3-wa');
+    if (tel && call){ call.href='tel:'+String(tel).replace(/\s+/g,''); call.classList.add('show'); }
+    if (wa && waEl){ var n=String(wa).replace(/[^0-9]/g,''); waEl.href='https://wa.me/'+n; waEl.classList.add('show'); }
+  }
+
+  /* ======================  CÂBLAGE ÉVÉNEMENTS  ======================= */
+  function bind(){
+    $('m3-furnished').addEventListener('click', function(){ call('toggleFurnished'); setActive(this, furnishedOn()); haptic(8); });
+    $('m3-cotations').addEventListener('click', function(){ call('toggleViewMode'); setTimeout(function(){ setActive($('m3-cotations'), isTop()); applyFov(); }, 60); haptic(8); });
+    $('m3-measure').addEventListener('click', toggleMeasure);
+    $('m3-gyro').addEventListener('click', toggleGyro);
+
+    $('m3-photos').addEventListener('click', function(){ buildRooms(); showSheet('m3-rooms-sheet'); });
+    $('m3-rdv').addEventListener('click', function(){ call('openRdv'); haptic(10); });
+
+    $('m3-measure-validate').addEventListener('click', tapCenter);
+    $('m3-measure-cancel').addEventListener('click', endMeasure);
+
+    $('m3-scrim').addEventListener('click', closeSheets);
+    // Poignées : tap ou glissé vers le bas → fermer
+    [].forEach.call(document.querySelectorAll('#m3-root .m3-grip'), function(g){
+      g.addEventListener('click', closeSheets);
+      var y0=0;
+      g.addEventListener('touchstart', function(e){ y0=e.touches[0].clientY; }, {passive:true});
+      g.addEventListener('touchend', function(e){ if(e.changedTouches[0].clientY - y0 > 40) closeSheets(); }, {passive:true});
+    });
+
+    var deb;
+    function onResize(){ clearTimeout(deb); deb=setTimeout(applyFov, 150); }
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', function(){ setTimeout(applyFov, 250); });
+  }
+
+  /* ======================  SYNC PÉRIODIQUE LÉGER  ======================= */
+  function sync(){
+    if(!isPhone()) return;
+    syncTitle();
+    updateCounter();
+    setActive($('m3-furnished'), furnishedOn());
+    setActive($('m3-cotations'), isTop());
+  }
+
+  /* ======================  DÉMARRAGE  ======================= */
+  function boot(){
+    initLogo(); initContact(); bind(); syncTitle(); updateCounter();
+    // Observe le titre du viewer pour le refléter dans le header mobile
+    try {
+      var src=$('header-title');
+      if (src && window.MutationObserver){ new MutationObserver(syncTitle).observe(src, {childList:true, subtree:true, characterData:true}); }
+    } catch(e){}
+    // Attend que la caméra soit prête pour appliquer le FOV portrait
+    var tries=0;
+    var wait=setInterval(function(){ tries++; if(cam()){ clearInterval(wait); applyFov(); buildRooms(); } else if(tries>60){ clearInterval(wait); } }, 250);
+    setInterval(sync, 700);
+  }
+
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();
 </script>
 </body>
