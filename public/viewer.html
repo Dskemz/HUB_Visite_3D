@@ -423,7 +423,7 @@
     .poi-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: 4px; margin-bottom: 1rem; background: #222; }
     .poi-image[src=""] { display: none; }
     
-    /* ancien reset-btn supprimé — voir #recenter-home plus bas */
+    /* bouton recentrer supprimé */
 
     /* ----- OUTIL MESURE (visiteur) ----- */
     .measure-btn {
@@ -1036,7 +1036,7 @@
       .room-section { display: none !important; }   /* switches « éléments par pièce » */
       .fp-photo-hint { display: none !important; }  /* « Cliquez sur une photo… » */
       .sheet-handle-hint { display: none !important; } /* « Glisser ▲ » (la poignée suffit) */
-      .recenter-lbl { display: none; }               /* « Recentrer » → icône seule sur mobile */
+      /* bouton recentrer supprimé */
 
       /* ====== CIBLES TACTILES ======
          Seuil de confort reconnu (Apple HIG / Material) : 44px. Plusieurs commandes
@@ -1064,7 +1064,7 @@
       }
 
       /* Supprime le délai de 300 ms des navigateurs mobiles → frappe immédiate. */
-      .back-btn, .toggle-view-btn, .recenter-home, .poi-btn, .poi-mini,
+      .back-btn, .toggle-view-btn, .poi-btn, .poi-mini,
       .fp-poi-btn, .fp-back-btn, .lightbox-btn, .lightbox-close {
         touch-action: manipulation; -webkit-tap-highlight-color: transparent;
       }
@@ -1074,12 +1074,7 @@
       .toggle-panel-btn { display: none !important; }
       .placement-toggle, .placement-panel { display: none !important; }
 
-      /* Bouton « Recentrer » remonté en haut à droite sur mobile */
-      .recenter-home {
-        top: calc(var(--hdr-top) + 8px); right: 0.7rem; bottom: auto; left: auto;
-        width: 44px; height: 44px; padding: 0; gap: 0;
-        justify-content: center; font-size: 1.1rem; line-height: 1;
-      }
+      /* bouton recentrer supprimé */
 
       /* L'astuce « regarder autour » passe au-dessus de la feuille repliée. */
       .fp-look-hint { bottom: 7.2rem; }
@@ -1230,8 +1225,7 @@
       .sheet-grip { width: 5px; height: 44px; }
       .sheet-handle-row { display: none; }  /* trop étroit : la poignée suffit */
       .poi-panel { padding: 0.8rem 0.9rem calc(0.8rem + env(safe-area-inset-bottom)); }
-      /* Recentrer décalé pour ne pas passer sous la tranche de la feuille. */
-      .recenter-home { right: 2.6rem; }
+      /* bouton recentrer supprimé */
       .fp-look-hint { bottom: 1.4rem; }
     }
 
@@ -1873,58 +1867,7 @@
        ne capte pas les clics (les pilules, elles, sont pointer-events:auto). */
     .header-bar{ background: transparent !important; height: auto !important; pointer-events: none !important; }
 
-    /* ====== NOUVEAU BOUTON RECENTRER (#recenter-home) ====== */
-    .recenter-home {
-      position: fixed;
-      bottom: 1.2rem;
-      right: 1.2rem;
-      z-index: 42;
-      pointer-events: auto;
-      display: none;                /* INVISIBLE par défaut */
-      align-items: center;
-      gap: 0.4rem;
-      border-radius: 999px;
-      padding: 0.6rem 1.1rem;
-      cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 500;
-      font-family: inherit;
-      border: 1px solid var(--glass-brd);
-      background: var(--glass-bg);
-      -webkit-backdrop-filter: blur(var(--glass-blur));
-      backdrop-filter: blur(var(--glass-blur));
-      color: #fff;
-      box-shadow: var(--glass-shadow);
-      transition: background .2s ease, border-color .2s ease, box-shadow .3s ease, text-shadow .2s ease, right .35s cubic-bezier(.22,.61,.36,1);
-    }
-    /* VISIBLE = display flex + pulsation émissive douce */
-    .recenter-home.on {
-      display: inline-flex;
-      animation: recenterGlow 2.6s ease-in-out infinite;
-    }
-    @keyframes recenterGlow {
-      0%, 100% { box-shadow: 0 0 5px rgba(var(--brand-accent-rgb),0.12), var(--glass-shadow); }
-      50%      { box-shadow: 0 0 16px rgba(var(--brand-accent-rgb),0.40), var(--glass-shadow); }
-    }
-    /* HOVER = émission forte, pulsation stoppée */
-    .recenter-home:hover {
-      animation: none;
-      background: var(--glass-bg-strong);
-      border-color: rgba(var(--brand-accent-rgb),0.7);
-      box-shadow:
-        0 0 24px rgba(var(--brand-accent-rgb),0.55),
-        0 0 52px rgba(var(--brand-accent-rgb),0.22),
-        inset 0 1px 0 rgba(255,255,255,0.12),
-        var(--glass-shadow);
-      text-shadow: 0 0 10px rgba(var(--brand-accent-rgb),0.6);
-    }
-    /* Quand le panneau pièces est ouvert → décaler le bouton */
-    body.poi-panel-open .recenter-home {
-      right: calc(clamp(300px, 21vw, 560px) + 1.2rem);
-    }
-    @media (max-width: 900px){
-      body.poi-panel-open .recenter-home { right: 0.7rem; }
-    }
+    /* bouton recentrer supprimé */
 
     /* Bouton "Visite guidée" → verre + liseré discret (plus d'aplat orange) */
     .cine-guide{
@@ -2365,8 +2308,7 @@
     <p id="info-desc"></p>
   </div>
 
-  <button class="recenter-home" id="recenter-home" title="Recentrer la vue"
-  ><span class="recenter-ico">⟳</span><span class="recenter-lbl">Recentrer</span></button>
+  <!-- bouton recentrer supprimé -->
 
   <!-- OUTIL MESURE (visiteur) : overlay des tracés + astuce + effacer -->
   <svg id="ruler-overlay" xmlns="http://www.w3.org/2000/svg"
@@ -4551,17 +4493,13 @@ function frameModel(root) {
         currentAnimObserver = null;
         try { camera.attachControl(document.getElementById('canvas'), true); } catch(_){}
         isAnimating = false;
-        // Bouton Recentrer : sauvegarder cette position comme « home »
-        if (typeof window.recenterSave === 'function') window.recenterSave();
-        if (typeof window.recenterStart === 'function') window.recenterStart();
+        /* bouton recentrer supprimé */
       }
     });
     currentAnimObserver = obs;
   };
 
-  // Fallback : si l'intro cinématique n'est pas jouée, sauver le home tout de suite
-  if (typeof window.recenterSave === 'function') window.recenterSave();
-  if (typeof window.recenterStart === 'function') window.recenterStart();
+  /* bouton recentrer supprimé */
 
   console.log(`✅ Cadré — centre ${center}, rayon ${radius.toFixed(2)}, distance ${distance.toFixed(2)}`);
 }
@@ -4576,219 +4514,72 @@ function wrapAlphaNear(current, target) {
   return a;
 }
 
-/* ============================================================================
-   BOUTON RECENTRER — NEUF (zéro héritage)
-
-   Principe ultra-simple :
-   1. Après le chargement du modèle, on enregistre alpha/beta/radius/target/fov
-   2. Chaque frame on compare → si différent, le bouton apparaît
-   3. Au clic, on anime la caméra vers ces valeurs → le bouton disparaît
-   ============================================================================ */
-(function(){
-  // === État ===
-  var homeA, homeB, homeR, homeT, homeF;   // coordonnées « maison »
-  var saved = false;                        // home enregistré ?
-  var animObs = null;                       // observer d'animation en cours
-  var btn = null;                           // référence DOM
-
-  // === Normalisation alpha [-π, +π] ===
-  function normA(a) {
-    a = a % (Math.PI * 2);
-    if (a >  Math.PI) a -= Math.PI * 2;
-    if (a < -Math.PI) a += Math.PI * 2;
-    return a;
+/* resetView() — utilisé par exitFirstPerson() et toggleViewMode() */
+function resetView() {
+  if (!camera || !scene || !initialFraming) return;
+  if (currentAnimObserver) {
+    try { scene.onBeforeRenderObservable.remove(currentAnimObserver); } catch(e){}
+    currentAnimObserver = null;
   }
-
-  // === La caméra est-elle à la maison ? ===
-  function isHome() {
-    if (!saved || !camera) return true;
-    var da = Math.abs(normA(camera.alpha) - normA(homeA));
-    if (da > Math.PI) da = Math.PI * 2 - da;
-    var db = Math.abs(camera.beta - homeB);
-    var dr = Math.abs(camera.radius - homeR);
-    var dt = camera.target.subtract(homeT).length();
-    return da < 0.02 && db < 0.02 && dr < 0.15 && dt < 0.15;
+  if (isFirstPerson) {
+    try { exitPanoramaCamera(); } catch(e){}
+    isFirstPerson = false;
   }
-
-  // === Montrer / cacher le bouton ===
-  function syncBtn() {
-    if (!btn) btn = document.getElementById('recenter-home');
-    if (!btn) return;
-    if (isHome() || isFirstPerson) {
-      btn.classList.remove('on');
-    } else {
-      btn.classList.add('on');
-    }
+  if (scene.activeCamera !== camera) {
+    try { scene.activeCamera.detachControl(); } catch(e){}
   }
-
-  // === Sauvegarder le home ===
-  function saveHome() {
-    if (!camera) return;
-    homeA = camera.alpha;
-    homeB = camera.beta;
-    homeR = camera.radius;
-    homeT = camera.target.clone();
-    homeF = camera.fov;
-    saved = true;
-    console.log('[Recenter] Home sauvé α=' + homeA.toFixed(3) + ' β=' + homeB.toFixed(3) + ' r=' + homeR.toFixed(2));
-  }
-
-  // === Démarrer la surveillance (1 appel, tourne pour toujours) ===
-  function startWatch() {
-    if (!scene) return;
-    scene.onAfterRenderObservable.add(syncBtn);
-  }
-
-  // === Recentrer la caméra ===
-  function goHome() {
-    console.log('[Recenter] goHome() déclenché');
-    if (!camera || !scene || !saved) {
-      console.warn('[Recenter] pas prêt — camera:', !!camera, 'scene:', !!scene, 'saved:', saved);
-      return;
-    }
-
-    // Arrêter une animation en cours
-    if (animObs) {
-      try { scene.onBeforeRenderObservable.remove(animObs); } catch(e){}
-      animObs = null;
-    }
-    if (currentAnimObserver) {
-      try { scene.onBeforeRenderObservable.remove(currentAnimObserver); } catch(e){}
+  scene.activeCamera = camera;
+  camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+  camera.orthoTop = camera.orthoBottom = camera.orthoLeft = camera.orthoRight = null;
+  camera.lowerRadiusLimit = null;
+  camera.upperRadiusLimit = null;
+  camera.lowerBetaLimit = 0.05;
+  camera.upperBetaLimit = Math.PI / 2;
+  camera.inertialAlphaOffset = 0;
+  camera.inertialBetaOffset = 0;
+  camera.inertialRadiusOffset = 0;
+  camera.inertialPanningX = 0;
+  camera.inertialPanningY = 0;
+  if (camera.targetScreenOffset) { camera.targetScreenOffset.x = 0; camera.targetScreenOffset.y = 0; }
+  var cnv = document.getElementById('canvas');
+  try { camera.detachControl(); } catch(e){}
+  isAnimating = true;
+  isTopView = false;
+  try { setMarkersVisible(true); } catch(e){}
+  camera.panningSensibility = 300;
+  camera.angularSensibilityX = 1000;
+  camera.angularSensibilityY = 1000;
+  var hA = initialFraming.alpha, hB = initialFraming.beta, hR = initialFraming.radius, hT = initialFraming.target;
+  camera.alpha = wrapAlphaNear(camera.alpha, hA);
+  var s = { a: camera.alpha, b: camera.beta, r: camera.radius, f: camera.fov, t: camera.target.clone() };
+  var DUR = 1200, t0 = performance.now();
+  currentAnimObserver = scene.onBeforeRenderObservable.add(function() {
+    var p = Math.min((performance.now() - t0) / DUR, 1);
+    var k = 1 - Math.pow(1 - p, 3);
+    camera._target.copyFrom(BABYLON.Vector3.Lerp(s.t, hT, k));
+    camera.alpha  = s.a + (hA - s.a) * k;
+    camera.beta   = s.b + (hB - s.b) * k;
+    camera.radius = s.r + (hR - s.r) * k;
+    if (p >= 1) {
+      scene.onBeforeRenderObservable.remove(currentAnimObserver);
       currentAnimObserver = null;
-    }
-
-    // Sortir du mode première personne si actif
-    if (isFirstPerson) {
-      try { exitPanoramaCamera(); } catch(e){}
-      isFirstPerson = false;
-    }
-
-    // S'assurer qu'on est sur la bonne caméra
-    if (scene.activeCamera !== camera) {
-      try { scene.activeCamera.detachControl(); } catch(e){}
-    }
-    scene.activeCamera = camera;
-
-    // Mode perspective
-    camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
-    camera.orthoTop = camera.orthoBottom = camera.orthoLeft = camera.orthoRight = null;
-
-    // Débloquer les limites
-    camera.lowerRadiusLimit = null;
-    camera.upperRadiusLimit = null;
-    camera.lowerBetaLimit = 0.05;
-    camera.upperBetaLimit = Math.PI / 2;
-
-    // Tuer toute inertie
-    camera.inertialAlphaOffset = 0;
-    camera.inertialBetaOffset = 0;
-    camera.inertialRadiusOffset = 0;
-    camera.inertialPanningX = 0;
-    camera.inertialPanningY = 0;
-    if (camera.targetScreenOffset) {
-      camera.targetScreenOffset.x = 0;
-      camera.targetScreenOffset.y = 0;
-    }
-
-    // Détacher contrôles pendant l'animation
-    var cnv = document.getElementById('canvas');
-    try { camera.detachControl(); } catch(e){}
-
-    // Flags
-    isAnimating = true;
-    isTopView = false;
-    try { setMarkersVisible(true); } catch(e){}
-
-    // Sensibilités normales
-    camera.panningSensibility = 300;
-    camera.angularSensibilityX = 1000;
-    camera.angularSensibilityY = 1000;
-
-    // Normaliser alpha pour le chemin le plus court
-    camera.alpha = wrapAlphaNear(camera.alpha, homeA);
-
-    // Snapshots de départ
-    var s = {
-      a: camera.alpha,
-      b: camera.beta,
-      r: camera.radius,
-      f: camera.fov,
-      t: camera.target.clone()
-    };
-
-    console.log('[Recenter] de α=' + s.a.toFixed(3) + ' β=' + s.b.toFixed(3) + ' r=' + s.r.toFixed(2) +
-                ' → α=' + homeA.toFixed(3) + ' β=' + homeB.toFixed(3) + ' r=' + homeR.toFixed(2));
-
-    var DUR = 1200;
-    var t0 = performance.now();
-
-    animObs = scene.onBeforeRenderObservable.add(function() {
-      var p = Math.min((performance.now() - t0) / DUR, 1);
-      var k = 1 - Math.pow(1 - p, 3);  // easeOutCubic
-
-      // IMPORTANT : setTarget() appelle rebuildAnglesAndRadius() en interne,
-      // ce qui ÉCRASE alpha/beta/radius. On doit donc poser le target EN PREMIER
-      // puis écrire alpha/beta/radius APRÈS pour que nos valeurs gagnent.
-      camera._target.copyFrom(BABYLON.Vector3.Lerp(s.t, homeT, k));
-      camera.alpha  = s.a + (homeA - s.a) * k;
-      camera.beta   = s.b + (homeB - s.b) * k;
-      camera.radius = s.r + (homeR - s.r) * k;
-      camera.fov    = s.f + (homeF - s.f) * k;
-
-      if (p >= 1) {
-        // Terminé
-        scene.onBeforeRenderObservable.remove(animObs);
-        animObs = null;
-
-        // Valeurs exactes — même ordre : target d'abord, angles après
-        camera._target.copyFrom(homeT);
-        camera.alpha  = homeA;
-        camera.beta   = homeB;
-        camera.radius = homeR;
-        camera.fov    = homeF;
-
-        // Remettre les limites
-        if (modelBounds) {
-          camera.lowerRadiusLimit = modelBounds.radius * (typeof zoomInRatio === 'function' ? zoomInRatio() : 0.3);
-          camera.upperRadiusLimit = homeR * CONFIG.zoomOutLimitRatio;
-          camera.minZ = modelBounds.radius * CONFIG.clipNearRatio;
-        }
-        if (typeof applyViewportShift === 'function') applyViewportShift(camera);
-        try { camera.attachControl(cnv, true); } catch(e){}
-        isAnimating = false;
-        currentPoiId = null;
-        try { updateToggleButton(); } catch(e){}
-        try { if (typeof updateBreadcrumb === 'function') updateBreadcrumb(); } catch(e){}
-        try { rebuildPoiList(); } catch(e){}
-        console.log('[Recenter] ✅ Terminé');
+      camera._target.copyFrom(hT);
+      camera.alpha = hA; camera.beta = hB; camera.radius = hR;
+      if (modelBounds) {
+        camera.lowerRadiusLimit = modelBounds.radius * (typeof zoomInRatio === 'function' ? zoomInRatio() : 0.3);
+        camera.upperRadiusLimit = hR * CONFIG.zoomOutLimitRatio;
+        camera.minZ = modelBounds.radius * CONFIG.clipNearRatio;
       }
-    });
-  }
-
-  // === Exposer sur window ===
-  window.recenterGoHome  = goHome;
-  window.recenterSave    = saveHome;
-  window.recenterStart   = startWatch;
-
-  // === Alias resetView pour compatibilité (exitFirstPerson, toggleViewMode) ===
-  window.resetView = goHome;
-
-  // === Brancher le clic IMMÉDIATEMENT ===
-  // (DOMContentLoaded a déjà été émis car ce code tourne après des await dans init())
-  var b = document.getElementById('recenter-home');
-  if (b) {
-    b.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log('[Recenter] CLIC détecté');
-      goHome();
-    });
-    console.log('[Recenter] ✅ Bouton branché via addEventListener');
-  } else {
-    console.error('[Recenter] ❌ Bouton #recenter-home introuvable dans le DOM !');
-  }
-
-})();
+      if (typeof applyViewportShift === 'function') applyViewportShift(camera);
+      try { camera.attachControl(cnv, true); } catch(e){}
+      isAnimating = false;
+      currentPoiId = null;
+      try { updateToggleButton(); } catch(e){}
+      try { if (typeof updateBreadcrumb === 'function') updateBreadcrumb(); } catch(e){}
+      try { rebuildPoiList(); } catch(e){}
+    }
+  });
+}
 
 /* ============================================================================
    CHARGEMENT DU PLAFOND
