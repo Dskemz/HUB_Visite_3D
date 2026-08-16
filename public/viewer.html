@@ -2249,6 +2249,16 @@
       .rdv-topright { top: calc(6px + env(safe-area-inset-top, 0px)) !important; right: 8px !important; }
       .rdv-topright .rdv-pill { padding: 8px 14px !important; font-size: 0.82rem !important; }
 
+      /* Bloc outils remonté légèrement pour ne plus être collé au bord */
+      .tool-rail { bottom: calc(28px + env(safe-area-inset-bottom, 0px)) !important; }
+
+      /* Le hint « Mesurer / Cliquez un premier point… » passe en HAUT
+         (sous le compteur) au lieu d'être collé à la barre d'outils en bas. */
+      .measure-hint {
+        top: calc(52px + env(safe-area-inset-top, 0px)) !important;
+        bottom: auto !important;
+      }
+
       /* --- Racine de l'UI mobile --- */
       #m3-root {
         display: block;
@@ -2299,23 +2309,9 @@
       }
       #m3-counter svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
 
-      /* Bouton flottant « Pièces » — ouvre la bottom sheet des pièces.
-         Style identique à .lum-pill (glassmorphisme verre fumé). */
-      #m3-pieces-fab {
-        position: fixed; left: 8px;
-        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-        display: inline-flex; align-items: center; gap: 8px;
-        padding: 10px 16px; border-radius: 999px;
-        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
-        border: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
-        -webkit-backdrop-filter: blur(var(--glass-blur,20px)); backdrop-filter: blur(var(--glass-blur,20px));
-        box-shadow: var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
-        color: #fff; font-family: inherit; font-size: 0.86rem; font-weight: 600;
-        cursor: pointer; -webkit-tap-highlight-color: transparent;
-        pointer-events: auto; z-index: 315;
-      }
-      #m3-pieces-fab svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
-      #m3-pieces-fab:active { transform: scale(0.97); }
+      /* L'ancien FAB flottant est supprimé : on injecte à la place un bouton
+         « Pièces » dans le rail d'outils existant (voir JS MobileV3 → injectPiecesRailBtn). */
+      #m3-pieces-fab { display: none !important; }
 
       /* =====================  RAIL LATÉRAL GAUCHE  ===================== */
       #m3-rail {
@@ -8914,9 +8910,37 @@ init();
     updateCounter();
   }
 
+  /* Injecte un bouton « Pièces » dans le rail d'outils du desktop pour mobile.
+     On le place tout à gauche (devant « Vue de dessus ») pour qu'il soit le
+     premier point d'entrée quand la main est sur le côté gauche du téléphone.
+     Style : réutilise .rail-btn → cohérence visuelle totale avec les autres icônes. */
+  function injectPiecesRailBtn(){
+    if (!isPhone()) return;
+    var rail = document.querySelector('.tool-rail');
+    if (!rail || rail.querySelector('#m3-btn-rooms')) return;
+    var btn = document.createElement('button');
+    btn.className = 'rail-btn';
+    btn.id = 'm3-btn-rooms';
+    btn.setAttribute('data-tip', 'Pièces');
+    btn.setAttribute('title', 'Voir les pièces');
+    btn.setAttribute('aria-label', 'Voir les pièces');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+      + '<rect x="3" y="3" width="8" height="8" rx="1.5"/>'
+      + '<rect x="13" y="3" width="8" height="8" rx="1.5"/>'
+      + '<rect x="3" y="13" width="8" height="8" rx="1.5"/>'
+      + '<rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>';
+    btn.addEventListener('click', function(){ buildRooms(); showSheet('m3-rooms-sheet'); haptic(8); });
+    rail.insertBefore(btn, rail.firstChild);
+  }
+
   /* ======================  DÉMARRAGE  ======================= */
   function boot(){
-    bind(); updateCounter();
+    bind(); updateCounter(); injectPiecesRailBtn();
+    // Le rail peut être construit après notre boot (styles retardés) → on retente
+    var tries=0;
+    var wait=setInterval(function(){ tries++; injectPiecesRailBtn();
+      if (document.getElementById('m3-btn-rooms') || tries>20) clearInterval(wait);
+    }, 300);
     // Attend que la caméra soit prête pour appliquer le FOV portrait
     var tries=0;
     var wait=setInterval(function(){ tries++; if(cam()){ clearInterval(wait); applyFov(); buildRooms(); } else if(tries>60){ clearInterval(wait); } }, 250);
