@@ -423,7 +423,8 @@
     .poi-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: 4px; margin-bottom: 1rem; background: #222; }
     .poi-image[src=""] { display: none; }
     
-    .reset-btn { position: fixed; bottom: 1.2rem; right: 1.2rem; z-index: 42; pointer-events: auto; border-radius: 999px; padding: 0.6rem 1.1rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; font-family: inherit; }
+    .reset-btn { position: fixed; bottom: 1.2rem; right: 1.2rem; z-index: 42; pointer-events: auto; border-radius: 999px; padding: 0.6rem 1.1rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: none; align-items: center; gap: 0.4rem; font-family: inherit; opacity:0; transition: opacity .3s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease; }
+    .reset-btn.visible { display: inline-flex; opacity: 1; }
     .reset-btn:hover { background: var(--brand-accent); color: white; border-color: var(--brand-accent); }
 
     /* ----- OUTIL MESURE (visiteur) ----- */
@@ -616,8 +617,7 @@
        ============================================================== */
     .header-bar,
     .tool-rail,
-    .rdv-topright,
-    .reset-btn {
+    .rdv-topright {
       opacity: 0;
       transform: translateY(12px);
       transition: opacity 0.7s cubic-bezier(0.22, 0.61, 0.36, 1),
@@ -626,7 +626,6 @@
     body.hud-reveal-ready .header-bar  { opacity: 1; transform: none; transition-delay: 0.05s; }
     body.hud-reveal-ready .tool-rail   { opacity: 1; transform: none; transition-delay: 0.20s; }
     body.hud-reveal-ready .rdv-topright{ opacity: 1; transform: none; transition-delay: 0.35s; }
-    body.hud-reveal-ready .reset-btn   { opacity: 1; transform: none; transition-delay: 0.50s; }
 
     /* ============ VIEWER 2.0 — Couche cinématique (sur la scène Babylon vivante) ============ */
     /* Letterbox + vignette : donnent le grain « film » au-dessus du canvas 3D */
@@ -4493,6 +4492,12 @@ function frameModel(root) {
     beta: Math.PI / 2.5,
   };
 
+  // V6 — fallback : sauvegarder le home et démarrer la surveillance tout de suite.
+  // Si playIntroCameraMove() tourne ensuite, il écrasera le home avec la position
+  // finale (post-animation).
+  if (typeof __saveHome === 'function') __saveHome();
+  if (typeof __startResetWatch === 'function') __startResetWatch();
+
   // V2.6 — Expose l'animation caméra d'intro sur window pour que le script
   // cinématique séparé (cineBegin) puisse la déclencher. Les variables
   // camera/scene/initialFraming/isAnimating sont dans la portée de CE script
@@ -4532,6 +4537,9 @@ function frameModel(root) {
         currentAnimObserver = null;
         try { camera.attachControl(document.getElementById('canvas'), true); } catch(_){}
         isAnimating = false;
+        // V6 — sauvegarder la position « home » et démarrer la surveillance
+        if (typeof __saveHome === 'function') __saveHome();
+        if (typeof __startResetWatch === 'function') __startResetWatch();
       }
     });
     currentAnimObserver = obs;
@@ -4551,25 +4559,65 @@ function wrapAlphaNear(current, target) {
 }
 
 /* ============================================================================
-   BOUTON RECENTRER — V5 recodé de zéro
-   Calqué sur playIntroCameraMove (qui fonctionne) : performance.now() + RAF.
-   Aucune dépendance à currentAnimObserver/isAnimating pour le DÉCLENCHEMENT.
+   BOUTON RECENTRER — V6
+   Principe : le bouton est INVISIBLE quand la caméra est à sa place initiale.
+   Dès que la caméra bouge (rotation, zoom, pan), le bouton apparaît.
+   Au clic, la caméra revient à sa position d'origine et le bouton disparaît.
    ============================================================================ */
-var __resetAnimId = null; // RAF id propre au reset (indépendant de currentAnimObserver)
+var __resetAnimId = null;
+var __resetBtn = null;
+var __homeAlpha = null, __homeBeta = null, __homeRadius = null, __homeTarget = null, __homeFov = null;
 
+// Sauvegarder la position initiale (appelé après le cadrage du modèle)
+function __saveHome() {
+  if (!camera) return;
+  __homeAlpha  = camera.alpha;
+  __homeBeta   = camera.beta;
+  __homeRadius = camera.radius;
+  __homeTarget = camera.target.clone();
+  __homeFov    = camera.fov;
+}
+
+// La caméra est-elle à sa place ?
+function __isHome() {
+  if (__homeAlpha === null || !camera) return true;
+  var da = Math.abs(camera.alpha  - __homeAlpha);
+  var db = Math.abs(camera.beta   - __homeBeta);
+  var dr = Math.abs(camera.radius - __homeRadius);
+  var dt = camera.target.subtract(__homeTarget).length();
+  return da < 0.01 && db < 0.01 && dr < 0.05 && dt < 0.05;
+}
+
+// Montrer/cacher le bouton
+function __updateResetBtn() {
+  if (!__resetBtn) __resetBtn = document.getElementById('reset-btn');
+  if (!__resetBtn) return;
+  if (__isHome() || isFirstPerson) {
+    __resetBtn.classList.remove('visible');
+  } else {
+    __resetBtn.classList.add('visible');
+  }
+}
+
+// Boucle de surveillance — vérifie chaque frame si la caméra a bougé
+function __startResetWatch() {
+  if (!scene) return;
+  scene.onAfterRenderObservable.add(__updateResetBtn);
+}
+
+// Recentrer
 function resetView() {
   var cnv = document.getElementById('canvas');
   if (!camera || !scene) return;
 
-  // Annuler un reset précédent en cours
+  // Annuler un reset en cours
   if (__resetAnimId) { cancelAnimationFrame(__resetAnimId); __resetAnimId = null; }
-  // Annuler toute autre animation Babylon en cours
   if (currentAnimObserver) {
     try { scene.onBeforeRenderObservable.remove(currentAnimObserver); } catch(_){}
     currentAnimObserver = null;
   }
 
-  // Sortie de tout mode spécial
+  // Sortie modes spéciaux
   if (isFirstPerson) { try { exitPanoramaCamera(); } catch(_){} isFirstPerson = false; }
   if (scene.activeCamera !== camera) { try { scene.activeCamera.detachControl(); } catch(_){} }
   scene.activeCamera = camera;
@@ -4586,18 +4634,18 @@ function resetView() {
   camera.lowerBetaLimit = 0.05;
   camera.upperBetaLimit = Math.PI / 2;
 
-  // Tuer toute inertie
+  // Tuer inertie
   camera.inertialAlphaOffset = 0;
   camera.inertialBetaOffset = 0;
   camera.inertialRadiusOffset = 0;
   camera.inertialPanningX = 0;
   camera.inertialPanningY = 0;
 
-  // Reset offsets écran
+  // Reset offsets
   if (camera.targetScreenOffset) { camera.targetScreenOffset.x = 0; camera.targetScreenOffset.y = 0; }
   camera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
 
-  // Reset états globaux
+  // Reset états
   isAnimating = true;
   isTopView = false;
   try { setHudVisible(false); } catch(_){}
@@ -4606,23 +4654,12 @@ function resetView() {
   camera.angularSensibilityX = 1000;
   camera.angularSensibilityY = 1000;
 
-  // Cible : position initiale
-  var endTarget, endAlpha, endBeta, endRadius, endFov;
-  if (initialFraming) {
-    endTarget = initialFraming.target.clone();
-    endAlpha  = initialFraming.alpha;
-    endBeta   = initialFraming.beta;
-    endRadius = initialFraming.radius;
-    endFov    = defaultFov || 0.8;
-  } else if (modelBounds) {
-    endTarget = modelBounds.center.clone();
-    endAlpha  = -Math.PI / 2;
-    endBeta   = Math.PI / 2.5;
-    endRadius = modelBounds.radius * 2;
-    endFov    = 0.8;
-  } else {
-    camera.attachControl(cnv, true); isAnimating = false; return;
-  }
+  // Cible
+  var endAlpha  = __homeAlpha  !== null ? __homeAlpha  : (initialFraming ? initialFraming.alpha : -Math.PI / 2);
+  var endBeta   = __homeBeta   !== null ? __homeBeta   : (initialFraming ? initialFraming.beta  : Math.PI / 2.5);
+  var endRadius = __homeRadius !== null ? __homeRadius : (initialFraming ? initialFraming.radius : (modelBounds ? modelBounds.radius * 2 : 10));
+  var endTarget = __homeTarget !== null ? __homeTarget.clone() : (initialFraming ? initialFraming.target.clone() : (modelBounds ? modelBounds.center.clone() : camera.target.clone()));
+  var endFov    = __homeFov    !== null ? __homeFov    : (defaultFov || 0.8);
 
   // Départ
   var sTarget = camera.target.clone();
@@ -4630,13 +4667,12 @@ function resetView() {
   var sBeta   = camera.beta;
   var sRadius = camera.radius;
   var sFov    = camera.fov;
-  var DURATION = 1200; // ms
+  var DURATION = 1200;
   var t0 = performance.now();
 
   function tick() {
     var elapsed = performance.now() - t0;
     var t = Math.min(elapsed / DURATION, 1);
-    // Easing cubique (identique à playIntroCameraMove)
     var k = 1 - Math.pow(1 - t, 3);
 
     camera.setTarget(BABYLON.Vector3.Lerp(sTarget, endTarget, k));
@@ -4649,7 +4685,6 @@ function resetView() {
       __resetAnimId = requestAnimationFrame(tick);
     } else {
       __resetAnimId = null;
-      // Restaurer limites de zoom
       if (modelBounds) {
         camera.lowerRadiusLimit = modelBounds.radius * (typeof zoomInRatio === 'function' ? zoomInRatio() : 0.3);
         camera.upperRadiusLimit = endRadius * CONFIG.zoomOutLimitRatio;
@@ -4663,6 +4698,7 @@ function resetView() {
       try { updateToggleButton(); } catch(_){}
       try { if (typeof updateBreadcrumb === 'function') updateBreadcrumb(); } catch(_){}
       try { rebuildPoiList(); } catch(_){}
+      // Le bouton disparaît tout seul via __updateResetBtn (caméra = home)
     }
   }
 
@@ -4670,6 +4706,8 @@ function resetView() {
 }
 
 window.resetView = resetView;
+window.__saveHome = __saveHome;
+window.__startResetWatch = __startResetWatch;
 
 /* ============================================================================
    CHARGEMENT DU PLAFOND
