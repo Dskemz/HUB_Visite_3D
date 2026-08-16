@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Visite 3D Immobilière — Mobile</title>
+
+    <!-- ========== CSS ========== -->
+    <link rel="stylesheet" href="mobile-style.css" />
+
+    <!-- ========== Babylon.js (CDN) ========== -->
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs@6.37.0/babylon.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs-loaders@6.37.0/babylonjs.loaders.min.js"></script>
+
+    <style>
+        * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== HEADER (Ultra-compact) ========== -->
+    <header class="mobile-header">
+        <div class="header-logo">
+            <img id="agencyLogo" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect fill='%23333' width='32' height='32'/%3E%3C/svg%3E" alt="Agency Logo" />
+        </div>
+        <div class="header-title">
+            <h1 id="currentRoomName">Chargement...</h1>
+        </div>
+        <div class="header-progress">
+            <span id="roomCounter">0/0</span>
+        </div>
+    </header>
+
+    <!-- ========== CANVAS 3D (Babylon.js) ========== -->
+    <canvas id="renderCanvas" class="babylon-canvas"></canvas>
+
+    <!-- ========== SIDEBAR (Barre latérale flottante) ========== -->
+    <aside class="mobile-sidebar">
+        <button class="sidebar-btn" id="toggleFurnished" title="Meublé/Vide" data-icon="🛋">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+        </button>
+
+        <button class="sidebar-btn" id="toggleDimensions" title="Cotations" data-icon="📐">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="3" x2="21" y2="3"></line>
+                <line x1="3" y1="3" x2="3" y2="21"></line>
+                <line x1="3" y1="21" x2="21" y2="21"></line>
+                <line x1="21" y1="3" x2="21" y2="21"></line>
+            </svg>
+        </button>
+
+        <button class="sidebar-btn" id="toggleMeasure" title="Outil Mesure" data-icon="📏">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18"></path>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+                <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+        </button>
+
+        <button class="sidebar-btn" id="toggleGyroscope" title="Mode Gyroscope" data-icon="📱">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 7v5l3 2"></path>
+            </svg>
+        </button>
+    </aside>
+
+    <!-- ========== FOOTER (Glassmorphism) ========== -->
+    <footer class="mobile-footer">
+        <button class="footer-btn secondary" id="viewPhotos">
+            📷 Photos
+        </button>
+        <button class="footer-btn primary" id="openRdvModal">
+            Prendre RDV
+        </button>
+    </footer>
+
+    <!-- ========== BOTTOM SHEET (Overlay modal, initialement caché) ========== -->
+    <div class="bottom-sheet-overlay" id="bottomSheetOverlay"></div>
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="bottom-sheet-handle"></div>
+
+        <div class="bottom-sheet-content">
+            <!-- Infos pièce -->
+            <div class="sheet-section">
+                <h2 id="roomTitleSheet">Pièce</h2>
+                <p id="roomDescSheet">Description</p>
+            </div>
+
+            <!-- Switch Meublé/Vide pièce -->
+            <div class="sheet-section">
+                <label class="switch-label">
+                    <input type="checkbox" id="furnishedToggleSheet" class="switch-checkbox" />
+                    <span class="switch-slider"></span>
+                    <span class="switch-text">Afficher le mobilier de cette pièce</span>
+                </label>
+            </div>
+
+            <!-- Carrousel photos -->
+            <div class="sheet-section">
+                <h3>Photos</h3>
+                <div class="carousel-container">
+                    <div class="carousel-track" id="carouselTrack">
+                        <!-- Photos dynamiques injected ici -->
+                        <div class="carousel-slide">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23e0e0e0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EPhoto 1%3C/text%3E%3C/svg%3E" alt="Photo" />
+                        </div>
+                        <div class="carousel-slide">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23e0e0e0' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EPhoto 2%3C/text%3E%3C/svg%3E" alt="Photo" />
+                        </div>
+                    </div>
+                </div>
+                <p class="carousel-hint">👉 Swipe pour voir plus</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== RDV MODAL (Contact form) ========== -->
+    <div class="modal-overlay" id="rdvModalOverlay"></div>
+    <div class="modal" id="rdvModal">
+        <div class="modal-header">
+            <h2>Prendre rendez-vous</h2>
+            <button class="modal-close" id="closeRdvModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="rdvForm">
+                <input type="text" placeholder="Votre nom" required />
+                <input type="email" placeholder="Votre email" required />
+                <input type="tel" placeholder="Votre téléphone" required />
+                <textarea placeholder="Message (optionnel)" rows="4"></textarea>
+                <button type="submit" class="submit-btn">Envoyer</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== MEASURE OVERLAY (Assisté) ========== -->
+    <div class="measure-overlay" id="measureOverlay" style="display: none;">
+        <div class="measure-crosshair"></div>
+        <div class="measure-info">
+            <p>Visez avec la caméra, puis cliquez sur ✓ pour mesurer</p>
+        </div>
+        <div class="measure-controls">
+            <button id="validateMeasure" class="measure-btn">✓ Valider</button>
+            <button id="cancelMeasure" class="measure-btn cancel">✕ Annuler</button>
+        </div>
+    </div>
+
+    <!-- ========== CONFIG & BABYLON.JS ========== -->
+    <script src="mobile-config.js"></script>
+
+</body>
+</html>

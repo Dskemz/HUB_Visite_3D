@@ -1,0 +1,713 @@
+/* ========================================================================
+   MOBILE VIEWER — THUMB ZONE & RESPONSIVE LAYOUT
+   ======================================================================== */
+
+:root {
+    --color-navy: #1a2b4d;
+    --color-accent: #ff6b35;
+    --color-text: #ffffff;
+    --color-text-secondary: #b0b0b0;
+    --color-bg-dark: #0f1419;
+    --color-border: rgba(255, 255, 255, 0.1);
+    --color-glass: rgba(255, 255, 255, 0.1);
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --touch-target: 44px; /* Apple HIG minimum */
+}
+
+/* ========================================================================
+   RESET & BASE
+   ======================================================================== */
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--color-bg-dark);
+    color: var(--color-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    overflow: hidden;
+    position: fixed;
+}
+
+/* ========================================================================
+   BABYLON CANVAS — FULL VIEWPORT (Minus Header/Footer)
+   ======================================================================== */
+
+.babylon-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    /* Ensure canvas doesn't leave gaps */
+    image-rendering: crisp-edges;
+}
+
+/* ========================================================================
+   HEADER — ULTRA-COMPACT, FIXE EN HAUT (ZONE MORTE)
+   ======================================================================== */
+
+.mobile-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+
+    height: 48px;
+    padding: max(env(safe-area-inset-top), 4px) var(--spacing-sm) var(--spacing-xs);
+    background: linear-gradient(
+        180deg,
+        rgba(15, 20, 25, 0.95) 0%,
+        rgba(15, 20, 25, 0.7) 100%
+    );
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--color-border);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+}
+
+.header-logo {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+}
+
+.header-logo img {
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.header-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.header-title h1 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-text);
+}
+
+.header-progress {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    background: rgba(255, 107, 53, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+/* ========================================================================
+   SIDEBAR — BARRE LATÉRALE FLOTTANTE (POUCE GAUCHE)
+   ======================================================================== */
+
+.mobile-sidebar {
+    position: fixed;
+    left: var(--spacing-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 99;
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+
+    background: rgba(26, 43, 77, 0.15);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: var(--spacing-sm);
+}
+
+/* Boutons Sidebar */
+.sidebar-btn {
+    width: var(--touch-target);
+    height: var(--touch-target);
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+
+    border: none;
+    background: rgba(255, 107, 53, 0.1);
+    color: var(--color-accent);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    padding: 0;
+}
+
+.sidebar-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sidebar-btn:active {
+    background: rgba(255, 107, 53, 0.25);
+    transform: scale(0.95);
+}
+
+.sidebar-btn.active {
+    background: rgba(255, 107, 53, 0.3);
+    border: 1px solid var(--color-accent);
+}
+
+/* Vibration haptique feedback via active state */
+.sidebar-btn:active::after {
+    content: '';
+    position: absolute;
+    width: var(--touch-target);
+    height: var(--touch-target);
+    border-radius: 8px;
+    animation: pulse-ring 0.3s ease-out;
+}
+
+@keyframes pulse-ring {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 0 8px rgba(255, 107, 53, 0);
+    }
+}
+
+/* ========================================================================
+   FOOTER — GLASSMORPHISM + THUMB ZONE (POUCE DROIT)
+   ======================================================================== */
+
+.mobile-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+
+    height: max(60px, calc(var(--touch-target) + 12px + env(safe-area-inset-bottom)));
+    padding: var(--spacing-sm) var(--spacing-md) max(var(--spacing-sm), env(safe-area-inset-bottom)) var(--spacing-md);
+
+    background: rgba(26, 43, 77, 0.1);
+    backdrop-filter: blur(15px);
+    border-top: 1px solid var(--color-border);
+
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    justify-content: space-between;
+}
+
+.footer-btn {
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: var(--touch-target);
+    padding: 8px 16px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.footer-btn.secondary {
+    flex: 0 1 auto;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.footer-btn.secondary:active {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.footer-btn.primary {
+    flex: 1;
+    background: linear-gradient(135deg, var(--color-accent), #ff8c52);
+    color: white;
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.footer-btn.primary:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
+}
+
+/* ========================================================================
+   BOTTOM SHEET — MODAL PIÈCE + PHOTOS
+   ======================================================================== */
+
+.bottom-sheet-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+.bottom-sheet-overlay.active {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 201;
+
+    background: rgba(26, 43, 77, 0.2);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--color-border);
+    border-radius: 20px 20px 0 0;
+
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+    max-height: calc(60vh - env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.bottom-sheet.active {
+    transform: translateY(0);
+}
+
+.bottom-sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    margin: 12px auto;
+}
+
+.bottom-sheet-content {
+    padding: 0 var(--spacing-md) var(--spacing-lg);
+}
+
+.sheet-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.sheet-section h2 {
+    margin: 0 0 var(--spacing-xs) 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.sheet-section h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.sheet-section p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+}
+
+/* Switch Toggle */
+.switch-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    user-select: none;
+}
+
+.switch-checkbox {
+    display: none;
+}
+
+.switch-slider {
+    display: inline-block;
+    width: 48px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 14px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.switch-slider::before {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 12px;
+    top: 2px;
+    left: 2px;
+    transition: all 0.3s ease;
+}
+
+.switch-checkbox:checked + .switch-slider {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.switch-checkbox:checked + .switch-slider::before {
+    transform: translateX(20px);
+}
+
+.switch-text {
+    font-size: 14px;
+    color: var(--color-text);
+}
+
+/* ========================================================================
+   CARROUSEL PHOTOS (Swipe horizontal)
+   ======================================================================== */
+
+.carousel-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    aspect-ratio: 1;
+    margin: var(--spacing-md) 0;
+}
+
+.carousel-track {
+    display: flex;
+    height: 100%;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    /* Swipe handled via JavaScript */
+}
+
+.carousel-slide {
+    flex: 0 0 100%;
+    min-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.carousel-hint {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin: var(--spacing-sm) 0 0;
+}
+
+/* ========================================================================
+   MODAL RDV (Contact form)
+   ======================================================================== */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 300;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 301;
+
+    width: min(90vw, 400px);
+    background: rgba(26, 43, 77, 0.3);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.9);
+    transition: all 0.3s ease;
+}
+
+.modal.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-body {
+    padding: var(--spacing-lg);
+}
+
+#rdvForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+#rdvForm input,
+#rdvForm textarea {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+#rdvForm input::placeholder,
+#rdvForm textarea::placeholder {
+    color: var(--color-text-secondary);
+}
+
+.submit-btn {
+    padding: var(--spacing-md);
+    background: linear-gradient(135deg, var(--color-accent), #ff8c52);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.submit-btn:active {
+    transform: scale(0.98);
+}
+
+/* ========================================================================
+   MEASURE OVERLAY (Assisté avec croix)
+   ======================================================================== */
+
+.measure-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 150;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.measure-crosshair {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border: 2px solid var(--color-accent);
+    border-radius: 50%;
+}
+
+.measure-crosshair::before,
+.measure-crosshair::after {
+    content: '';
+    position: absolute;
+    background: var(--color-accent);
+}
+
+.measure-crosshair::before {
+    width: 2px;
+    height: 100%;
+    left: 50%;
+    top: 0;
+    transform: translateX(-1px);
+}
+
+.measure-crosshair::after {
+    height: 2px;
+    width: 100%;
+    top: 50%;
+    left: 0;
+    transform: translateY(-1px);
+}
+
+.measure-info {
+    position: absolute;
+    top: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: 14px;
+    color: var(--color-text);
+    background: rgba(0, 0, 0, 0.4);
+    padding: var(--spacing-md);
+    border-radius: 8px;
+}
+
+.measure-controls {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.measure-btn {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.measure-btn:not(.cancel) {
+    background: var(--color-accent);
+    color: white;
+}
+
+.measure-btn.cancel {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-secondary);
+}
+
+/* ========================================================================
+   RESPONSIVE — LANDSCAPE MODE
+   ======================================================================== */
+
+@media (orientation: landscape) {
+    .mobile-header {
+        height: 40px;
+        padding: 4px var(--spacing-sm);
+    }
+
+    .header-title h1 {
+        font-size: 12px;
+    }
+
+    .mobile-sidebar {
+        top: auto;
+        bottom: 80px;
+        left: var(--spacing-sm);
+        transform: none;
+    }
+
+    .mobile-footer {
+        height: 60px;
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+}
+
+/* ========================================================================
+   DARK MODE (Default, explicit override for future light mode)
+   ======================================================================== */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-bg-dark: #0f1419;
+    }
+}
+
+/* ========================================================================
+   ACCESSIBILITY
+   ======================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media (max-width: 320px) {
+    .header-progress {
+        display: none;
+    }
+
+    .sidebar-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .sidebar-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+}
