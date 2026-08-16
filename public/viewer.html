@@ -4545,40 +4545,41 @@ function wrapAlphaNear(current, target) {
 
 function resetView() {
   if (!initialFraming) return;
-  // V2.4 — Ne PAS bloquer sur isAnimating : si une animation traîne (edge case
-  // stuck), on l'annule proprement et on force le reset. Le bouton "Recentrer"
-  // doit TOUJOURS répondre au clic — c'est sa raison d'être.
+  // V2.5 — Le bouton "Recentrer" doit TOUJOURS fonctionner, quel que soit l'état :
+  // vue de dessus, POV 1ère personne, ortho, animation en cours, panneau ouvert, etc.
+
+  // 1) Annuler toute animation en cours
   if (currentAnimObserver) {
     scene.onBeforeRenderObservable.remove(currentAnimObserver);
     currentAnimObserver = null;
   }
   isAnimating = true;
-  isTopView = false; // on quitte la vue de dessus
-  setHudVisible(false); // masque le HUD plan
+  isTopView = false;
+  setHudVisible(false);
 
-  // Si on sortait d'une vue 1ère personne, restaurer l'état "visite"
-  // V2.3 — On garde le contenu POV du panneau pendant l'animation caméra :
-  // le rebuildPoiList() est retardé à la FIN pour éviter le "clac" visuel
-  // de bascule instantanée pièce ↔ vue d'ensemble.
+  // 2) Sortie de vue 1ère personne (POV panorama)
   let __wasFirstPerson = false;
   if (isFirstPerson) {
     __wasFirstPerson = true;
-    exitPanoramaCamera();               // rebascule sur l'ArcRotate, alignée sur la vue panorama
+    exitPanoramaCamera();
     isFirstPerson = false;
     setMarkersVisible(true);
-    camera.panningSensibility = 300;    // translation au clic droit réactivée
-    camera.angularSensibilityX = 1000;  // vitesse de rotation de navigation
+    camera.panningSensibility = 300;
+    camera.angularSensibilityX = 1000;
     camera.angularSensibilityY = 1000;
   }
 
-  // Stopper tout observer d'animation en cours (sécurité anti-conflit)
-  if (currentAnimObserver) {
-    scene.onBeforeRenderObservable.remove(currentAnimObserver);
-    currentAnimObserver = null;
+  // 3) S'assurer que la caméra principale est active et a les contrôles
+  if (scene.activeCamera !== camera) {
+    if (scene.activeCamera) try { scene.activeCamera.detachControl(); } catch(_){}
+    scene.activeCamera = camera;
   }
+  try { camera.detachControl(); } catch(_){}
 
-  // Repasser en perspective
+  // 4) Repasser en perspective (quitter ortho si besoin)
   camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+  camera.orthoTop = null; camera.orthoBottom = null;
+  camera.orthoLeft = null; camera.orthoRight = null;
 
   // Libérer temporairement les limites de zoom pour permettre l'éloignement
   // (en 1ère personne, lower=upper=radius bloquerait l'animation)
@@ -4635,13 +4636,11 @@ function resetView() {
       camera.attachControl(document.getElementById('canvas'), true);
       isAnimating = false;
       updateToggleButton();
-      // V2.3 — Rebuild du panneau vue d'ensemble UNIQUEMENT à la fin de l'animation
-      // pour lisser la transition pièce → vue globale (pas de contenu qui saute).
-      if (__wasFirstPerson) {
-        currentPoiId = null;
-        if (typeof updateBreadcrumb==='function') updateBreadcrumb();
-        rebuildPoiList();
-      }
+      // V2.5 — Toujours nettoyer l'état POV à la fin du reset, pas seulement
+      // quand on sortait de firstPerson (couvre aussi le cas vue de dessus, ortho, etc.)
+      currentPoiId = null;
+      if (typeof updateBreadcrumb==='function') updateBreadcrumb();
+      rebuildPoiList();
     }
   });
 }
