@@ -1250,19 +1250,23 @@
        Survol : l'anneau intérieur grossit jusqu'à l'anneau externe,
        le point central grossit légèrement. Transition 150 ms. */
     #poi-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:5; }
-    .poi-mark { pointer-events:auto; cursor:pointer; transform-origin:center; transition:transform .2s ease; }
+    .poi-mark { pointer-events:auto; cursor:pointer; }
+    .poi-mark .pm-hit,
+    .poi-mark .pm-outer,
+    .poi-mark .pm-inner,
+    .poi-mark .pm-dot   { transform-box:fill-box; transform-origin:center; }
     .poi-mark .pm-outer,
     .poi-mark .pm-inner { fill:none; stroke:currentColor; stroke-width:1.4; }
     .poi-mark .pm-dot   { fill:currentColor; }
-    /* Pulsation emissive legere : le stroke de l'anneau externe pulse doucement */
-    .poi-mark .pm-outer { animation: povBreath 3.2s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+    /* Pulsation emissive : stroke de l'anneau externe respire doucement */
+    .poi-mark .pm-outer { animation: povBreath 3.2s ease-in-out infinite; }
     .poi-mark .pm-inner,
-    .poi-mark .pm-dot   { transform-box:fill-box; transform-origin:center; transition:transform .18s ease; }
-    /* Survol : grossissement leger du marqueur entier + animation interne existante */
-    .poi-mark:hover { transform:scale(1.18); }
-    .poi-mark:hover .pm-outer { animation:none; }
-    .poi-mark:hover .pm-inner { transform:scale(1.636); }
-    .poi-mark:hover .pm-dot   { transform:scale(1.7); }
+    .poi-mark .pm-dot   { transition:transform .18s ease; }
+    /* Survol : grossissement de tous les cercles internes (pas du <g> parent, qui porte le translate) */
+    .poi-mark:hover .pm-hit   { transform:scale(1.18); }
+    .poi-mark:hover .pm-outer { transform:scale(1.18); animation:none; }
+    .poi-mark:hover .pm-inner { transform:scale(1.88); }
+    .poi-mark:hover .pm-dot   { transform:scale(1.95); }
     @keyframes povBreath {
       0%, 100% { stroke-width:1.4; opacity:0.75; }
       50%      { stroke-width:2.4; opacity:1; }
