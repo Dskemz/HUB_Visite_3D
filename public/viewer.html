@@ -8668,7 +8668,7 @@ init();
     // les touchs/clics vers le canvas 3D. La fermeture reste possible via la
     // poignée (grip) au sommet de la sheet.
     var sc = $('m3-scrim');
-    if (sc) sc.classList.toggle('pass-through', id === 'm3-room-sheet');
+    if (sc) sc.classList.toggle('pass-through', !!el);
     fitCanvasToSheet(true);
   }
 
