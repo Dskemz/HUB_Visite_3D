@@ -8673,28 +8673,37 @@ init();
   }
 
   /* ---- Recadrage 3D quand une bottom sheet monte ------------------------
-     La sheet occupe 62vh en bas. On réduit le canvas à la bande haute (38vh)
-     et on relance engine.resize() : Babylon rebalance l'aspect ratio et le
-     modèle reste centré → il apparaît naturellement dans le tiers haut de
-     l'écran, au-dessus de la sheet. */
+     Le canvas RESTE plein écran → le modèle garde EXACTEMENT sa taille.
+     On le déplace juste vers le haut via targetScreenOffset.y pour qu'il
+     apparaisse dans la bande visible au-dessus de la sheet. */
   var canvasResizeRAF=null;
   function fitCanvasToSheet(sheetOpen){
     if(!isPhone()) return;
     var cv=cnv(); if(!cv) return;
-    cv.style.height = sheetOpen ? '38vh' : '';
+    // Canvas plein écran dans TOUS les cas.
+    cv.style.height = '';
     cv.style.width  = '';
-    // Resize SYNCHRONE immédiat : indispensable pour que goToPOI() (appelé juste
-    // après showSheet()) démarre son animation avec le BON aspect ratio et le
-    // BON render height.
     try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
-    // Puis un second resize sur la frame suivante pour absorber les cas où la
-    // sheet met un peu de temps à faire son transform CSS.
     if(canvasResizeRAF) cancelAnimationFrame(canvasResizeRAF);
     canvasResizeRAF = requestAnimationFrame(function(){
       try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
     });
-    // NB : on NE touche PAS à la caméra (radius, targetScreenOffset).
-    // Le modèle reste positionné comme le viewer l'a placé.
+
+    // Décalage vertical de la vue : positif y = pousse le modèle vers le HAUT
+    // à l'écran (convention Babylon ArcRotate). Valeur empirique modérée liée
+    // au radius : facile à ajuster.
+    // Si le modèle part dans le mauvais sens, inverser le signe (SHIFT_Y_SIGN).
+    // Si le décalage est trop faible/fort, ajuster SHIFT_Y_FRAC.
+    var SHIFT_Y_SIGN = +1;
+    var SHIFT_Y_FRAC = 0.30;
+    try {
+      var c=cam(); if(!c || inPOV() || !c.targetScreenOffset) return;
+      if (sheetOpen) {
+        c.targetScreenOffset.y = SHIFT_Y_SIGN * SHIFT_Y_FRAC * (c.radius || 10);
+      } else {
+        c.targetScreenOffset.y = 0;
+      }
+    } catch(e){}
   }
 
   /* Resize live du moteur pendant une transition de sheet :
