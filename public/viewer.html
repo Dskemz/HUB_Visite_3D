@@ -8657,7 +8657,14 @@ init();
     var cv=cnv(); if(!cv) return;
     cv.style.height = sheetOpen ? '38vh' : '';
     cv.style.width  = '';
-    // engine.resize() sur la prochaine frame pour que le DOM soit stabilisé
+    // Resize SYNCHRONE immédiat : indispensable pour que goToPOI() (appelé juste
+    // après showSheet()) démarre son animation avec le BON aspect ratio et le
+    // BON render height. Sans ça, l'animation caméra est calculée avec le viewport
+    // plein écran, puis subit un resize à mi-parcours → POV mal cadré (visible
+    // surtout sur POV serrés type toilettes).
+    try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
+    // Puis un second resize sur la frame suivante pour absorber les cas où la
+    // sheet met un peu de temps à faire son transform CSS.
     if(canvasResizeRAF) cancelAnimationFrame(canvasResizeRAF);
     canvasResizeRAF = requestAnimationFrame(function(){
       try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
@@ -8683,6 +8690,27 @@ init();
       } catch(e){}
     });
   }
+
+  /* Resize live du moteur pendant une transition de sheet :
+     si l'utilisateur ferme (ou ouvre) le menu PENDANT l'animation caméra,
+     la transition CSS `.m3-sheet` dure 0.35s : le canvas change de taille
+     progressivement. Sans re-resize continu, Babylon garde son ancien aspect
+     ratio → bande noire visible sous le GLB, puis pop. Ici on force un
+     engine.resize() à chaque frame pendant la transition. */
+  var sheetResizeObserver = null;
+  function startLiveResizeDuringTransition(){
+    if(!isPhone()) return;
+    var cv=cnv(); if(!cv) return;
+    // Un observer natif capte tout changement de taille du canvas
+    if (sheetResizeObserver) return; // déjà actif
+    if (typeof ResizeObserver !== 'function') return;
+    sheetResizeObserver = new ResizeObserver(function(){
+      try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
+    });
+    sheetResizeObserver.observe(cv);
+  }
+  // Démarre dès l'init mobile — coût négligeable et évite tout carré noir
+  // lors de tout redimensionnement du canvas (sheet, rotation, etc.).
 
   /* Liste des pièces */
   function buildRooms(){
@@ -8938,6 +8966,7 @@ init();
   /* ======================  DÉMARRAGE  ======================= */
   function boot(){
     bind(); updateCounter(); injectPiecesRailBtn();
+    startLiveResizeDuringTransition();
     // Le rail peut être construit après notre boot (styles retardés) → on retente
     var tries=0;
     var wait=setInterval(function(){ tries++; injectPiecesRailBtn();
