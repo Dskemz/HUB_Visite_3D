@@ -8049,6 +8049,15 @@ if (EDIT_MODE) {
     const cv = document.getElementById('canvas');
     if (!cv || typeof engine === 'undefined' || !engine || typeof camera === 'undefined' || !camera) return;
 
+    // Si le nouveau système m3 (bottom-sheet redesign) a ouvert une de ses sheets,
+    // il pilote LUI-MÊME la taille du canvas via fitCanvasToSheet(). On sort
+    // immédiatement pour ne PAS écraser son cv.style.height ('38vh') par le calcul
+    // de l'ancien système (basé sur .right-panel-container, invisible sur mobile
+    // → recalcule à quasi plein écran → l'animation caméra s'affiche plein écran
+    // alors que la sheet est ouverte → flick à la fin de l'animation).
+    const m3Open = document.querySelector('#m3-root .m3-sheet.show');
+    if (m3Open) return;
+
     // Desktop / tablette : canvas plein écran (c'est le viewport largeur qui gère le panneau droite).
     if (!isMobile()){
       if (cv.style.width || cv.style.height){
@@ -8108,10 +8117,16 @@ if (EDIT_MODE) {
     context = 'pov';
     if (!isMobile()) return;
     setLabel(poiLabel(poi) || 'Pièce');
+    // Si m3 pilote déjà (sheet ouverte), on ne monte pas la sheet legacy.
+    if (document.querySelector('#m3-root .m3-sheet.show')) return;
     if (armPovRaise){ applyDetent('open', true); armPovRaise = false; }
   }
   function onGoToPOI(){
     armPovRaise = true;                        // prochaine entrée POV → on remonte
+    // Si le système m3 pilote déjà une sheet, on lui laisse la main : bouger la
+    // sheet legacy en parallèle ferait clignoter le canvas (deux systèmes qui se
+    // battent pour l'espace).
+    if (document.querySelector('#m3-root .m3-sheet.show')) return;
     if (isMobile()) applyDetent('peek', true); // on redescend pour admirer le fondu 3D
   }
 
