@@ -2431,6 +2431,13 @@
          POV en dessous — utilisé quand la fiche d'une pièce est ouverte pour
          laisser l'utilisateur tourner la caméra dans la bande haute. */
       #m3-root .m3-scrim.show.pass-through { pointer-events: none; background: rgba(0,0,0,0.14); }
+      /* Décalage visuel du canvas 3D vers le haut quand une bottom-sheet est
+         ouverte : le modèle apparaît dans la bande visible au-dessus de la sheet
+         sans aucun changement de taille / orientation / caméra. Le canvas est
+         juste translaté visuellement de -31vh (moitié de la fraction cachée
+         par la sheet 62vh). getBoundingClientRect() prend en compte le
+         transform → les touchs dans la bande haute atteignent bien le rendu. */
+      body.m3-sheet-open #canvas { transform: translateY(-31vh); }
       .m3-sheet {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 570;
         max-height: 62vh; display: flex; flex-direction: column;
@@ -8656,6 +8663,7 @@ init();
     if(a)a.classList.remove('show'); if(b)b.classList.remove('show');
     showScrim(false);
     var sc = $('m3-scrim'); if (sc) sc.classList.remove('pass-through');
+    document.body.classList.remove('m3-sheet-open');
     fitCanvasToSheet(false);
   }
   function showSheet(id){
@@ -8669,6 +8677,8 @@ init();
     // poignée (grip) au sommet de la sheet.
     var sc = $('m3-scrim');
     if (sc) sc.classList.toggle('pass-through', !!el);
+    // Ajoute la classe qui déclenche le décalage visuel du canvas vers le haut.
+    document.body.classList.toggle('m3-sheet-open', !!el);
     fitCanvasToSheet(true);
   }
 
