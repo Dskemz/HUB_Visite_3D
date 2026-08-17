@@ -8683,27 +8683,11 @@ init();
     if(canvasResizeRAF) cancelAnimationFrame(canvasResizeRAF);
     canvasResizeRAF = requestAnimationFrame(function(){
       try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
-      // Recadre le modèle dans la bande visible (dézoome si besoin) — évite
-      // que le GLB soit tronqué sur les côtés en aspect très rectangulaire.
-      try {
-        var c=cam(); if(!c || inPOV()) return;
-        var topView=isTop();
-        var fitR = null;
-        if (topView && typeof computeTopViewRadiusForViewport==='function') {
-          fitR = computeTopViewRadiusForViewport(1);
-        } else if (typeof computeFitRadiusForViewport==='function') {
-          fitR = computeFitRadiusForViewport(1);
-        }
-        if (fitR!=null && isFinite(fitR)) {
-          c.lowerRadiusLimit = null; c.upperRadiusLimit = null;
-          if (c.targetScreenOffset){ c.targetScreenOffset.x=0; c.targetScreenOffset.y=0; }
-          if (typeof modelBounds!=='undefined' && modelBounds && modelBounds.center && c.target){
-            c.target = modelBounds.center.clone();
-          }
-          c.radius = fitR;
-        }
-      } catch(e){}
     });
+    // NB : on NE recalcule PAS le radius de la caméra pour "faire tenir" le GLB
+    // dans la bande 38vh — cela le faisait rapetisser à chaque ouverture du menu.
+    // On garde le radius d'origine : le GLB reste à la même taille apparente,
+    // simplement tronqué en haut/bas si l'aspect devient plus paysage.
   }
 
   /* Resize live du moteur pendant une transition de sheet :
