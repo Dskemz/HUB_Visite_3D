@@ -2682,7 +2682,7 @@
   <svg id="ruler-overlay" xmlns="http://www.w3.org/2000/svg"
        style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:120;"></svg>
   <div class="measure-hint" id="measure-hint"></div>
-  <button class="measure-clear" id="measure-clear" onclick="clearMeasures()" title="Effacer les mesures">✕ Effacer les mesures</button>
+  <button class="measure-clear" id="measure-clear" onclick="clearMeasures()" title="Effacer les mesures">Effacer les mesures</button>
 
   <!-- Fiche pièce éditoriale (couche cinématique) -->
   <div class="cine-detail" id="cine-detail">
@@ -2740,7 +2740,7 @@
 
 <!-- LIGHTBOX PHOTO PLEIN ÉCRAN -->
 <div class="lightbox hidden" id="lightbox" onclick="closeLightbox()">
-  <button class="lightbox-close" onclick="closeLightbox()" title="Fermer">✕</button>
+  <button class="lightbox-close" onclick="closeLightbox()" title="Fermer">Fermer</button>
   <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()" onerror="lightboxImgError()" onload="lightboxImgOk()">
   <div id="lightbox-error" class="lightbox-error hidden" onclick="event.stopPropagation()">Photo indisponible</div>
   
@@ -5902,8 +5902,8 @@ function flashExploreHint() {
   if (!hint) return;
   const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   hint.textContent = isTouch
-    ? '👆 Explorez en 3D : glissez pour tourner, pincez pour zoomer'
-    : '🖱️ Explorez en 3D : glissez pour tourner, molette pour zoomer';
+    ? 'Explorez en 3D : glissez pour tourner, pincez pour zoomer'
+    : 'Explorez en 3D : glissez pour tourner, molette pour zoomer';
   hint.classList.add('show');
   setTimeout(() => hint.classList.remove('show'), 5000);
 }
@@ -5914,8 +5914,8 @@ function flashTopViewHint() {
   if (!hint) return;
   const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   hint.textContent = isTouch
-    ? '🗺️ Vue de dessus : touchez une pièce dans le menu pour la visiter'
-    : '🗺️ Vue de dessus : cliquez une pièce dans le menu pour la visiter';
+    ? 'Vue de dessus : touchez une pièce dans le menu pour la visiter'
+    : 'Vue de dessus : cliquez une pièce dans le menu pour la visiter';
   hint.classList.add('show');
   setTimeout(() => hint.classList.remove('show'), 5000);
 }
@@ -6914,8 +6914,8 @@ function __fillBienInfo(){
       html += '<div class="bi-agent-name">' + (pd.agentName || pd.agent) + '</div>';
     }
     html += '<div class="bi-agent-row">';
-    if (pd.agentPhone) html += '<a href="tel:' + pd.agentPhone + '" class="bi-agent-contact">☎ ' + pd.agentPhone + '</a>';
-    if (pd.agentEmail) html += '<a href="mailto:' + pd.agentEmail + '" class="bi-agent-contact">✏ Email</a>';
+    if (pd.agentPhone) html += '<a href="tel:' + pd.agentPhone + '" class="bi-agent-contact">' + pd.agentPhone + '</a>';
+    if (pd.agentEmail) html += '<a href="mailto:' + pd.agentEmail + '" class="bi-agent-contact">Email</a>';
     html += '</div>';
     if (pd.agentBroker) {
       html += '<div class="bi-agent-broker">' + pd.agentBroker + '</div>';
@@ -8555,7 +8555,7 @@ init();
     <div class="m3-cross"></div>
     <div class="m3-measure-actions">
       <button id="m3-measure-cancel">Terminer</button>
-      <button id="m3-measure-validate">✓ Placer le point</button>
+      <button id="m3-measure-validate">Placer le point</button>
     </div>
   </div>
 
