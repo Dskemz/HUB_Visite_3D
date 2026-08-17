@@ -2426,6 +2426,11 @@
       /* IMPORTANT : PAS de backdrop-filter sur le scrim actif — sinon le GLB
          apparaît flou derrière la sheet. On garde juste un léger assombrissement. */
       .m3-scrim.show { opacity: 1; pointer-events: auto; background: rgba(0,0,0,0.28); }
+      /* Mode "pass-through" : le scrim reste visuellement présent (léger fond
+         sombre) mais laisse passer les events tactiles/souris vers le canvas
+         POV en dessous — utilisé quand la fiche d'une pièce est ouverte pour
+         laisser l'utilisateur tourner la caméra dans la bande haute. */
+      .m3-scrim.show.pass-through { pointer-events: none; background: rgba(0,0,0,0.14); }
       .m3-sheet {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 570;
         max-height: 62vh; display: flex; flex-direction: column;
@@ -8650,12 +8655,20 @@ init();
     var a=$('m3-rooms-sheet'), b=$('m3-room-sheet');
     if(a)a.classList.remove('show'); if(b)b.classList.remove('show');
     showScrim(false);
+    var sc = $('m3-scrim'); if (sc) sc.classList.remove('pass-through');
     fitCanvasToSheet(false);
   }
   function showSheet(id){
     var a=$('m3-rooms-sheet'), b=$('m3-room-sheet');
     if(a)a.classList.remove('show'); if(b)b.classList.remove('show');
     var el=$(id); if(el){ el.classList.add('show'); showScrim(true); haptic(8); }
+    // Sur la fiche d'une pièce (m3-room-sheet), l'utilisateur est en POV : il
+    // doit pouvoir tourner la caméra dans la bande haute. On rend le scrim
+    // inerte aux events (le fond assombri reste visible) pour laisser passer
+    // les touchs/clics vers le canvas 3D. La fermeture reste possible via la
+    // poignée (grip) au sommet de la sheet.
+    var sc = $('m3-scrim');
+    if (sc) sc.classList.toggle('pass-through', id === 'm3-room-sheet');
     fitCanvasToSheet(true);
   }
 
