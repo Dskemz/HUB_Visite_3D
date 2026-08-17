@@ -8673,34 +8673,51 @@ init();
   }
 
   /* ---- Recadrage 3D quand une bottom sheet monte ------------------------
-     La sheet occupe 62vh en bas. On réduit le canvas à la bande haute (38vh)
-     et on relance engine.resize() : Babylon rebalance l'aspect ratio et le
-     modèle reste centré → il apparaît naturellement dans le tiers haut de
-     l'écran, au-dessus de la sheet. Recadre aussi via computeFitRadiusForViewport
-     (fonction du viewer) si elle existe pour éviter que le modèle soit tronqué.
-     À la fermeture on rend le canvas plein écran + on rappelle le fit. */
+     Le canvas RESTE plein écran (100vh) pour que le modèle garde sa taille
+     apparente. On décale simplement la vue vers le haut via targetScreenOffset.y
+     pour que le modèle apparaisse dans la bande visible au-dessus de la sheet.
+     Sur la caméra ArcRotate (vue orbite), Babylon convertit cet offset en pixels
+     via la focale : un offset négatif y remonte le modèle à l'écran. */
   var canvasResizeRAF=null;
   function fitCanvasToSheet(sheetOpen){
     if(!isPhone()) return;
     var cv=cnv(); if(!cv) return;
-    cv.style.height = sheetOpen ? '38vh' : '';
+    // Canvas plein écran dans tous les cas — surtout NE PAS le rétrécir,
+    // sinon le modèle apparaît proportionnellement plus petit.
+    cv.style.height = '';
     cv.style.width  = '';
-    // Resize SYNCHRONE immédiat : indispensable pour que goToPOI() (appelé juste
-    // après showSheet()) démarre son animation avec le BON aspect ratio et le
-    // BON render height. Sans ça, l'animation caméra est calculée avec le viewport
-    // plein écran, puis subit un resize à mi-parcours → POV mal cadré (visible
-    // surtout sur POV serrés type toilettes).
     try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
-    // Puis un second resize sur la frame suivante pour absorber les cas où la
-    // sheet met un peu de temps à faire son transform CSS.
     if(canvasResizeRAF) cancelAnimationFrame(canvasResizeRAF);
     canvasResizeRAF = requestAnimationFrame(function(){
       try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
     });
-    // NB : on NE recalcule PAS le radius de la caméra pour "faire tenir" le GLB
-    // dans la bande 38vh — cela le faisait rapetisser à chaque ouverture du menu.
-    // On garde le radius d'origine : le GLB reste à la même taille apparente,
-    // simplement tronqué en haut/bas si l'aspect devient plus paysage.
+
+    // Décalage vertical de la vue : la sheet occupe ~62% du bas.
+    // Le centre visible passe donc de 50% de l'écran à 19% (centre des 38% du haut),
+    // soit 31% de la hauteur à décaler vers le haut. On convertit ce ratio en
+    // unités monde via le fov/radius de la caméra courante.
+    // On applique aux DEUX caméras (orbite ArcRotate + POV UniversalCamera) car
+    // la vue peut basculer de l'une à l'autre pendant qu'une sheet est ouverte
+    // (ouverture d'une pièce = orbite qui vole vers POV).
+    try {
+      var arc = cam();
+      var fp  = (typeof fpCamera !== 'undefined') ? fpCamera : null;
+      function applyYOffset(c) {
+        if (!c || !c.targetScreenOffset) return;
+        if (sheetOpen) {
+          var fovV = c.fov || 0.8;
+          // Pour la fpCamera on n'a pas de "radius" (pas d'orbite) → on approxime
+          // avec une distance de référence de 1m (ordre de grandeur d'une pièce).
+          var refDist = (c.radius != null) ? c.radius : 1.0;
+          var halfWorldH = refDist * Math.tan(fovV / 2);
+          c.targetScreenOffset.y = 0.31 * 2 * halfWorldH;
+        } else {
+          c.targetScreenOffset.y = 0;
+        }
+      }
+      applyYOffset(arc);
+      applyYOffset(fp);
+    } catch(e){}
   }
 
   /* Resize live du moteur pendant une transition de sheet :
@@ -8979,6 +8996,22 @@ init();
   function boot(){
     bind(); updateCounter(); injectPiecesRailBtn();
     startLiveResizeDuringTransition();
+    // Après chaque entrée en POV, on ré-applique le décalage vertical de la
+    // vue si une m3-sheet est ouverte. La fpCamera vient d'être créée avec
+    // targetScreenOffset (0,0) par défaut ; sans ça le POV apparaîtrait centré
+    // sur l'écran plein (donc caché sous la sheet).
+    (function(){
+      var orig = window.showFirstPersonPhoto;
+      if (typeof orig !== 'function') return;
+      window.showFirstPersonPhoto = function(){
+        var r = orig.apply(this, arguments);
+        try {
+          var sheetShown = document.querySelector('#m3-root .m3-sheet.show');
+          if (sheetShown) fitCanvasToSheet(true);
+        } catch(e){}
+        return r;
+      };
+    })();
     // Le rail peut être construit après notre boot (styles retardés) → on retente
     var tries=0;
     var wait=setInterval(function(){ tries++; injectPiecesRailBtn();
