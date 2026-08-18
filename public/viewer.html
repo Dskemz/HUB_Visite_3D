@@ -9028,22 +9028,33 @@ init();
        ce qui est spécifique au mobile : le compteur, les sheets et la mesure. */
 
     // Double-tap sur le canvas → resetView (retour vue d'ensemble)
+    // Ignore les gestes multi-touch (pinch zoom) : seuls les taps à 1 doigt comptent.
     (function(){
       var lastTap = 0;
       var cv = cnv();
       if (cv) {
         cv.addEventListener('touchend', function(e){
+          // Si plus d'un doigt reste ou si le geste impliquait plusieurs doigts → ignorer
+          if (e.touches.length > 0) return; // des doigts restent sur l'écran
+          if (e.changedTouches.length > 1) return; // plusieurs doigts levés en même temps
+          // Vérifie qu'il n'y a eu qu'un seul doigt pendant tout le geste
+          // On utilise un flag posé au touchstart
+          if (cv._multiTouch) { cv._multiTouch = false; return; }
           var now = Date.now();
           if (now - lastTap < 350) {
             e.preventDefault();
-            // Ferme les sheets si ouvertes
             var sheetOpen = document.querySelector('#m3-root .m3-sheet.show');
             if (sheetOpen) { closeSheets(); }
             else if (typeof resetView === 'function') { resetView(); }
             haptic(12);
+            lastTap = 0; // évite triple-tap
+          } else {
+            lastTap = now;
           }
-          lastTap = now;
         }, {passive: false});
+        cv.addEventListener('touchstart', function(e){
+          if (e.touches.length > 1) cv._multiTouch = true;
+        }, {passive: true});
       }
     })();
 
