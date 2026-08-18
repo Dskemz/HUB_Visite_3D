@@ -3014,7 +3014,15 @@ async function init() {
   camera.panningSensibility = 300;     // translation au clic droit (diviseur = plus haut = plus lent)
   camera.panningInertia = 0.7;        // amortissement translation : aligné sur la rotation (0.7) → la translation stoppe aussi franchement après un lâcher rapide (0.9 = défaut Sandbox)
   camera.panningAxis = new BABYLON.Vector3(1, 1, 0); // pan dans le plan écran (défaut Sandbox)
-  camera.wheelPrecision = 15;         // zoom molette très adouci (plus haut = plus doux)
+  // Mobile : rotation ×2 et pan ×2 (diviseurs / 2) pour navigation tactile plus réactive.
+  // Desktop : zoom molette ×2 (diviseur / 2) pour atteindre les murs plus vite.
+  var _isMob = isCoarsePointer();
+  if (_isMob) {
+    camera.angularSensibilityX = 500;
+    camera.angularSensibilityY = 500;
+    camera.panningSensibility = 150;
+  }
+  camera.wheelPrecision = _isMob ? 15 : 7;  // desktop : molette ×2 plus rapide
   // --- ZOOM PINCEMENT (tactile) ---
   // pinchPrecision divise par angularSensibility, que la vitesse adaptative gonfle
   // jusqu'à ×navSpeedMaxSlow à l'approche → le zoom se bridait tout seul dès qu'on
@@ -3036,9 +3044,11 @@ async function init() {
       camera.radius / initialFraming.radius,
       1 / CONFIG.navSpeedMaxSlow, 1);            // proche → petit ratio ; loin → 1
     const slow = 1 / ratio;                       // proche → grand (jusqu'à navSpeedMaxSlow)
-    camera.panningSensibility  = CONFIG.navPanSensibility     * slow;
-    camera.angularSensibilityX = CONFIG.navAngularSensibility * slow;
-    camera.angularSensibilityY = CONFIG.navAngularSensibility * slow;
+    camera.panningSensibility  = (_isMob ? CONFIG.navPanSensibility / 2 : CONFIG.navPanSensibility) * slow;
+    camera.angularSensibilityX = (_isMob ? CONFIG.navAngularSensibility / 2 : CONFIG.navAngularSensibility) * slow;
+    camera.angularSensibilityY = (_isMob ? CONFIG.navAngularSensibility / 2 : CONFIG.navAngularSensibility) * slow;
+    // Préserve l'inversion Y si activée
+    try { if (localStorage.getItem('v3d-invert-y') === '1') camera.angularSensibilityY = -Math.abs(camera.angularSensibilityY); } catch(e){}
   });
 
   // === FREIN D'APPROCHE DU ZOOM ===
