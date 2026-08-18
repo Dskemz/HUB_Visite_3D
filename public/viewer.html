@@ -8297,17 +8297,33 @@ init();
     //    en fondu. Fiable car c'est un div CSS, pas le canvas WebGL lui-même.
     var veil = document.getElementById('reveal-veil');
     if (veil) {
-      // rAF pour garantir que la transition CSS est bien prise en compte
       requestAnimationFrame(function(){
         requestAnimationFrame(function(){ veil.classList.add('dissolved'); });
       });
     }
 
-    // 3) ANIMATION CAMÉRA D'ENTRÉE — mouvement 3D indéniable AVANT navigation.
-    //    Dézoom cinématique : on démarre plus proche + légèrement décalé, puis
-    //    on rejoint le cadrage initial en douceur. L'utilisateur VOIT la maquette
-    //    bouger. Navigation bloquée pendant l'animation (isAnimating = true).
-    try { if (typeof window.playIntroCameraMove === 'function') window.playIntroCameraMove(); } catch(_) {}
+    // 3) ANIMATION CAMÉRA D'ENTRÉE — On positionne la caméra à son état de
+    //    départ IMMÉDIATEMENT (avant que le veil se dissolve) pour que le premier
+    //    frame visible soit déjà cadré. Puis on lance l'animation avec un délai
+    //    de 800ms pour qu'elle commence quand le veil est à mi-dissolution →
+    //    l'utilisateur voit le modèle apparaître ET bouger en même temps.
+    try {
+      if (typeof window.playIntroCameraMove === 'function') {
+        // Positionne la caméra au départ (sans animer) pour que le premier
+        // frame rendu sous le veil soit déjà à la bonne position de départ.
+        if (camera && initialFraming) {
+          var isMob = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+          camera.setTarget(initialFraming.target.clone());
+          camera.radius = initialFraming.radius * (isMob ? 0.45 : 0.72);
+          camera.alpha = initialFraming.alpha - (isMob ? 0.7 : 0.35);
+          camera.beta = Math.min(initialFraming.beta + (isMob ? 0.4 : 0.22), Math.PI * 0.49);
+        }
+        // Lance l'animation après que le veil commence à disparaître
+        setTimeout(function(){
+          try { window.playIntroCameraMove(); } catch(_){}
+        }, 800);
+      }
+    } catch(_) {}
 
     // 4) HUD staggered — après le début du reveal
     setTimeout(function(){
@@ -8348,7 +8364,7 @@ init();
       const measuring=document.getElementById('btn-measure') && document.getElementById('btn-measure').classList.contains('on');
       const entryOpen=document.getElementById('cine-entry') && document.getElementById('cine-entry').classList.contains('show');
       if(!measuring && !(help&&help.classList.contains('on')) && !entryOpen) ui.classList.add('cine-idle');
-    }, 5000);
+    }, 10000);
   };
   ['mousemove','pointerdown','keydown','wheel','touchstart'].forEach(ev=>window.addEventListener(ev,window.cineWake,{passive:true}));
 
@@ -8520,6 +8536,9 @@ init();
     </button>
     <button class="m3-tool" id="m3-gyro" title="Mode gyroscope" aria-label="Vue gyroscope">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="2.5"/></svg>
+    </button>
+    <button class="m3-tool" id="m3-invert-y" title="Inverser la vue verticale" aria-label="Inverser la vue verticale">
+      <svg viewBox="0 0 24 24"><path d="M12 3v18M12 3l-4 4M12 3l4 4M12 21l-4-4M12 21l4-4"/></svg>
     </button>
   </aside>
 
@@ -8975,7 +8994,49 @@ init();
     function onResize(){ clearTimeout(deb); deb=setTimeout(applyFov, 150); }
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', function(){ setTimeout(applyFov, 250); });
+
+    // --- Toggle inversion Y ---
+    var invertBtn = $('m3-invert-y');
+    if (invertBtn) {
+      // Restaure la préférence persistante
+      var inverted = localStorage.getItem('v3d-invert-y') === '1';
+      if (inverted) applyInvertY(true);
+      setActive(invertBtn, inverted);
+      invertBtn.addEventListener('click', function(){
+        inverted = !inverted;
+        localStorage.setItem('v3d-invert-y', inverted ? '1' : '0');
+        applyInvertY(inverted);
+        setActive(invertBtn, inverted);
+        haptic(8);
+        toast(inverted ? 'Vue verticale inversée' : 'Vue verticale normale');
+      });
+    }
   }
+
+  function applyInvertY(inverted){
+    // ArcRotateCamera : signe de angularSensibilityY
+    try {
+      var c = cam(); if (!c) return;
+      var abs = Math.abs(c.angularSensibilityY) || 1000;
+      c.angularSensibilityY = inverted ? -abs : abs;
+    } catch(e){}
+  }
+  // Ré-applique après chaque resetView / exitFirstPerson (qui remet 1000)
+  (function(){
+    var _origReset = window.resetView;
+    if (typeof _origReset === 'function') {
+      window.resetView = function(){
+        var r = _origReset.apply(this, arguments);
+        try {
+          if (localStorage.getItem('v3d-invert-y') === '1') {
+            // resetView anime → on applique après la fin de l'animation
+            setTimeout(function(){ applyInvertY(true); }, 100);
+          }
+        } catch(e){}
+        return r;
+      };
+    }
+  })();
 
   /* ======================  SYNC PÉRIODIQUE LÉGER  ======================= */
   function sync(){
