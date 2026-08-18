@@ -2437,7 +2437,7 @@
          juste translaté visuellement de -31vh (moitié de la fraction cachée
          par la sheet 62vh). getBoundingClientRect() prend en compte le
          transform → les touchs dans la bande haute atteignent bien le rendu. */
-      body.m3-sheet-open #canvas { transform: translateY(-32vh); }
+      body.m3-sheet-open #canvas { transform: translateY(-16vh); }
       .m3-sheet {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 570;
         max-height: 62vh; display: flex; flex-direction: column;
@@ -8667,17 +8667,21 @@ init();
     fitCanvasToSheet(false);
   }
   function showSheet(id){
+    // Réinitialise l'état courant : si on était en vue de dessus (cotations)
+    // ou en POV, on remet tout à zéro proprement avant d'ouvrir le menu.
+    // On appelle resetView() uniquement si nécessaire pour ne pas perturber
+    // la navigation normale.
+    try {
+      if ((typeof isTopView !== 'undefined' && isTopView) ||
+          (typeof isFirstPerson !== 'undefined' && isFirstPerson)) {
+        resetView();
+      }
+    } catch(e){}
     var a=$('m3-rooms-sheet'), b=$('m3-room-sheet');
     if(a)a.classList.remove('show'); if(b)b.classList.remove('show');
     var el=$(id); if(el){ el.classList.add('show'); showScrim(true); haptic(8); }
-    // Sur la fiche d'une pièce (m3-room-sheet), l'utilisateur est en POV : il
-    // doit pouvoir tourner la caméra dans la bande haute. On rend le scrim
-    // inerte aux events (le fond assombri reste visible) pour laisser passer
-    // les touchs/clics vers le canvas 3D. La fermeture reste possible via la
-    // poignée (grip) au sommet de la sheet.
     var sc = $('m3-scrim');
     if (sc) sc.classList.toggle('pass-through', !!el);
-    // Ajoute la classe qui déclenche le décalage visuel du canvas vers le haut.
     document.body.classList.toggle('m3-sheet-open', !!el);
     fitCanvasToSheet(true);
   }
