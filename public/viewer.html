@@ -2437,7 +2437,7 @@
          juste translaté visuellement de -31vh (moitié de la fraction cachée
          par la sheet 62vh). getBoundingClientRect() prend en compte le
          transform → les touchs dans la bande haute atteignent bien le rendu. */
-      body.m3-sheet-open #canvas { transform: translateY(-32vh); }
+      body.m3-sheet-open #canvas { transform: translateY(-24vh); }
       .m3-sheet {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 570;
         max-height: 62vh; display: flex; flex-direction: column;
@@ -4841,22 +4841,23 @@ function frameModel(root) {
   // qui les utilise doit être définie ICI puis exposée.
   window.playIntroCameraMove = function(){
     if (!camera || !initialFraming || !scene) return;
+    var isMob = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
     var endRadius = initialFraming.radius;
-    var startRadius = endRadius * 0.72;         // démarre plus proche
+    var startRadius = endRadius * (isMob ? 0.45 : 0.72);
     var endAlpha = initialFraming.alpha;
-    var startAlpha = endAlpha - 0.35;           // ~20° de rotation à parcourir
+    var startAlpha = endAlpha - (isMob ? 0.7 : 0.35);
     var endBeta = initialFraming.beta;
-    var startBeta = Math.min(endBeta + 0.22, Math.PI * 0.49); // un peu plus haut
+    var startBeta = Math.min(endBeta + (isMob ? 0.4 : 0.22), Math.PI * 0.49);
 
     camera.setTarget(initialFraming.target.clone());
     camera.radius = startRadius;
     camera.alpha = startAlpha;
     camera.beta = startBeta;
 
-    isAnimating = true;                          // bloque la navigation pendant l'intro
+    isAnimating = true;
     try { camera.detachControl(); } catch(_){}
 
-    var DURATION = 2200;
+    var DURATION = isMob ? 2600 : 2200;
     var t0 = performance.now();
     var easeOutCubic = function(x){ return 1 - Math.pow(1 - x, 3); };
 
@@ -4873,7 +4874,6 @@ function frameModel(root) {
         currentAnimObserver = null;
         try { camera.attachControl(document.getElementById('canvas'), true); } catch(_){}
         isAnimating = false;
-        /* bouton recentrer supprimé */
       }
     });
     currentAnimObserver = obs;
@@ -8665,6 +8665,21 @@ init();
     var sc = $('m3-scrim'); if (sc) sc.classList.remove('pass-through');
     document.body.classList.remove('m3-sheet-open');
     fitCanvasToSheet(false);
+    // Sur mobile, fermer le menu ramène à la vue d'ensemble (resetView).
+    // L'utilisateur qui ferme veut voir tout le modèle, pas rester coincé
+    // en POV dans une pièce. Sur desktop ce comportement n'existe pas.
+    try {
+      if (typeof isFirstPerson !== 'undefined' && isFirstPerson) {
+        if (typeof exitPanoramaCamera === 'function') exitPanoramaCamera();
+        isFirstPerson = false;
+      }
+      if (typeof isAnimating !== 'undefined') isAnimating = false;
+      if (typeof currentAnimObserver !== 'undefined' && currentAnimObserver) {
+        try { scene.onBeforeRenderObservable.remove(currentAnimObserver); } catch(e){}
+        currentAnimObserver = null;
+      }
+      if (typeof resetView === 'function') resetView();
+    } catch(e){}
   }
   function showSheet(id){
     // Réinitialise l'état courant avant d'ouvrir la sheet.
@@ -8766,6 +8781,8 @@ init();
     try { if (poi && poi.id) call('goToPOI', poi.id); } catch(e){}
   }
   function backToRoomsList(){
+    // Retour à la liste : on reste sur la vue POV actuelle, l'utilisateur
+    // peut continuer à se balader. On change juste la sheet.
     var b=$('m3-room-sheet'); if(b) b.classList.remove('show');
     buildRooms();
     var a=$('m3-rooms-sheet'); if(a){ a.classList.add('show'); }
