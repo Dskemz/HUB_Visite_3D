@@ -2438,6 +2438,10 @@
          par la sheet 62vh). getBoundingClientRect() prend en compte le
          transform → les touchs dans la bande haute atteignent bien le rendu. */
       body.m3-sheet-open #canvas { transform: translateY(-24vh); }
+      /* En POV (fiche d'une pièce), le canvas revient plein écran car la caméra
+         immersive doit occuper toute la bande visible. La sheet couvre le bas
+         avec le scrim pass-through. */
+      body.m3-sheet-open.m3-pov-active #canvas { transform: none; }
       .m3-sheet {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 570;
         max-height: 62vh; display: flex; flex-direction: column;
@@ -2648,6 +2652,12 @@
     </button>
     <button class="rail-btn" id="btn-furnished" onclick="toggleFurnished()" data-tip="Meublé / Vide" title="Afficher ou masquer les meubles" aria-label="Meublé / Vide" style="display: none;">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M16 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M2 18h20M4 15V9a2 2 0 012-2h12a2 2 0 012 2v6"/><path d="M8 13h8" stroke-linecap="round"/></svg>
+    </button>
+    <button class="rail-btn" id="btn-invert-y" onclick="toggleInvertY()" data-tip="Inverser axe vertical" title="Inverser la vue verticale" aria-label="Inverser la vue verticale">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M12 3l-4 4M12 3l4 4M12 21l-4-4M12 21l4-4"/></svg>
+    </button>
+    <button class="rail-btn" id="btn-info-mobile" onclick="toggleBienInfo()" data-tip="Infos du bien" title="Informations sur le bien" aria-label="Informations sur le bien">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
     </button>
   </div>
 
@@ -5188,6 +5198,26 @@ function toggleFurnished() {
   // Pastille active = meubles VISIBLES (logique inversée)
   if (btn) btn.classList.toggle('active', furnishedVisible);
 }
+
+/* Toggle inversion axe Y — persisté en localStorage */
+function toggleInvertY() {
+  var cur = localStorage.getItem('v3d-invert-y') === '1';
+  var next = !cur;
+  localStorage.setItem('v3d-invert-y', next ? '1' : '0');
+  var abs = Math.abs(camera.angularSensibilityY) || 1000;
+  camera.angularSensibilityY = next ? -abs : abs;
+  var btn = document.getElementById('btn-invert-y');
+  if (btn) btn.classList.toggle('active', next);
+}
+// Restaure au chargement
+try {
+  if (localStorage.getItem('v3d-invert-y') === '1') {
+    document.addEventListener('DOMContentLoaded', function(){
+      var btn = document.getElementById('btn-invert-y');
+      if (btn) btn.classList.add('active');
+    });
+  }
+} catch(_){}
 
 /* Recentre le GLB global dans la zone visible avec la marge configurée, en douceur.
    Conserve l'orientation courante (nav) ou la vue de dessus selon le mode.
@@ -8299,49 +8329,66 @@ init();
     var e = document.getElementById('cine-entry');
     if (!e) return;
 
-    // 1) L'écran d'entrée disparaît (fade 1s)
     e.classList.remove('show');
     e.classList.add('gone');
 
-    // 2) Le voile de reveal se dissout
-    var veil = document.getElementById('reveal-veil');
-    if (veil) {
-      requestAnimationFrame(function(){
-        requestAnimationFrame(function(){ veil.classList.add('dissolved'); });
-      });
+    // Pré-positionne la caméra AVANT de dissoudre le veil pour que le premier
+    // frame visible soit déjà au bon angle de départ.
+    try {
+      if (typeof camera !== 'undefined' && camera && typeof initialFraming !== 'undefined' && initialFraming) {
+        var isMob = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+        camera.setTarget(initialFraming.target.clone());
+        camera.radius = initialFraming.radius * (isMob ? 0.45 : 0.72);
+        camera.alpha  = initialFraming.alpha - (isMob ? 0.7 : 0.35);
+        camera.beta   = Math.min(initialFraming.beta + (isMob ? 0.4 : 0.22), Math.PI * 0.49);
+      }
+    } catch(_){}
+
+    // Attend que TOUS les shaders/textures soient compilés (scene.isReady)
+    // avant de révéler le canvas et lancer l'animation. C'est ÇA qui cause
+    // l'écran noir : le veil se dissout pendant que le GPU compile encore.
+    function startReveal(){
+      var veil = document.getElementById('reveal-veil');
+      if (veil) {
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){ veil.classList.add('dissolved'); });
+        });
+      }
+      setTimeout(function(){
+        try {
+          if (typeof window.playIntroCameraMove === 'function') {
+            window.playIntroCameraMove();
+          }
+        } catch(_){}
+      }, 300);
+      setTimeout(function(){
+        document.body.classList.add('hud-reveal-ready');
+      }, 500);
+      if (typeof window.cineWake==='function') window.cineWake();
     }
 
-    // 3) ANIMATION CAMÉRA D'ENTRÉE
-    console.log('[CINE] cineBegin called');
-    console.log('[CINE] camera:', typeof camera, camera ? 'exists' : 'NULL');
-    console.log('[CINE] initialFraming:', typeof initialFraming, initialFraming ? 'exists' : 'NULL');
-    console.log('[CINE] playIntroCameraMove:', typeof window.playIntroCameraMove);
-    console.log('[CINE] scene:', typeof scene, (typeof scene !== 'undefined' && scene) ? 'exists' : 'NULL');
-
-    // On ne fait PLUS de pré-positionnement ici (ça causait des bugs quand
-    // les valeurs étaient modifiées par applyFov). On laisse playIntroCameraMove
-    // gérer entièrement le positionnement initial ET l'animation.
-    // Délai 400ms : laisse le veil commencer à se dissoudre.
-    setTimeout(function(){
-      console.log('[CINE] setTimeout fired, playIntroCameraMove:', typeof window.playIntroCameraMove);
-      console.log('[CINE] camera now:', typeof camera !== 'undefined' && camera ? 'exists' : 'NULL');
-      console.log('[CINE] isAnimating:', typeof isAnimating !== 'undefined' ? isAnimating : 'undef');
-      try {
-        if (typeof window.playIntroCameraMove === 'function') {
-          window.playIntroCameraMove();
-          console.log('[CINE] playIntroCameraMove called OK');
-        } else {
-          console.error('[CINE] playIntroCameraMove NOT defined!');
+    // scene.executeWhenReady attend que tous les shaders soient compilés
+    // et les textures chargées. C'est le signal fiable que le canvas
+    // va afficher quelque chose d'autre que du noir.
+    if (typeof scene !== 'undefined' && scene && typeof scene.executeWhenReady === 'function') {
+      scene.executeWhenReady(function(){
+        // Petit délai supplémentaire pour que le premier frame soit effectivement rendu
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            startReveal();
+          });
+        });
+      });
+      // Safety timeout : si la scène ne devient jamais "ready" après 4s, on force
+      setTimeout(function(){
+        var veil = document.getElementById('reveal-veil');
+        if (veil && !veil.classList.contains('dissolved')) {
+          startReveal();
         }
-      } catch(err){ console.error('[CINE] playIntroCameraMove error:', err); }
-    }, 400);
-
-    // 4) HUD staggered
-    setTimeout(function(){
-      document.body.classList.add('hud-reveal-ready');
-    }, 600);
-
-    if (typeof window.cineWake==='function') window.cineWake();
+      }, 4000);
+    } else {
+      startReveal();
+    }
   };
 
   // (playIntroCameraMove est défini dans le script principal, où camera/scene/
@@ -8694,10 +8741,8 @@ init();
     showScrim(false);
     var sc = $('m3-scrim'); if (sc) sc.classList.remove('pass-through');
     document.body.classList.remove('m3-sheet-open');
+    document.body.classList.remove('m3-pov-active');
     fitCanvasToSheet(false);
-    // Sur mobile, fermer le menu ramène à la vue d'ensemble (resetView).
-    // L'utilisateur qui ferme veut voir tout le modèle, pas rester coincé
-    // en POV dans une pièce. Sur desktop ce comportement n'existe pas.
     try {
       if (typeof isFirstPerson !== 'undefined' && isFirstPerson) {
         if (typeof exitPanoramaCamera === 'function') exitPanoramaCamera();
@@ -8805,15 +8850,13 @@ init();
     buildRoomSwitch(poi);
     buildCarousel(poi);
     showSheet('m3-room-sheet');
+    document.body.classList.add('m3-pov-active');
     markVisited(poi.id);
-    // Navigation caméra vers la pièce ciblée → le GLB en fond montre le POV
-    // de la pièce dans la bande haute, en même temps que la sheet monte.
     try { if (poi && poi.id) call('goToPOI', poi.id); } catch(e){}
   }
   function backToRoomsList(){
-    // Retour à la liste : on reste sur la vue POV actuelle, l'utilisateur
-    // peut continuer à se balader. On change juste la sheet.
     var b=$('m3-room-sheet'); if(b) b.classList.remove('show');
+    document.body.classList.remove('m3-pov-active');
     buildRooms();
     var a=$('m3-rooms-sheet'); if(a){ a.classList.add('show'); }
     document.body.classList.add('m3-sheet-open');
@@ -8983,6 +9026,27 @@ init();
     /* Le rail d'outils et le bouton RDV du desktop sont désormais utilisés
        tels quels sur mobile (déjà responsive < 820px). On câble uniquement
        ce qui est spécifique au mobile : le compteur, les sheets et la mesure. */
+
+    // Double-tap sur le canvas → resetView (retour vue d'ensemble)
+    (function(){
+      var lastTap = 0;
+      var cv = cnv();
+      if (cv) {
+        cv.addEventListener('touchend', function(e){
+          var now = Date.now();
+          if (now - lastTap < 350) {
+            e.preventDefault();
+            // Ferme les sheets si ouvertes
+            var sheetOpen = document.querySelector('#m3-root .m3-sheet.show');
+            if (sheetOpen) { closeSheets(); }
+            else if (typeof resetView === 'function') { resetView(); }
+            haptic(12);
+          }
+          lastTap = now;
+        }, {passive: false});
+      }
+    })();
+
     var fab = $('m3-pieces-fab');
     if (fab) fab.addEventListener('click', function(){ buildRooms(); showSheet('m3-rooms-sheet'); haptic(8); });
 
