@@ -2437,7 +2437,7 @@
          juste translaté visuellement de -31vh (moitié de la fraction cachée
          par la sheet 62vh). getBoundingClientRect() prend en compte le
          transform → les touchs dans la bande haute atteignent bien le rendu. */
-      body.m3-sheet-open #canvas { transform: translateY(-16vh); }
+      body.m3-sheet-open #canvas { transform: translateY(-32vh); }
       .m3-sheet {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 570;
         max-height: 62vh; display: flex; flex-direction: column;
@@ -8667,14 +8667,26 @@ init();
     fitCanvasToSheet(false);
   }
   function showSheet(id){
-    // Réinitialise l'état courant : si on était en vue de dessus (cotations)
-    // ou en POV, on remet tout à zéro proprement avant d'ouvrir le menu.
-    // On appelle resetView() uniquement si nécessaire pour ne pas perturber
-    // la navigation normale.
+    // Réinitialise l'état courant avant d'ouvrir la sheet.
+    // IMPORTANT : on NE peut PAS appeler resetView() ici car il met
+    // isAnimating=true pendant son retour → goToPOI() (appelé dans openRoom
+    // juste après) trouve isAnimating=true et sort sans rien faire → caméra
+    // reste en vue orbitale au lieu d'aller en POV.
+    // On sort instantanément (sans anim) pour libérer isAnimating.
     try {
-      if ((typeof isTopView !== 'undefined' && isTopView) ||
-          (typeof isFirstPerson !== 'undefined' && isFirstPerson)) {
-        resetView();
+      if (typeof isFirstPerson !== 'undefined' && isFirstPerson) {
+        if (typeof exitPanoramaCamera === 'function') exitPanoramaCamera();
+        isFirstPerson = false;
+      }
+      if (typeof isTopView !== 'undefined' && isTopView) {
+        if (typeof setHudVisible === 'function') setHudVisible(false);
+        isTopView = false;
+        if (typeof updateToggleButton === 'function') updateToggleButton();
+      }
+      if (typeof isAnimating !== 'undefined') isAnimating = false;
+      if (typeof currentAnimObserver !== 'undefined' && currentAnimObserver) {
+        try { scene.onBeforeRenderObservable.remove(currentAnimObserver); } catch(e){}
+        currentAnimObserver = null;
       }
     } catch(e){}
     var a=$('m3-rooms-sheet'), b=$('m3-room-sheet');
@@ -8754,17 +8766,23 @@ init();
     try { if (poi && poi.id) call('goToPOI', poi.id); } catch(e){}
   }
   function backToRoomsList(){
-    // Retour à la liste depuis le détail d'une pièce
     var b=$('m3-room-sheet'); if(b) b.classList.remove('show');
     buildRooms();
     var a=$('m3-rooms-sheet'); if(a){ a.classList.add('show'); }
+    document.body.classList.add('m3-sheet-open');
     haptic(6);
-    // La sheet reste ouverte → pas besoin de fitCanvasToSheet (déjà ouvert)
   }
   function matchRoom(poi){
+    // Un POI a son propre id (ex: "cuisine-1") ET un roomId qui pointe vers
+    // la room avec meubles (ex: "cuisine"). On cherche d'abord par roomId,
+    // puis par id direct, puis par label — identique à la logique desktop.
+    var targetId = (poi.roomId) || poi.id;
     var rl=roomsData();
     for (var i=0;i<rl.length;i++){
-      if (rl[i].id===poi.id) return rl[i];
+      if (rl[i].id===targetId) return rl[i];
+    }
+    // Fallback label
+    for (var i=0;i<rl.length;i++){
       if (labelOf(rl[i]).toLowerCase()===labelOf(poi).toLowerCase()) return rl[i];
     }
     return null;
