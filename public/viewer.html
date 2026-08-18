@@ -5577,6 +5577,11 @@ function enterFirstPerson(poi) {
 
   camera.detachControl();
   camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+  // Réinitialise les bornes orthographiques : si on partait de la vue de dessus,
+  // la caméra était en mode ORTHOGRAPHIC avec orthoTop/Bottom/Left/Right définis.
+  // Sans les remettre à null, la caméra reste visuellement figée en projection
+  // orthographique malgré le passage en PERSPECTIVE → l'animation POV est invisible.
+  camera.orthoTop = camera.orthoBottom = camera.orthoLeft = camera.orthoRight = null;
 
   // Masquer les marqueurs pendant qu'on est immergé dans la pièce
   setMarkersVisible(false);
