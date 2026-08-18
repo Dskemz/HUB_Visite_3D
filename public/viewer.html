@@ -2252,6 +2252,8 @@
 
       /* Bloc outils remonté légèrement pour ne plus être collé au bord */
       .tool-rail { bottom: calc(28px + env(safe-area-inset-bottom, 0px)) !important; }
+      /* Aide masquée sur mobile — tout est intuitif */
+      #btn-help { display: none !important; }
 
       /* Le hint « Mesurer / Cliquez un premier point… » passe en HAUT
          (sous le compteur) au lieu d'être collé à la barre d'outils en bas. */
@@ -2644,20 +2646,17 @@
       <span class="btn-icon" id="btn-icon"></span>
       <span class="btn-label" id="btn-label">Vue de dessus</span>
     </button>
+    <button class="rail-btn" id="btn-furnished" onclick="toggleFurnished()" data-tip="Meublé / Vide" title="Afficher ou masquer les meubles" aria-label="Meublé / Vide" style="display: none;">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M16 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M2 18h20M4 15V9a2 2 0 012-2h12a2 2 0 012 2v6"/><path d="M8 13h8" stroke-linecap="round"/></svg>
+    </button>
     <button class="rail-btn" id="btn-measure" onclick="toggleMeasure()" data-tip="Mesurer" title="Mesurer une distance" aria-label="Mesurer une distance">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12l10-10 10 10-10 10z"/><path d="M8 12h1M12 8v1M12 15v1M15 12h1"/></svg><span class="measure-lbl">Mesurer</span>
     </button>
     <button class="rail-btn" id="btn-help" onclick="toggleHelp()" data-tip="Aide" title="Aide et raccourcis" aria-label="Aide et raccourcis clavier">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 013.5 2.3c0 1.5-2 1.7-2 3M12 17h.01"/></svg><span class="measure-lbl">Aide</span>
     </button>
-    <button class="rail-btn" id="btn-furnished" onclick="toggleFurnished()" data-tip="Meublé / Vide" title="Afficher ou masquer les meubles" aria-label="Meublé / Vide" style="display: none;">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M16 18v-3a2 2 0 012-2h0a2 2 0 012 2v3M2 18h20M4 15V9a2 2 0 012-2h12a2 2 0 012 2v6"/><path d="M8 13h8" stroke-linecap="round"/></svg>
-    </button>
     <button class="rail-btn" id="btn-invert-y" onclick="toggleInvertY()" data-tip="Inverser axe vertical" title="Inverser la vue verticale" aria-label="Inverser la vue verticale">
       <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M12 3l-4 4M12 3l4 4M12 21l-4-4M12 21l4-4"/></svg>
-    </button>
-    <button class="rail-btn" id="btn-info-mobile" onclick="toggleBienInfo()" data-tip="Infos du bien" title="Informations sur le bien" aria-label="Informations sur le bien">
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
     </button>
   </div>
 
@@ -8332,8 +8331,9 @@ init();
     e.classList.remove('show');
     e.classList.add('gone');
 
-    // Pré-positionne la caméra AVANT de dissoudre le veil pour que le premier
-    // frame visible soit déjà au bon angle de départ.
+    // Pré-positionne la caméra au départ de l'animation AVANT tout reveal.
+    // Le canvas rend déjà sous le veil noir → quand le veil se dissoudra,
+    // le premier frame visible sera au bon angle.
     try {
       if (typeof camera !== 'undefined' && camera && typeof initialFraming !== 'undefined' && initialFraming) {
         var isMob = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
@@ -8344,51 +8344,29 @@ init();
       }
     } catch(_){}
 
-    // Attend que TOUS les shaders/textures soient compilés (scene.isReady)
-    // avant de révéler le canvas et lancer l'animation. C'est ÇA qui cause
-    // l'écran noir : le veil se dissout pendant que le GPU compile encore.
-    function startReveal(){
+    // Séquence temporisée :
+    // 0ms   : cine-entry disparaît (ci-dessus)
+    // 600ms : veil commence à se dissoudre (laisse le GPU compiler les shaders)
+    // 900ms : animation caméra démarre (le veil est à mi-dissolution → visible)
+    // 800ms : HUD apparaît en staggered
+    setTimeout(function(){
       var veil = document.getElementById('reveal-veil');
-      if (veil) {
-        requestAnimationFrame(function(){
-          requestAnimationFrame(function(){ veil.classList.add('dissolved'); });
-        });
-      }
-      setTimeout(function(){
-        try {
-          if (typeof window.playIntroCameraMove === 'function') {
-            window.playIntroCameraMove();
-          }
-        } catch(_){}
-      }, 300);
-      setTimeout(function(){
-        document.body.classList.add('hud-reveal-ready');
-      }, 500);
-      if (typeof window.cineWake==='function') window.cineWake();
-    }
+      if (veil) veil.classList.add('dissolved');
+    }, 600);
 
-    // scene.executeWhenReady attend que tous les shaders soient compilés
-    // et les textures chargées. C'est le signal fiable que le canvas
-    // va afficher quelque chose d'autre que du noir.
-    if (typeof scene !== 'undefined' && scene && typeof scene.executeWhenReady === 'function') {
-      scene.executeWhenReady(function(){
-        // Petit délai supplémentaire pour que le premier frame soit effectivement rendu
-        requestAnimationFrame(function(){
-          requestAnimationFrame(function(){
-            startReveal();
-          });
-        });
-      });
-      // Safety timeout : si la scène ne devient jamais "ready" après 4s, on force
-      setTimeout(function(){
-        var veil = document.getElementById('reveal-veil');
-        if (veil && !veil.classList.contains('dissolved')) {
-          startReveal();
+    setTimeout(function(){
+      try {
+        if (typeof window.playIntroCameraMove === 'function') {
+          window.playIntroCameraMove();
         }
-      }, 4000);
-    } else {
-      startReveal();
-    }
+      } catch(_){}
+    }, 900);
+
+    setTimeout(function(){
+      document.body.classList.add('hud-reveal-ready');
+    }, 800);
+
+    if (typeof window.cineWake==='function') window.cineWake();
   };
 
   // (playIntroCameraMove est défini dans le script principal, où camera/scene/
@@ -8575,6 +8553,9 @@ init();
   <header id="m3-header">
     <div id="m3-logo"></div>
     <div id="m3-title">Visite 3D</div>
+    <button id="m3-info-btn" onclick="toggleBienInfo()" title="Informations sur le bien" aria-label="Informations sur le bien" style="background:none;border:none;color:white;padding:4px;cursor:pointer;pointer-events:auto;">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    </button>
     <div id="m3-counter" title="Pièces explorées">
       <svg viewBox="0 0 24 24"><path d="M3 10.5L12 4l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>
       <span id="m3-counter-txt">0/0</span>
