@@ -8303,8 +8303,7 @@ init();
     e.classList.remove('show');
     e.classList.add('gone');
 
-    // 2) Le voile de reveal (au-dessus du canvas) se dissout → le GLB apparaît
-    //    en fondu. Fiable car c'est un div CSS, pas le canvas WebGL lui-même.
+    // 2) Le voile de reveal se dissout
     var veil = document.getElementById('reveal-veil');
     if (veil) {
       requestAnimationFrame(function(){
@@ -8312,30 +8311,32 @@ init();
       });
     }
 
-    // 3) ANIMATION CAMÉRA D'ENTRÉE — On positionne la caméra à son état de
-    //    départ IMMÉDIATEMENT (avant que le veil se dissolve) pour que le premier
-    //    frame visible soit déjà cadré. Puis on lance l'animation avec un délai
-    //    de 800ms pour qu'elle commence quand le veil est à mi-dissolution →
-    //    l'utilisateur voit le modèle apparaître ET bouger en même temps.
-    try {
-      if (typeof window.playIntroCameraMove === 'function') {
-        // Positionne la caméra au départ (sans animer) pour que le premier
-        // frame rendu sous le veil soit déjà à la bonne position de départ.
-        if (camera && initialFraming) {
-          var isMob = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
-          camera.setTarget(initialFraming.target.clone());
-          camera.radius = initialFraming.radius * (isMob ? 0.45 : 0.72);
-          camera.alpha = initialFraming.alpha - (isMob ? 0.7 : 0.35);
-          camera.beta = Math.min(initialFraming.beta + (isMob ? 0.4 : 0.22), Math.PI * 0.49);
-        }
-        // Lance l'animation après que le veil commence à disparaître
-        setTimeout(function(){
-          try { window.playIntroCameraMove(); } catch(_){}
-        }, 800);
-      }
-    } catch(_) {}
+    // 3) ANIMATION CAMÉRA D'ENTRÉE
+    console.log('[CINE] cineBegin called');
+    console.log('[CINE] camera:', typeof camera, camera ? 'exists' : 'NULL');
+    console.log('[CINE] initialFraming:', typeof initialFraming, initialFraming ? 'exists' : 'NULL');
+    console.log('[CINE] playIntroCameraMove:', typeof window.playIntroCameraMove);
+    console.log('[CINE] scene:', typeof scene, (typeof scene !== 'undefined' && scene) ? 'exists' : 'NULL');
 
-    // 4) HUD staggered — après le début du reveal
+    // On ne fait PLUS de pré-positionnement ici (ça causait des bugs quand
+    // les valeurs étaient modifiées par applyFov). On laisse playIntroCameraMove
+    // gérer entièrement le positionnement initial ET l'animation.
+    // Délai 400ms : laisse le veil commencer à se dissoudre.
+    setTimeout(function(){
+      console.log('[CINE] setTimeout fired, playIntroCameraMove:', typeof window.playIntroCameraMove);
+      console.log('[CINE] camera now:', typeof camera !== 'undefined' && camera ? 'exists' : 'NULL');
+      console.log('[CINE] isAnimating:', typeof isAnimating !== 'undefined' ? isAnimating : 'undef');
+      try {
+        if (typeof window.playIntroCameraMove === 'function') {
+          window.playIntroCameraMove();
+          console.log('[CINE] playIntroCameraMove called OK');
+        } else {
+          console.error('[CINE] playIntroCameraMove NOT defined!');
+        }
+      } catch(err){ console.error('[CINE] playIntroCameraMove error:', err); }
+    }, 400);
+
+    // 4) HUD staggered
     setTimeout(function(){
       document.body.classList.add('hud-reveal-ready');
     }, 600);
