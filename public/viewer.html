@@ -4869,12 +4869,21 @@ function frameModel(root) {
     var fovH = 2 * Math.atan(Math.tan(fovV / 2) * aspect);
     var limitingFov = Math.min(fovV, fovH);
     var endRadius = (modelBounds.radius / Math.sin(limitingFov / 2)) * CONFIG.fitMargin;
-    var startRadius = endRadius * (isMob ? 0.45 : 0.72);
+    // Mobile : startRadius > endRadius pour que le modèle rentre entièrement
+    // dans le champ étroit (fovH ~34° portrait). Précédemment 0.45 → modèle
+    // débordait à 58° → viewer perçu comme "vide" pendant la phase où le GLB
+    // n'est pas cadré.
+    var startRadius = endRadius * (isMob ? 1.15 : 0.72);
 
     var endAlpha = initialFraming.alpha;
-    var startAlpha = endAlpha - (isMob ? 0.7 : 0.35);
+    // Mobile : rotation réduite (0.5 au lieu de 0.7) pour rester cohérente avec
+    // le zoom out plutôt que zoom in.
+    var startAlpha = endAlpha - (isMob ? 0.5 : 0.35);
     var endBeta = initialFraming.beta;
-    var startBeta = Math.min(endBeta + (isMob ? 0.4 : 0.22), Math.PI * 0.49);
+    // Mobile : beta_offset réduit (0.10 au lieu de 0.4) pour garder la caméra
+    // AU-DESSUS du plafond (camY > ceilingHeight). Sinon le plafond blanc
+    // s'active et obstrue toute la vue au démarrage.
+    var startBeta = Math.min(endBeta + (isMob ? 0.10 : 0.22), Math.PI * 0.49);
 
     camera.setTarget(initialFraming.target.clone());
     camera.radius = startRadius;
@@ -8402,9 +8411,12 @@ init();
         var limitingFov = Math.min(fovV, fovH);
         var endR = (modelBounds.radius / Math.sin(limitingFov / 2)) * CONFIG.fitMargin;
         camera.setTarget(initialFraming.target.clone());
-        camera.radius = endR * (isMob ? 0.45 : 0.72);
-        camera.alpha  = initialFraming.alpha - (isMob ? 0.7 : 0.35);
-        camera.beta   = Math.min(initialFraming.beta + (isMob ? 0.4 : 0.22), Math.PI * 0.49);
+        // MÊMES valeurs que playIntroCameraMove — sinon la caméra fait un saut
+        // visible entre le pré-positionnement (ici) et le vrai départ de l'anim
+        // (playIntroCameraMove qui repositionne). Mobile : 1.15/0.5/0.10.
+        camera.radius = endR * (isMob ? 1.15 : 0.72);
+        camera.alpha  = initialFraming.alpha - (isMob ? 0.5 : 0.35);
+        camera.beta   = Math.min(initialFraming.beta + (isMob ? 0.10 : 0.22), Math.PI * 0.49);
         camera.lowerRadiusLimit = 0;
       } catch(_){}
 
