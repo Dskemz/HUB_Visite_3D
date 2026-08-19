@@ -8369,10 +8369,25 @@ init();
     var isMob = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
 
     function hideLoader(){
-      try { var lb = document.getElementById('loading-bar'); if (lb) lb.classList.add('hidden'); } catch(_){}
+      try {
+        var lb = document.getElementById('loading-bar');
+        if (lb) {
+          // Coupe la transition CSS pour disparition instantanée : sinon le fond
+          // sombre du loader (rgba noire) reste visible en fade 0.35s par-dessus
+          // la scène et donne l'impression d'un écran noir intermédiaire.
+          lb.style.transition = 'none';
+          lb.classList.add('hidden');
+        }
+      } catch(_){}
     }
     function showLoader(){
-      try { var lb = document.getElementById('loading-bar'); if (lb) lb.classList.remove('hidden'); } catch(_){}
+      try {
+        var lb = document.getElementById('loading-bar');
+        if (lb) {
+          lb.style.transition = ''; // rétablit la transition d'origine
+          lb.classList.remove('hidden');
+        }
+      } catch(_){}
     }
 
     function modelReady(){
