@@ -8165,9 +8165,6 @@ if (EDIT_MODE) {
     const topView = (typeof isTopView !== 'undefined' && isTopView);
     const fp = (typeof isFirstPerson !== 'undefined' && isFirstPerson);
     if (fp) return;    // en POV (photo plein écran) : rien à recadrer côté 3D
-    // Ne pas déplacer la caméra pendant un vol d'approche — sinon le GLB
-    // saute loin avant que l'animation ait repris la main.
-    if (typeof isAnimating !== 'undefined' && isAnimating) return;
 
     const fitR = topView
       ? computeTopViewRadiusForViewport(1)
@@ -8884,7 +8881,14 @@ init();
     showSheet('m3-room-sheet');
     document.body.classList.add('m3-pov-active');
     markVisited(poi.id);
-    try { if (poi && poi.id) call('goToPOI', poi.id); } catch(e){}
+    // Attendre 1 rAF que le navigateur applique height:38vh (m3-pov-active),
+    // puis resize Babylon AVANT de lancer goToPOI — sans ça engine.getRenderHeight()
+    // vaut encore 100vh → computeScreenShiftX calcule un halfWorld énorme
+    // → targetScreenOffset.x massif → le GLB part loin pendant l'animation.
+    requestAnimationFrame(function(){
+      try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
+      try { if (poi && poi.id) call('goToPOI', poi.id); } catch(e){}
+    });
   }
   function backToRoomsList(){
     var b=$('m3-room-sheet'); if(b) b.classList.remove('show');
