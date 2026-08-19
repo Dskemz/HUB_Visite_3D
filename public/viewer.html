@@ -694,7 +694,7 @@
                     rgba(8, 10, 14, 0.92) 70%);
       -webkit-backdrop-filter: blur(18px) saturate(120%);
               backdrop-filter: blur(18px) saturate(120%);
-      transition: opacity .35s cubic-bezier(.22,.61,.36,1), visibility .35s ease;
+      transition: opacity .55s cubic-bezier(.22,.61,.36,1), visibility .55s ease;
       pointer-events: auto;
     }
     .loading-bar.hidden{
@@ -8369,25 +8369,10 @@ init();
     var isMob = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
 
     function hideLoader(){
-      try {
-        var lb = document.getElementById('loading-bar');
-        if (lb) {
-          // Coupe la transition CSS pour disparition instantanée : sinon le fond
-          // sombre du loader (rgba noire) reste visible en fade 0.35s par-dessus
-          // la scène et donne l'impression d'un écran noir intermédiaire.
-          lb.style.transition = 'none';
-          lb.classList.add('hidden');
-        }
-      } catch(_){}
+      try { var lb = document.getElementById('loading-bar'); if (lb) lb.classList.add('hidden'); } catch(_){}
     }
     function showLoader(){
-      try {
-        var lb = document.getElementById('loading-bar');
-        if (lb) {
-          lb.style.transition = ''; // rétablit la transition d'origine
-          lb.classList.remove('hidden');
-        }
-      } catch(_){}
+      try { var lb = document.getElementById('loading-bar'); if (lb) lb.classList.remove('hidden'); } catch(_){}
     }
 
     function modelReady(){
@@ -8412,17 +8397,17 @@ init();
         camera.lowerRadiusLimit = 0;
       } catch(_){}
 
-      // Retire le veil INSTANTANÉMENT (pas de fondu) pour ne pas masquer le
-      // début de l'animation. Cache le loader en même temps.
-      var veil = document.getElementById('reveal-veil');
-      if (veil) {
-        veil.style.transition = 'none';
-        veil.classList.add('dissolved');
-      }
-      hideLoader();
+      // Dissout le veil ET cache le loader EN MÊME TEMPS : sinon on voit
+      // le loader disparaître sur fond noir avant que la scène apparaisse.
+      setTimeout(function(){
+        var veil = document.getElementById('reveal-veil');
+        if (veil) veil.classList.add('dissolved');
+        hideLoader();
+      }, 300);
 
-      // Animation lancée immédiatement — durée complète, entièrement visible.
-      try { window.playIntroCameraMove(); } catch(_){}
+      setTimeout(function(){
+        try { window.playIntroCameraMove(); } catch(_){}
+      }, 600);
     }
 
     // HUD visible immédiatement (plus de staggered dépendant du chargement)
