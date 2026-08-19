@@ -2960,12 +2960,13 @@ async function init() {
     adaptToDeviceRatio: true,
   });
 
-  // Écran haute densité (DPR 2–3, tablettes) : on plafonne le ratio effectif à 1.5 pour
-  // que le back-buffer ET les cibles plein écran (bloom, netteté, FXAA) tiennent dans le
-  // budget GPU. Rendu net. Desktop DPR 1 : condition inactive → inchangé.
+  // Écran haute densité : plafonne le DPR effectif pour économiser le GPU.
+  // Mobile tactile (iPhone DPR=3) : plafonné à 1.5 → rend 2.25× moins de pixels qu'en natif.
+  // Résultat équilibré entre netteté et fluidité.
   try {
-    const minHwScaling = 1 / 1.5;
-    if (engine.getHardwareScalingLevel() < minHwScaling) engine.setHardwareScalingLevel(minHwScaling);
+    var _dprCap = isCoarsePointer() ? 1.5 : 2.0;
+    var _minHwScaling = 1 / _dprCap;
+    if (engine.getHardwareScalingLevel() < _minHwScaling) engine.setHardwareScalingLevel(_minHwScaling);
   } catch (e) { /* API absente : comportement par défaut conservé */ }
 
   scene = new BABYLON.Scene(engine);
@@ -3083,10 +3084,10 @@ async function init() {
   camera.upperBetaLimit = Math.PI / 2;   // bloque la camera au niveau du sol — jamais en dessous
 
   // --- SKYBOX DÉGRADÉ RADIAL (gris centre → blanc bords) ---
-  const skybox = BABYLON.MeshBuilder.CreateSphere('skybox', { diameter: 2000, segments: 64 }, scene);
+  const skybox = BABYLON.MeshBuilder.CreateSphere('skybox', { diameter: 2000, segments: isCoarsePointer() ? 16 : 64 }, scene);
   
   // Créer texture dégradée radiale
-  const radialTexture = new BABYLON.DynamicTexture('radialGradient', 512, scene);
+  const radialTexture = new BABYLON.DynamicTexture('radialGradient', isCoarsePointer() ? 256 : 512, scene);
   const ctx = radialTexture.getContext();
   const centerX = 256, centerY = 256, maxRadius = 256;
   
@@ -4820,10 +4821,11 @@ function frameModel(root) {
 
       // V2 : mettre a jour la position camera dans le shader a chaque frame
       // pour que le sol disparaisse vu d'en dessous.
+      // Référence cachée une fois — évite getMeshByName() à 60fps.
+      var _floorRef = scene.getMeshByName('__infiniteFloor');
       scene.onBeforeRenderObservable.add(function(){
-        var fl = scene.getMeshByName('__infiniteFloor');
-        if (!fl || !fl.material || !camera) return;
-        try { fl.material.setVector3('uCamPos', camera.position); } catch(_){}
+        if (!_floorRef || !_floorRef.material || !camera) return;
+        try { _floorRef.material.setVector3('uCamPos', camera.position); } catch(_){}
       });
     } catch (e) { console.warn('Sol infini non cree:', e); }
   }
@@ -4977,11 +4979,13 @@ function resetView() {
   var hA = initialFraming.alpha, hB = initialFraming.beta, hR = initialFraming.radius, hT = initialFraming.target;
   camera.alpha = wrapAlphaNear(camera.alpha, hA);
   var s = { a: camera.alpha, b: camera.beta, r: camera.radius, f: camera.fov, t: camera.target.clone() };
+  var _resetTgt = s.t.clone(); // pré-alloué pour LerpToRef
   var DUR = 3500, t0 = performance.now();
   currentAnimObserver = scene.onBeforeRenderObservable.add(function() {
     var p = Math.min((performance.now() - t0) / DUR, 1);
     var k = 1 - Math.pow(1 - p, 3);
-    camera._target.copyFrom(BABYLON.Vector3.Lerp(s.t, hT, k));
+    BABYLON.Vector3.LerpToRef(s.t, hT, k, _resetTgt);
+    camera._target.copyFrom(_resetTgt);
     camera.alpha  = s.a + (hA - s.a) * k;
     camera.beta   = s.b + (hB - s.b) * k;
     camera.radius = s.r + (hR - s.r) * k;
@@ -5622,14 +5626,19 @@ function enterFirstPerson(poi) {
   const ENTER_DUR = 3000; // 3s — vol d'approche doux
   const t0Enter = performance.now();
 
+  // Viewport et vecteur pré-alloués — réutilisés à chaque frame sans alloc GC
+  var _enterVp = new BABYLON.Viewport(0, 0, 1, 1);
+  var _enterTgt = camera.target.clone();
+
   currentAnimObserver = scene.onBeforeRenderObservable.add(() => {
     const t = Math.min((performance.now() - t0Enter) / ENTER_DUR, 1);
     const eased = easeInOut(t);
 
     const vpNow = startVp + (targetVp - startVp) * eased;
-    camera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
+    camera.viewport = _enterVp;
     if (camera.targetScreenOffset) camera.targetScreenOffset.x = computeScreenShiftX(vpNow, camera);
-    camera.target = BABYLON.Vector3.Lerp(startTarget, lookAt, eased);
+    BABYLON.Vector3.LerpToRef(startTarget, lookAt, eased, _enterTgt);
+    camera.target = _enterTgt;
     camera.radius = startRadius + (targetRadius - startRadius) * eased;
     camera.alpha = startAlpha + (targetAlpha - startAlpha) * eased;
     camera.beta = startBeta + (targetBeta - startBeta) * eased;
@@ -5708,13 +5717,15 @@ function travelBetweenPovs(poi) {
   const dist = BABYLON.Vector3.Distance(startPos, endPos);
   const totalFrames = Math.round(BABYLON.Scalar.Clamp(40 + dist * 9, 40, 110));
   let frame = 0;
+  var _travelPos = startPos.clone(); // vecteur pré-alloué pour LerpToRef
 
   currentAnimObserver = scene.onBeforeRenderObservable.add(() => {
     frame++;
     const t = Math.min(frame / totalFrames, 1);
     const eased = easeInOut(t);
 
-    fpCamera.position.copyFrom(BABYLON.Vector3.Lerp(startPos, endPos, eased));
+    BABYLON.Vector3.LerpToRef(startPos, endPos, eased, _travelPos);
+    fpCamera.position.copyFrom(_travelPos);
     fpCamera.rotation.y = startYaw + dYaw * eased;
     fpCamera.rotation.x = startPitch + (endPitch - startPitch) * eased;
     fpCamera.rotation.z = 0;
@@ -6706,6 +6717,8 @@ function playTopViewAnimation() {
 
   const totalFrames = 120;
   let frame = 0;
+  var _goVp = new BABYLON.Viewport(0, 0, 1, 1);
+  var _goTgt = startTarget.clone();
 
   currentAnimObserver = scene.onBeforeRenderObservable.add(() => {
     frame++;
@@ -6714,10 +6727,11 @@ function playTopViewAnimation() {
 
     // Rendu plein écran ; le décalage écran glisse vers la zone gauche
     const vpWidth = startViewportWidth + (targetViewportWidth - startViewportWidth) * eased;
-    camera.viewport = new BABYLON.Viewport(0, 0, 1, 1);
+    camera.viewport = _goVp;
 
     // Cible recentrée progressivement (corrige toute translation préalable)
-    camera.target = BABYLON.Vector3.Lerp(startTarget, targetCenter, eased);
+    BABYLON.Vector3.LerpToRef(startTarget, targetCenter, eased, _goTgt);
+    camera.target = _goTgt;
 
     // Beta + alpha interpolés manuellement
     camera.beta = startBeta + (finalBeta - startBeta) * eased;
@@ -7469,7 +7483,14 @@ function setHudVisible(on) {
   if (on) {
     hudUpdate();
     if (!hudObserver) {
-      hudObserver = scene.onAfterRenderObservable.add(() => { if (hudVisible) hudUpdate(); });
+      var _hudLastUpdate = 0;
+      hudObserver = scene.onAfterRenderObservable.add(() => {
+        if (!hudVisible) return;
+        var now = performance.now();
+        if (now - _hudLastUpdate < 100) return; // throttle à ~10fps — les cotations sont statiques
+        _hudLastUpdate = now;
+        hudUpdate();
+      });
     }
   } else if (hudObserver) {
     scene.onAfterRenderObservable.remove(hudObserver);
@@ -7661,15 +7682,17 @@ function animateViewportAndRadius(targetViewport, targetRadius, targetCenter, fr
   camera.upperRadiusLimit = null;
 
   let frame = 0;
+  var _resetTopVp = new BABYLON.Viewport(0, 0, 1, 1);
+  var _resetTopTgt = startTarget.clone();
   currentAnimObserver = scene.onBeforeRenderObservable.add(() => {
     frame++;
     const t = Math.min(frame / frames, 1);
     const e = easeInOut(t);
 
     const vp = startVp + (targetViewport - startVp) * e;
-    camera.viewport = new BABYLON.Viewport(0, 0, 1, 1); // plein écran
+    camera.viewport = _resetTopVp; // pré-alloué
     camera.radius = startRadius + (targetRadius - startRadius) * e;
-    if (targetCenter) camera.target = BABYLON.Vector3.Lerp(startTarget, targetCenter, e);
+    if (targetCenter) { BABYLON.Vector3.LerpToRef(startTarget, targetCenter, e, _resetTopTgt); camera.target = _resetTopTgt; }
     if (camera.targetScreenOffset) camera.targetScreenOffset.x = computeScreenShiftX(vp, camera);
 
     if (t >= 1) {
@@ -9153,7 +9176,7 @@ init();
     // Attend que la caméra soit prête pour appliquer le FOV portrait
     var tries=0;
     var wait=setInterval(function(){ tries++; if(cam()){ clearInterval(wait); applyFov(); buildRooms(); } else if(tries>60){ clearInterval(wait); } }, 250);
-    setInterval(sync, 700);
+    setInterval(sync, 2000);
   }
 
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
