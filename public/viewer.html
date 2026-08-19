@@ -106,7 +106,7 @@
         radial-gradient(ellipse 100% 80% at 38% 28%, #12141b 0%, #0b0c10 50%, #070708 100%);
       pointer-events: none;
       opacity: 1;
-      transition: opacity 0.5s cubic-bezier(.22,.61,.36,1);
+      transition: opacity 1.25s cubic-bezier(.22,.61,.36,1);
     }
     #reveal-veil.dissolved { opacity: 0; }
     
@@ -8397,13 +8397,16 @@ init();
         camera.lowerRadiusLimit = 0;
       } catch(_){}
 
-      // Dissout le veil ET cache le loader EN MÊME TEMPS que l'animation
-      // démarre — pas d'écran noir intermédiaire.
+      // Retire le veil INSTANTANÉMENT (pas de fondu) pour ne pas masquer le
+      // début de l'animation. Cache le loader en même temps.
       var veil = document.getElementById('reveal-veil');
-      if (veil) veil.classList.add('dissolved');
+      if (veil) {
+        veil.style.transition = 'none';
+        veil.classList.add('dissolved');
+      }
       hideLoader();
 
-      // Animation lancée immédiatement, en parallèle du fondu du veil.
+      // Animation lancée immédiatement — durée complète, entièrement visible.
       try { window.playIntroCameraMove(); } catch(_){}
     }
 
