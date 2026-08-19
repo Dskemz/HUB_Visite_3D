@@ -8356,8 +8356,10 @@ init();
     e.classList.remove('show');
     e.classList.add('gone');
 
-    // Force la disparition du loading-bar (au cas où il serait encore visible)
-    try { var lb = document.getElementById('loading-bar'); if (lb) lb.classList.add('hidden'); } catch(_){}
+    // NB : on NE cache PAS le loading-bar ici. Si l'utilisateur clique "Commencer"
+    // avant que le GLB soit chargé, il verra le loader (spinner + barre) au lieu
+    // d'un écran noir vide. Le loader est masqué juste avant l'animation, quand
+    // modelReady() est vrai (voir plus bas).
 
     // L'animation nécessite que le GLB soit chargé (modelBounds + initialFraming).
     // Si l'utilisateur clique "Commencer" AVANT la fin du chargement, on attend
@@ -8365,6 +8367,13 @@ init();
     // C'est le vrai fix : avant, cliquer pendant le chargement sortait
     // playIntroCameraMove immédiatement (modelBounds null) → aucune animation.
     var isMob = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+
+    function hideLoader(){
+      try { var lb = document.getElementById('loading-bar'); if (lb) lb.classList.add('hidden'); } catch(_){}
+    }
+    function showLoader(){
+      try { var lb = document.getElementById('loading-bar'); if (lb) lb.classList.remove('hidden'); } catch(_){}
+    }
 
     function modelReady(){
       return (typeof camera !== 'undefined' && camera &&
@@ -8405,17 +8414,22 @@ init();
 
     if (modelReady()) {
       // Modèle déjà chargé → animation immédiate
+      hideLoader();
       prePositionAndAnimate();
     } else {
-      // Modèle pas encore prêt → on garde le veil opaque et on attend
+      // Modèle pas encore prêt → on ré-affiche le loader (masqué au moment où
+      // cine-entry est apparu) et on attend, plutôt que d'afficher un fond noir vide.
+      showLoader();
       var tries = 0;
       var waitModel = setInterval(function(){
         tries++;
         if (modelReady()) {
           clearInterval(waitModel);
+          hideLoader();
           prePositionAndAnimate();
         } else if (tries > 200) { // 200 × 50ms = 10s max
           clearInterval(waitModel);
+          hideLoader();
           // Abandon : révèle quand même la scène sans animation
           var veil = document.getElementById('reveal-veil');
           if (veil) veil.classList.add('dissolved');
