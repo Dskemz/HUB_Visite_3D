@@ -8376,10 +8376,21 @@ init();
     }
 
     function modelReady(){
+      // camera/initialFraming/modelBounds/playIntroCameraMove sont posés dans
+      // loadWalls (ligne ~3392). Mais engine.runRenderLoop n'est démarré que
+      // ~500 lignes plus tard (ligne ~3943), APRÈS loadCeiling + setup. Entre
+      // les deux, la scène ne rend RIEN → canvas noir vide même si les vars
+      // sont prêtes. On attend donc runRenderLoop actif + au moins 1 frame
+      // effectivement rendue (getRenderId>0) — c'est ça qui garantit qu'on
+      // voit vraiment le GLB au moment où on masque le loader.
       return (typeof camera !== 'undefined' && camera &&
               typeof initialFraming !== 'undefined' && initialFraming &&
               typeof modelBounds !== 'undefined' && modelBounds &&
-              typeof window.playIntroCameraMove === 'function');
+              typeof window.playIntroCameraMove === 'function' &&
+              typeof engine !== 'undefined' && engine &&
+              engine.activeRenderLoops && engine.activeRenderLoops.length > 0 &&
+              typeof scene !== 'undefined' && scene &&
+              typeof scene.getRenderId === 'function' && scene.getRenderId() > 0);
     }
 
     function prePositionAndAnimate(){
