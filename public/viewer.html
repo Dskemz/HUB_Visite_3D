@@ -8165,6 +8165,9 @@ if (EDIT_MODE) {
     const topView = (typeof isTopView !== 'undefined' && isTopView);
     const fp = (typeof isFirstPerson !== 'undefined' && isFirstPerson);
     if (fp) return;    // en POV (photo plein écran) : rien à recadrer côté 3D
+    // Ne pas déplacer la caméra pendant un vol d'approche — sinon le GLB
+    // saute loin avant que l'animation ait repris la main.
+    if (typeof isAnimating !== 'undefined' && isAnimating) return;
 
     const fitR = topView
       ? computeTopViewRadiusForViewport(1)
@@ -8880,8 +8883,6 @@ init();
     buildCarousel(poi);
     showSheet('m3-room-sheet');
     document.body.classList.add('m3-pov-active');
-    // Resize le canvas pour la bande haute en POV
-    try { if (window.engine && typeof engine.resize==='function') { requestAnimationFrame(function(){ engine.resize(); }); } } catch(e){}
     markVisited(poi.id);
     try { if (poi && poi.id) call('goToPOI', poi.id); } catch(e){}
   }
