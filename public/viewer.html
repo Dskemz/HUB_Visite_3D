@@ -106,7 +106,7 @@
         radial-gradient(ellipse 100% 80% at 38% 28%, #12141b 0%, #0b0c10 50%, #070708 100%);
       pointer-events: none;
       opacity: 1;
-      transition: opacity 1.25s cubic-bezier(.22,.61,.36,1);
+      transition: opacity 0.5s cubic-bezier(.22,.61,.36,1);
     }
     #reveal-veil.dissolved { opacity: 0; }
     
@@ -694,7 +694,7 @@
                     rgba(8, 10, 14, 0.92) 70%);
       -webkit-backdrop-filter: blur(18px) saturate(120%);
               backdrop-filter: blur(18px) saturate(120%);
-      transition: opacity .55s cubic-bezier(.22,.61,.36,1), visibility .55s ease;
+      transition: opacity .35s cubic-bezier(.22,.61,.36,1), visibility .35s ease;
       pointer-events: auto;
     }
     .loading-bar.hidden{
@@ -8397,17 +8397,14 @@ init();
         camera.lowerRadiusLimit = 0;
       } catch(_){}
 
-      // Dissout le veil ET cache le loader EN MÊME TEMPS : sinon on voit
-      // le loader disparaître sur fond noir avant que la scène apparaisse.
-      setTimeout(function(){
-        var veil = document.getElementById('reveal-veil');
-        if (veil) veil.classList.add('dissolved');
-        hideLoader();
-      }, 300);
+      // Dissout le veil ET cache le loader EN MÊME TEMPS que l'animation
+      // démarre — pas d'écran noir intermédiaire.
+      var veil = document.getElementById('reveal-veil');
+      if (veil) veil.classList.add('dissolved');
+      hideLoader();
 
-      setTimeout(function(){
-        try { window.playIntroCameraMove(); } catch(_){}
-      }, 600);
+      // Animation lancée immédiatement, en parallèle du fondu du veil.
+      try { window.playIntroCameraMove(); } catch(_){}
     }
 
     // HUD visible immédiatement (plus de staggered dépendant du chargement)
