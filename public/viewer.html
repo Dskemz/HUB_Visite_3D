@@ -664,7 +664,7 @@
       transition: opacity 1s cubic-bezier(.22,.61,.36,1), visibility 1s;
     }
     #cine-entry.show { opacity: 1; visibility: visible; }
-    #cine-entry.gone { opacity: 0; visibility: hidden; pointer-events: none; }
+    #cine-entry.gone { opacity: 0; visibility: hidden; pointer-events: none; transition: none; }
     .cine-entry-in { max-width: 700px; padding: 0 24px; opacity: 1; }
     /* Animation d'entree jouee UNE fois a l'ouverture de la page */
     .cine-entry-in { animation: cineEntryIn 1.2s .05s cubic-bezier(.22,.61,.36,1) both; }
