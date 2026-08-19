@@ -8397,17 +8397,14 @@ init();
         camera.lowerRadiusLimit = 0;
       } catch(_){}
 
-      // Dissout le veil ET cache le loader EN MÊME TEMPS : sinon on voit
-      // le loader disparaître sur fond noir avant que la scène apparaisse.
-      setTimeout(function(){
-        var veil = document.getElementById('reveal-veil');
-        if (veil) veil.classList.add('dissolved');
-        hideLoader();
-      }, 300);
-
-      setTimeout(function(){
-        try { window.playIntroCameraMove(); } catch(_){}
-      }, 600);
+      // Dissolution du veil + animation démarrent IMMÉDIATEMENT (pas de délai).
+      // Le fondu CSS du veil (1.25s) masque toujours la phase de démarrage
+      // caméra (position agressive) donc pas d'écran noir ni de flic plafond.
+      // C'est le délai des setTimeout (300ms + 600ms) qui rallongeait le temps
+      // d'apparition perçu du GLB.
+      var veil = document.getElementById('reveal-veil');
+      if (veil) veil.classList.add('dissolved');
+      try { window.playIntroCameraMove(); } catch(_){}
     }
 
     // HUD visible immédiatement (plus de staggered dépendant du chargement)
@@ -8415,8 +8412,8 @@ init();
     if (typeof window.cineWake==='function') window.cineWake();
 
     if (modelReady()) {
-      // Modèle déjà chargé → animation immédiate (le loader sera masqué
-      // en synchronisation avec la dissolution du veil dans prePositionAndAnimate)
+      // Modèle déjà chargé → animation immédiate
+      hideLoader();
       prePositionAndAnimate();
     } else {
       // Modèle pas encore prêt → on ré-affiche le loader (masqué au moment où
@@ -8427,6 +8424,7 @@ init();
         tries++;
         if (modelReady()) {
           clearInterval(waitModel);
+          hideLoader();
           prePositionAndAnimate();
         } else if (tries > 200) { // 200 × 50ms = 10s max
           clearInterval(waitModel);
