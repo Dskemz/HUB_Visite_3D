@@ -8403,11 +8403,11 @@ init();
         var veil = document.getElementById('reveal-veil');
         if (veil) veil.classList.add('dissolved');
         hideLoader();
-      }, 0);
+      }, 300);
 
       setTimeout(function(){
         try { window.playIntroCameraMove(); } catch(_){}
-      }, 0);
+      }, 600);
     }
 
     // HUD visible immédiatement (plus de staggered dépendant du chargement)
