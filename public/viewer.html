@@ -8879,19 +8879,22 @@ init();
     buildRoomSwitch(poi);
     buildCarousel(poi);
     showSheet('m3-room-sheet');
-    document.body.classList.add('m3-pov-active');
+    // NE PAS ajouter m3-pov-active maintenant : ça rétrécit le canvas à 38vh
+    // AVANT l'animation → le GLB rapetisse. On lance goToPOI sur le canvas
+    // actuel, puis on applique le resize APRÈS la fin de l'animation (3s).
     markVisited(poi.id);
-    // Attendre 1 rAF que le navigateur applique height:38vh (m3-pov-active),
-    // puis resize Babylon AVANT de lancer goToPOI — sans ça engine.getRenderHeight()
-    // vaut encore 100vh → computeScreenShiftX calcule un halfWorld énorme
-    // → targetScreenOffset.x massif → le GLB part loin pendant l'animation.
-    requestAnimationFrame(function(){
+    try { if (poi && poi.id) call('goToPOI', poi.id); } catch(e){}
+    if (_povTimer) clearTimeout(_povTimer);
+    _povTimer = setTimeout(function(){
+      document.body.classList.add('m3-pov-active');
       try { if (window.engine && typeof engine.resize==='function') engine.resize(); } catch(e){}
-      try { if (poi && poi.id) call('goToPOI', poi.id); } catch(e){}
-    });
+      _povTimer = null;
+    }, 3300);
   }
+  var _povTimer = null;
   function backToRoomsList(){
     var b=$('m3-room-sheet'); if(b) b.classList.remove('show');
+    if (_povTimer){ clearTimeout(_povTimer); _povTimer = null; }
     document.body.classList.remove('m3-pov-active');
     buildRooms();
     var a=$('m3-rooms-sheet'); if(a){ a.classList.add('show'); }
