@@ -73,23 +73,7 @@
     "contrast": 1.2,
     "rotationY": 0
   },
-  "interiorLights": [
-    {
-      "name": "window-fill-2",
-      "position": [
-        8,
-        0.8,
-        3
-      ],
-      "intensity": 0.6,
-      "range": 3.5,
-      "color": [
-        1,
-        0.98,
-        0.95
-      ]
-    }
-  ],
+  "interiorLights": [],
   "ao": {
     "enabled": true,
     "strength": 1,

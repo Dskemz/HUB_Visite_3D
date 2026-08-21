@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/babylonjs@9.17.0/babylon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/babylonjs-loaders@9.17.0/babylonjs.loaders.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/babylonjs-gui@9.17.0/babylon.gui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babylonjs-materials@9.17.0/babylonjs.materials.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
@@ -3466,18 +3467,27 @@ async function init() {
   window.shadowGenerator = shadowGenerator;
 
   if (SUN.shadows) {
-    // Meshes à NE PAS inclure dans les ombres (ciel, marqueurs POV, axes debug)
+    // Meshes à NE PAS inclure dans les ombres (ciel, marqueurs POV, axes debug,
+    // sol infini et son ombre de contact zénithale — géré à part dans frameModel)
     const shadowExcluded = (m) => {
       const n = m.name || '';
       return n === 'skybox' || n.indexOf('poi-plane') === 0 || n.indexOf('poi-group') === 0
-          || n.indexOf('axis') === 0 || !m.getTotalVertices || m.getTotalVertices() === 0;
+          || n.indexOf('axis') === 0 || n === '__infiniteFloor' || n === '__floorGlow'
+          || !m.getTotalVertices || m.getTotalVertices() === 0;
     };
+    window.__shadowExcluded = shadowExcluded; // réutilisé par le générateur zénithal (frameModel)
     const registerShadowMesh = (m) => {
       if (shadowExcluded(m)) return;
       try {
         shadowGenerator.addShadowCaster(m, true);
         m.receiveShadows = true;
       } catch (e) { /* mesh non compatible — ignoré */ }
+      // Ombre de contact zénithale (V4, cf. frameModel) : mêmes meshes, second
+      // générateur créé plus tard — on l'alimente ici pour les chargements
+      // async (pièces meublées) survenant après sa création.
+      if (window.topDownShadowGenerator) {
+        try { window.topDownShadowGenerator.addShadowCaster(m, true); } catch (e) {}
+      }
     };
     // 1) meshes déjà présents, 2) tout mesh importé ensuite (chargements async)
     scene.meshes.slice().forEach(registerShadowMesh);
@@ -5000,55 +5010,65 @@ function frameModel(root) {
       __floor.position.z = __cz;
       __floor.position.y = min.y + 0.002; // pile sous le plancher, sans z-fighting
 
-      // ===== V3 : ANNEAU DE CONTACT AU SOL — ancre le modele (type AO) =====
-      // Disque semi-transparent, positionne juste AU-DESSUS de __infiniteFloor
-      // (le sol est opaque sous le modele : un halo place en dessous serait
-      // entierement masque). Contrairement a un simple degrade centre-bords
-      // (dilue, quasi invisible : son maximum d'opacite tombe SOUS le batiment,
-      // hors champ — seule sa queue de degrade depasse), le degrade forme ici
-      // un ANNEAU dont le pic d'opacite est cale pres du bord du disque, donc
-      // pres du perimetre reel du batiment : la jonction sol/bien reste nette,
-      // façon contact-shadow d'ambient occlusion, et s'estompe vite au-dela.
+      // ===== V4 : OMBRE DE CONTACT ZENITHALE — ancre le modele (vraie AO) =====
+      // Une lumiere directionnelle verticale (vue du dessus) + un ShadowGenerator
+      // tres flou, projetes sur un mesh dedie en ShadowOnlyMaterial : la zone
+      // assombrie epouse la VRAIE silhouette du batiment (sa geometrie reelle),
+      // contrairement a un degrade radial generique (cercle/anneau) qui ne colle
+      // jamais a une empreinte au sol non circulaire (rendu "immonde" sur un
+      // plan en L). Flou important = bords doux, lecture "glow diffus" plutot
+      // qu'ombre portee dure.
+      var __topDownLight = scene.getLightByName('__topDownLight');
+      if (!__topDownLight) {
+        __topDownLight = new BABYLON.DirectionalLight('__topDownLight', new BABYLON.Vector3(0.001, -1, 0.001), scene);
+        __topDownLight.intensity = 0; // sert UNIQUEMENT a projeter une ombre, jamais a eclairer
+        __topDownLight.diffuse = new BABYLON.Color3(0, 0, 0);
+        __topDownLight.specular = new BABYLON.Color3(0, 0, 0);
+        __topDownLight.position = new BABYLON.Vector3(__cx, max.y + __span, __cz);
+        __topDownLight.autoUpdateExtends = true;
+        __topDownLight.autoCalcShadowZBounds = true;
+
+        var __tdGen = new BABYLON.ShadowGenerator(512, __topDownLight);
+        __tdGen.useBlurExponentialShadowMap = true;
+        __tdGen.blurKernel = 128;  // flou tres genereux -> vrai glow diffus, pas une ligne fine
+        __tdGen.blurScale = 4;
+        __tdGen.bias = 0.0015;
+        __tdGen.normalBias = 0.02;
+        __tdGen.darkness = 0.55;   // jamais noir total -> lecture "ambient occlusion"
+        __tdGen.transparencyShadow = true;
+        window.topDownShadowGenerator = __tdGen;
+
+        // Rattrapage : les meshes du modele principal, deja charges AVANT la
+        // creation de ce generateur, n'ont ete enregistres que pour le soleil —
+        // on les ajoute ici comme projecteurs pour la lumiere zenithale aussi.
+        var __excludeFn = window.__shadowExcluded || function(){ return false; };
+        scene.meshes.slice().forEach(function(m){
+          if (__excludeFn(m)) return;
+          try { __tdGen.addShadowCaster(m, true); } catch (e) {}
+        });
+      }
+      __topDownLight.position.x = __cx;
+      __topDownLight.position.z = __cz;
+      __topDownLight.position.y = max.y + __span;
+
       var __floorGlow = scene.getMeshByName('__floorGlow');
       if (!__floorGlow) {
-        var __glowRadius = Math.min(__floorSize * 0.5, Math.max(__span * 1.3, 6));
+        var __glowRadius = Math.min(__floorSize * 0.5, Math.max(__span * 1.4, 6));
         __floorGlow = BABYLON.MeshBuilder.CreateDisc('__floorGlow', {
           radius: __glowRadius, tessellation: 64
         }, scene);
         __floorGlow.rotation.x = Math.PI / 2; // a plat dans le plan XZ, comme le sol
 
-        // Degrade encode uniquement dans le canal alpha (l'opacityTexture pilote
-        // la transparence par pixel) ; la teinte du halo vient d'emissiveColor,
-        // en dur — reutiliser la meme DynamicTexture pour emissiveTexture ET
-        // opacityTexture desactive silencieusement l'un des deux chez Babylon.
-        var __glowTex = new BABYLON.DynamicTexture('__floorGlowTex', { width: 256, height: 256 }, scene, true);
-        var __glowCtx = __glowTex.getContext();
-        __glowCtx.clearRect(0, 0, 256, 256);
-        var __glowGrad = __glowCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
-        __glowGrad.addColorStop(0,    'rgba(0,0,0,0)');
-        __glowGrad.addColorStop(0.42, 'rgba(0,0,0,0)');
-        __glowGrad.addColorStop(0.56, 'rgba(0,0,0,0.55)');
-        __glowGrad.addColorStop(0.70, 'rgba(0,0,0,0.24)');
-        __glowGrad.addColorStop(1,    'rgba(0,0,0,0)');
-        __glowCtx.fillStyle = __glowGrad;
-        __glowCtx.fillRect(0, 0, 256, 256);
-        __glowTex.update();
-        __glowTex.hasAlpha = true;
-
-        var __glowMat = new BABYLON.StandardMaterial('__floorGlowMat', scene);
-        __glowMat.disableLighting = true;
-        __glowMat.backFaceCulling = false;
-        __glowMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
-        __glowMat.emissiveColor = new BABYLON.Color3(55/255, 40/255, 25/255); // ombre chaude, teinte fixe
-        __glowMat.opacityTexture = __glowTex;
-        __glowMat.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
-        __glowMat.disableDepthWrite = true; // superposition propre sur le sol, sans conflit de tri Z
+        var __glowMat = new BABYLON.ShadowOnlyMaterial('__floorGlowMat', scene);
+        __glowMat.activeLight = __topDownLight;
+        __glowMat.alpha = 0.7; // force globale du halo
 
         __floorGlow.material = __glowMat;
-        __floorGlow.receiveShadows = false;
+        __floorGlow.receiveShadows = true;
         __floorGlow.isPickable = false;
         __floorGlow.checkCollisions = false;
         if (window.shadowGenerator) { try { window.shadowGenerator.removeShadowCaster(__floorGlow); } catch(e){} }
+        if (window.topDownShadowGenerator) { try { window.topDownShadowGenerator.removeShadowCaster(__floorGlow); } catch(e){} }
       }
       __floorGlow.position.x = __cx;
       __floorGlow.position.z = __cz;
