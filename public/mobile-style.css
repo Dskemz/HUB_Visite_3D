@@ -5,11 +5,11 @@
 :root {
     --color-navy: #1a2b4d;
     --color-accent: #ff6b35;
-    --color-text: #ffffff;
-    --color-text-secondary: #b0b0b0;
-    --color-bg-dark: #0f1419;
-    --color-border: rgba(255, 255, 255, 0.1);
-    --color-glass: rgba(255, 255, 255, 0.1);
+    --color-text: #2e2a24;
+    --color-text-secondary: #6b6155;
+    --color-bg-dark: #ede5d3;
+    --color-border: rgba(70, 58, 45, 0.14);
+    --color-glass: rgba(255, 250, 242, 0.55);
     --spacing-xs: 4px;
     --spacing-sm: 8px;
     --spacing-md: 16px;
@@ -66,8 +66,8 @@ html, body {
     padding: max(env(safe-area-inset-top), 4px) var(--spacing-sm) var(--spacing-xs);
     background: linear-gradient(
         180deg,
-        rgba(15, 20, 25, 0.95) 0%,
-        rgba(15, 20, 25, 0.7) 100%
+        rgba(255, 250, 242, 0.95) 0%,
+        rgba(255, 250, 242, 0.7) 100%
     );
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--color-border);
@@ -130,7 +130,7 @@ html, body {
     flex-direction: column;
     gap: var(--spacing-sm);
 
-    background: rgba(26, 43, 77, 0.15);
+    background: rgba(255, 250, 242, 0.65);
     backdrop-filter: blur(8px);
     border: 1px solid var(--color-border);
     border-radius: 12px;
@@ -207,7 +207,7 @@ html, body {
     height: max(60px, calc(var(--touch-target) + 12px + env(safe-area-inset-bottom)));
     padding: var(--spacing-sm) var(--spacing-md) max(var(--spacing-sm), env(safe-area-inset-bottom)) var(--spacing-md);
 
-    background: rgba(26, 43, 77, 0.1);
+    background: rgba(255, 250, 242, 0.55);
     backdrop-filter: blur(15px);
     border-top: 1px solid var(--color-border);
 
@@ -234,13 +234,13 @@ html, body {
 
 .footer-btn.secondary {
     flex: 0 1 auto;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(46, 42, 36, 0.06);
     color: var(--color-text-secondary);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(70, 58, 45, 0.18);
 }
 
 .footer-btn.secondary:active {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(46, 42, 36, 0.12);
 }
 
 .footer-btn.primary {
@@ -274,7 +274,7 @@ html, body {
 }
 
 .bottom-sheet-overlay.active {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(46, 42, 36, 0.30);
     backdrop-filter: blur(4px);
     opacity: 1;
     pointer-events: auto;
@@ -287,7 +287,7 @@ html, body {
     right: 0;
     z-index: 201;
 
-    background: rgba(26, 43, 77, 0.2);
+    background: rgba(255, 250, 242, 0.88);
     backdrop-filter: blur(12px);
     border-top: 1px solid var(--color-border);
     border-radius: 20px 20px 0 0;
@@ -309,7 +309,7 @@ html, body {
 .bottom-sheet-handle {
     width: 40px;
     height: 4px;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(46, 42, 36, 0.25);
     border-radius: 2px;
     margin: 12px auto;
 }
@@ -359,8 +359,8 @@ html, body {
     display: inline-block;
     width: 48px;
     height: 28px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(46, 42, 36, 0.12);
+    border: 1px solid rgba(70, 58, 45, 0.22);
     border-radius: 14px;
     position: relative;
     transition: all 0.3s ease;
@@ -400,7 +400,7 @@ html, body {
     position: relative;
     overflow: hidden;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(46, 42, 36, 0.05);
     aspect-ratio: 1;
     margin: var(--spacing-md) 0;
 }
@@ -418,7 +418,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(46, 42, 36, 0.05);
 }
 
 .carousel-slide img {
@@ -445,7 +445,7 @@ html, body {
     right: 0;
     bottom: 0;
     z-index: 300;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(46, 42, 36, 0.32);
     backdrop-filter: blur(4px);
     opacity: 0;
     pointer-events: none;
@@ -465,12 +465,12 @@ html, body {
     z-index: 301;
 
     width: min(90vw, 400px);
-    background: rgba(26, 43, 77, 0.3);
+    background: rgba(255, 250, 242, 0.92);
     backdrop-filter: blur(12px);
     border: 1px solid var(--color-border);
     border-radius: 16px;
 
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 32px rgba(60, 45, 25, 0.24);
 
     opacity: 0;
     pointer-events: none;
@@ -526,7 +526,7 @@ html, body {
     width: 100%;
     padding: var(--spacing-sm) var(--spacing-md);
     border: 1px solid var(--color-border);
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(46, 42, 36, 0.04);
     color: var(--color-text);
     border-radius: 8px;
     font-size: 14px;
@@ -565,7 +565,7 @@ html, body {
     right: 0;
     bottom: 0;
     z-index: 150;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(46, 42, 36, 0.20);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -614,7 +614,7 @@ html, body {
     text-align: center;
     font-size: 14px;
     color: var(--color-text);
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(255, 250, 242, 0.90);
     padding: var(--spacing-md);
     border-radius: 8px;
 }
@@ -643,7 +643,7 @@ html, body {
 }
 
 .measure-btn.cancel {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(46, 42, 36, 0.08);
     color: var(--color-text-secondary);
 }
 
@@ -675,12 +675,13 @@ html, body {
 }
 
 /* ========================================================================
-   DARK MODE (Default, explicit override for future light mode)
+   LIGHT MODE (thème par défaut — crème/beige premium, indépendant du
+   réglage système : on ne veut pas retomber en sombre en dark mode OS)
    ======================================================================== */
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --color-bg-dark: #0f1419;
+        --color-bg-dark: #ede5d3;
     }
 }
 
