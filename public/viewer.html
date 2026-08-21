@@ -681,88 +681,168 @@
     html.edit-mode .cine-guide, html.edit-mode #cine-entry { display: none !important; }
     
     /* ==============================================================
-       V2.3 — ÉCRAN DE CHARGEMENT DARK GLASSMORPHISM
-       Overlay plein écran neutre sombre, verre translucide, spinner
-       conique lumineux, barre de progression fine avec dégradé accent.
-       Remplace l'ancienne .loading-bar blanche.
+       V3.0 — ÉCRAN DE CHARGEMENT STORYTELLING GLASSMORPHISM
+       Overlay plein écran : chaque phase de chargement dévoile une
+       information marquante du bien (ville → type/surface → orientation
+       → points forts). Transforme l'attente en découverte.
        ============================================================== */
     .loading-bar{
       position: fixed; inset: 0; z-index: 1000;
       display: flex; align-items: center; justify-content: center;
-      background: radial-gradient(ellipse at center,
-                    rgba(20, 24, 32, 0.72) 0%,
-                    rgba(8, 10, 14, 0.92) 70%);
-      -webkit-backdrop-filter: blur(18px) saturate(120%);
-              backdrop-filter: blur(18px) saturate(120%);
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 40%, rgba(30, 36, 52, 0.65) 0%, transparent 65%),
+        radial-gradient(ellipse at center, rgba(20, 24, 32, 0.82) 0%, rgba(8, 10, 14, 0.96) 70%);
+      -webkit-backdrop-filter: blur(22px) saturate(130%);
+              backdrop-filter: blur(22px) saturate(130%);
       transition: opacity .55s cubic-bezier(.22,.61,.36,1), visibility .55s ease;
       pointer-events: auto;
+      overflow: hidden;
     }
     .loading-bar.hidden{
       opacity: 0; visibility: hidden;
-      display: flex !important; /* override .hidden generic pour laisser jouer la transition */
+      display: flex !important;
       pointer-events: none;
     }
+
+    /* Halo lumineux pulsant en arrière-plan */
+    .loading-bar::before{
+      content: ''; position: absolute;
+      top: 50%; left: 50%;
+      width: 600px; height: 600px;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(var(--brand-accent-rgb), 0.12) 0%, transparent 60%);
+      filter: blur(40px);
+      animation: haloBreathe 5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes haloBreathe{
+      0%, 100%{ opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+      50%     { opacity: 0.9; transform: translate(-50%, -50%) scale(1.15); }
+    }
+
+    /* CARTE STORYTELLING — verre translucide généreux */
     .loading-card{
+      position: relative;
       display: flex; flex-direction: column; align-items: center;
-      gap: 22px;
-      padding: 34px 44px 30px;
-      min-width: 300px; max-width: 92vw;
-      background: rgba(14, 16, 22, 0.55);
-      -webkit-backdrop-filter: blur(24px) saturate(140%);
-              backdrop-filter: blur(24px) saturate(140%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 22px;
-      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      gap: 26px;
+      padding: 48px 56px 40px;
+      min-width: 340px; max-width: min(92vw, 520px);
+      background: rgba(14, 16, 22, 0.42);
+      -webkit-backdrop-filter: blur(28px) saturate(160%);
+              backdrop-filter: blur(28px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 24px;
+      box-shadow:
+        0 40px 90px rgba(0, 0, 0, 0.60),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 60px rgba(var(--brand-accent-rgb), 0.08);
       color: #fff;
-      animation: loadingCardIn .55s cubic-bezier(.22,.61,.36,1);
+      animation: loadingCardIn .7s cubic-bezier(.22,.61,.36,1);
     }
     @keyframes loadingCardIn{
-      from{ opacity: 0; transform: translateY(8px) scale(.985); }
+      from{ opacity: 0; transform: translateY(14px) scale(.97); }
       to  { opacity: 1; transform: none; }
     }
-    /* SPINNER — anneau conique lumineux qui tourne, avec noyau flouté au centre */
-    .loading-spinner{
+
+    /* ZONE STORYTELLING — hauteur fixe pour éviter le "jump" au changement */
+    .loading-story{
       position: relative;
-      width: 54px; height: 54px;
+      width: 100%;
+      min-height: 148px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .loading-spinner::before{
-      content: ''; position: absolute; inset: 0;
-      border-radius: 50%;
-      background: conic-gradient(
-        from 0deg,
-        rgba(255,255,255,0.02) 0%,
-        rgba(255,255,255,0.08) 40%,
-        rgba(var(--brand-accent-rgb), 0.95) 78%,
-        rgba(255,255,255,0.98) 100%
-      );
-      -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%);
-              mask: radial-gradient(circle, transparent 58%, #000 60%);
-      animation: loadingSpin 1.15s linear infinite;
-      filter: drop-shadow(0 0 8px rgba(var(--brand-accent-rgb), 0.35));
-    }
-    .loading-spinner::after{
-      content: ''; position: absolute; inset: 0;
-      border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.06);
-    }
-    @keyframes loadingSpin{ to{ transform: rotate(360deg); } }
-    /* Texte de chargement — épuré, tracking léger */
-    .loading-card h3{
-      margin: 0;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      font-weight: 500; font-size: 0.95rem;
-      color: rgba(255, 255, 255, 0.92);
-      letter-spacing: 0.005em;
+
+    /* Chaque phase = un bloc absolute qui fade in/out */
+    .story-phase{
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity .55s cubic-bezier(.22,.61,.36,1),
+                  transform .55s cubic-bezier(.22,.61,.36,1);
+      pointer-events: none;
       text-align: center;
     }
+    .story-phase.active{
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Kicker : petit label discret au-dessus (ex: "LOCALISATION") */
+    .story-kicker{
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 600;
+      font-size: 0.68rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(var(--brand-accent-rgb), 0.85);
+      margin-bottom: 4px;
+    }
+
+    /* Titre principal de la phase (ville, type, orientation) */
+    .story-headline{
+      font-family: 'Fraunces', 'Playfair Display', Georgia, serif;
+      font-weight: 400;
+      font-size: 1.75rem;
+      line-height: 1.15;
+      letter-spacing: -0.015em;
+      color: #fff;
+      margin: 0;
+      max-width: 100%;
+    }
+    .story-headline .accent{
+      color: rgb(var(--brand-accent-rgb));
+      font-style: italic;
+    }
+
+    /* Sous-titre : détail secondaire (surface, année, orientation détaillée) */
+    .story-sub{
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 400;
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.72);
+      letter-spacing: 0.01em;
+      max-width: 100%;
+    }
+    .story-sub .dot{
+      display: inline-block;
+      margin: 0 8px;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* Icône décorative (soleil, boussole, étoile pour points forts) */
+    .story-icon{
+      width: 34px; height: 34px;
+      margin-bottom: 6px;
+      opacity: 0.9;
+    }
+    .story-icon svg{
+      width: 100%; height: 100%;
+      fill: none; stroke: rgb(var(--brand-accent-rgb));
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .story-phase.active .story-icon.sun{ animation: sunSpin 20s linear infinite; }
+    @keyframes sunSpin{ to { transform: rotate(360deg); } }
+    .story-phase.active .story-icon.compass{ animation: compassSway 4s ease-in-out infinite; }
+    @keyframes compassSway{
+      0%,100%{ transform: rotate(-6deg); }
+      50%    { transform: rotate(6deg); }
+    }
+
     /* BARRE PROGRESSION — fine ligne lumineuse avec dégradé accent */
     .progress{
-      width: 240px; max-width: 60vw; height: 2px;
+      width: 280px; max-width: 70vw; height: 2px;
       background: rgba(255,255,255,0.08);
       border-radius: 999px;
       overflow: hidden;
       position: relative;
+      margin-top: 4px;
     }
     .progress-fill{
       height: 100%; width: 0%;
@@ -772,7 +852,7 @@
                     rgba(var(--brand-accent-rgb), 0.65) 100%);
       background-size: 200% 100%;
       border-radius: 999px;
-      transition: width 0.35s cubic-bezier(.22,.61,.36,1);
+      transition: width 0.4s cubic-bezier(.22,.61,.36,1);
       animation: progressShimmer 2.2s linear infinite;
       box-shadow: 0 0 12px rgba(var(--brand-accent-rgb), 0.55),
                   0 0 4px rgba(255, 255, 255, 0.35);
@@ -780,6 +860,42 @@
     @keyframes progressShimmer{
       from{ background-position: 0% 0; }
       to  { background-position: -200% 0; }
+    }
+
+    /* Micro-status : "Préparation de la visite…" (subtil, sous la barre) */
+    .loading-status{
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 400;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.45);
+      letter-spacing: 0.02em;
+      margin-top: -6px;
+      text-align: center;
+      min-height: 1em;
+      transition: opacity .3s ease;
+    }
+
+    /* Responsive : compacter sur mobile */
+    @media (max-width: 520px){
+      .loading-card{
+        padding: 36px 28px 30px;
+        min-width: 280px;
+        gap: 20px;
+      }
+      .loading-story{ min-height: 130px; }
+      .story-headline{ font-size: 1.4rem; }
+      .story-sub{ font-size: 0.85rem; }
+      .story-kicker{ font-size: 0.62rem; letter-spacing: 0.2em; }
+    }
+
+    /* Compatibilité anciens sélecteurs (au cas où d'autres scripts y accèdent) */
+    .loading-card h3{
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 500; font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.92);
+      letter-spacing: 0.005em;
+      text-align: center;
     }
     /* Fond global : neutre très sombre au boot pour éviter tout flash de couleur
        (avant que la scène 3D ne prenne le relais). Compatible avec toutes les
@@ -2774,9 +2890,17 @@
 
 <div id="loading-bar" class="loading-bar">
   <div class="loading-card" role="status" aria-live="polite">
-    <div class="loading-spinner" aria-hidden="true"></div>
-    <h3>Chargement de la visite 3D…</h3>
+    <!-- Zone de storytelling : les phases s'y remplacent dynamiquement -->
+    <div class="loading-story" id="loading-story">
+      <!-- Phase initiale (avant que le manifest ne soit chargé) : hidden h3 pour compat -->
+      <div class="story-phase active" data-phase="boot">
+        <div class="story-kicker">Bienvenue</div>
+        <h3 class="story-headline">Préparation de votre visite<span class="accent">…</span></h3>
+      </div>
+    </div>
+    <!-- Barre de progression + micro-status -->
     <div class="progress" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="loading-status" id="loading-status">Initialisation…</div>
   </div>
 </div>
 
@@ -3388,14 +3512,18 @@ async function init() {
 
   console.log('✅ Lighting appliqué depuis config');
 
+  try { window.__loaderStory && window.__loaderStory.setStatus('Récupération des informations du bien…'); } catch(_){}
   await loadManifest();
+  try { window.__loaderStory && window.__loaderStory.setStatus('Chargement de l’architecture 3D…'); } catch(_){}
   await loadWalls();
+  try { window.__loaderStory && window.__loaderStory.setStatus('Préparation des pièces…'); } catch(_){}
   loadRoomsAsync();
 
   // HDRi et skybox gérées par createDefaultEnvironment()
   // setupHDRI();
   // createGradientSkybox();
 
+  try { window.__loaderStory && window.__loaderStory.setStatus('Prêt.'); } catch(_){}
   document.getElementById('loading-bar').classList.add('hidden');
   if (typeof window.cineRevealEntry==='function') window.cineRevealEntry();
 
@@ -5258,9 +5386,205 @@ async function loadManifest() {
 
   (function(){var _pn=propertyData.name||'Visite 3D';if(window.__BRAND__&&window.__BRAND__.id&&window.__BRAND__.id!=='laforet'){_pn=_pn.replace(/^\s*la\s*for[e\u00EA]t\s*[-\u2013\u2014:]\s*/i,'');}document.getElementById('header-title').textContent=_pn;})();
   if (typeof updateBreadcrumb==='function') updateBreadcrumb();
+
+  // V3.0 — Injecter le storytelling du loader dès que le manifest est dispo
+  try { if (typeof window.__loaderStory==='object' && typeof window.__loaderStory.hydrate==='function') window.__loaderStory.hydrate(propertyData); } catch(_){}
+
   // Si le manifest ne contient aucun POI, on les génère après le chargement des murs
   // (generateDefaultPOIs a besoin de modelBounds, donc appelé depuis loadWalls())
 }
+
+/* ============================================================================
+   V3.0 — LOADER STORYTELLING
+   Transforme le temps de chargement en découverte du bien : ville, type,
+   surface, orientation, points forts. Chaque phase = un bloc glassmorphism
+   qui fade in/out en séquence. Résilient aux données manquantes (skip silencieux).
+   ============================================================================ */
+(function(){
+  const storyEl   = document.getElementById('loading-story');
+  const statusEl  = document.getElementById('loading-status');
+  if (!storyEl) return;
+
+  // Icônes SVG inline (pas de dépendance externe, pas de round-trip réseau)
+  const ICONS = {
+    pin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.5-7-12a7 7 0 1 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
+    home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
+    sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M4.5 19.5l2-2M17.5 6.5l2-2"/></svg>',
+    compass: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11z" fill="rgba(var(--brand-accent-rgb),0.15)"/></svg>',
+    star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 6 6.4.6-4.9 4.3 1.5 6.3L12 17l-5.6 3.2 1.5-6.3L3 9.6 9.4 9z"/></svg>',
+    key: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="14" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l3 3"/></svg>'
+  };
+
+  // Détecte l'orientation dominante et retourne une formulation "vendeuse"
+  function formatOrientation(orientation, balcon){
+    if (!orientation) return null;
+    const o = String(orientation).trim();
+    const parts = o.split(/\s*[\/,+·•\-]\s*/).map(s => s.trim()).filter(Boolean);
+    const has = (dir) => parts.some(p => new RegExp('^' + dir, 'i').test(p));
+    // Priorité au Sud (le plus vendeur en France)
+    if (has('Sud') && balcon)  return { headline: 'Baigné de <span class="accent">lumière</span>', sub: 'Exposition ' + o + ' • Balcon plein soleil' };
+    if (has('Sud'))            return { headline: 'Baigné de <span class="accent">lumière</span>', sub: 'Exposition ' + o };
+    if (has('Est') && has('Ouest')) return { headline: 'Double <span class="accent">exposition</span>', sub: 'Traversant ' + o + ' — lumière du matin au soir' };
+    if (has('Est'))            return { headline: 'Lumière du <span class="accent">matin</span>', sub: 'Exposition plein Est' };
+    if (has('Ouest'))          return { headline: 'Couchers de soleil au <span class="accent">salon</span>', sub: 'Exposition plein Ouest' };
+    if (has('Nord'))           return { headline: 'Lumière <span class="accent">constante</span>', sub: 'Exposition Nord — idéale pour un bureau ou un atelier' };
+    return { headline: 'Bien <span class="accent">orienté</span>', sub: 'Exposition ' + o };
+  }
+
+  // Petit helper pour créer un DOM de phase (pas d'HTML crafté à la main dans le flow)
+  function makePhase(name, iconKey, kicker, headlineHtml, subHtml){
+    const wrap = document.createElement('div');
+    wrap.className = 'story-phase';
+    wrap.dataset.phase = name;
+    let inner = '';
+    if (iconKey && ICONS[iconKey]) inner += '<div class="story-icon ' + iconKey + '">' + ICONS[iconKey] + '</div>';
+    if (kicker)                    inner += '<div class="story-kicker">' + kicker + '</div>';
+    if (headlineHtml)              inner += '<h3 class="story-headline">' + headlineHtml + '</h3>';
+    if (subHtml)                   inner += '<div class="story-sub">' + subHtml + '</div>';
+    wrap.innerHTML = inner;
+    return wrap;
+  }
+
+  // Construit la liste de phases à jouer selon les données dispo dans le manifest
+  function buildPhases(data){
+    const phases = [];
+    if (!data) return phases;
+
+    // 1) LOCALISATION — toujours affichée si `location` ou `name` disponible
+    if (data.location || data.name){
+      const loc = data.location || '';
+      // Sépare "Ville (78120)" en "Ville" + "78120" pour la mise en avant
+      const m = loc.match(/^(.+?)\s*\((\d{4,5})\)\s*$/);
+      const city = m ? m[1].trim() : loc;
+      const cp   = m ? m[2] : null;
+      phases.push(makePhase(
+        'location',
+        'pin',
+        'Localisation',
+        city ? '<span class="accent">' + city + '</span>' : 'Bienvenue',
+        cp ? ('Code postal ' + cp) : (data.name && data.name !== city ? data.name : '')
+      ));
+    }
+
+    // 2) IDENTITÉ DU BIEN — type / surface / année, dans un seul bloc lisible
+    if (data.type || data.surface || data.anneeConstruction || data.chambres){
+      const bits = [];
+      if (data.type)               bits.push(data.type);
+      if (data.surface)            bits.push('<span class="accent">' + data.surface + ' m²</span>');
+      if (data.chambres != null)   bits.push(data.chambres + (data.chambres > 1 ? ' chambres' : ' chambre'));
+      const subBits = [];
+      if (data.etage != null)              subBits.push(data.etage + (data.etage === 1 ? 'ᵉʳ' : 'ᵉ') + ' étage');
+      if (data.anneeConstruction)          subBits.push('Construit en ' + data.anneeConstruction);
+      if (data.ascenseur === true)         subBits.push('Ascenseur');
+      phases.push(makePhase(
+        'identity',
+        'home',
+        'Le bien',
+        bits.join(' <span class="dot">·</span> '),
+        subBits.join(' <span class="dot">·</span> ')
+      ));
+    }
+
+    // 3) ORIENTATION SOLAIRE — le vrai argument émotionnel
+    const orient = formatOrientation(data.orientation, data.balcon);
+    if (orient){
+      phases.push(makePhase(
+        'orientation',
+        'sun',
+        'Ensoleillement',
+        orient.headline,
+        orient.sub
+      ));
+    }
+
+    // 4) POINTS FORTS — jusqu'à 3 sélectionnés, empilés en sub
+    if (Array.isArray(data.pointsForts) && data.pointsForts.length){
+      const picks = data.pointsForts.slice(0, 3);
+      // On sépare le premier point (headline) et les 2 suivants (sub) pour respirer
+      const first = picks[0];
+      const rest  = picks.slice(1);
+      phases.push(makePhase(
+        'highlights',
+        'star',
+        picks.length > 1 ? 'Ce qui rend ce bien unique' : 'À découvrir',
+        '<span class="accent">' + first + '</span>',
+        rest.length ? rest.join(' <span class="dot">·</span> ') : ''
+      ));
+    }
+
+    // 5) INVITATION FINALE — micro-teaser sur l'expérience 3D elle-même
+    phases.push(makePhase(
+      'invite',
+      'key',
+      'Prêt',
+      'Explorez chaque pièce en <span class="accent">3D</span>',
+      'Cliquez, tournez, mesurez — comme si vous y étiez'
+    ));
+
+    return phases;
+  }
+
+  // Séquenceur : joue chaque phase pendant ~duration ms, puis passe à la suivante en boucle
+  let cycleTimer = null;
+  let currentIdx = 0;
+  let phasesArr  = [];
+  const PHASE_DURATION = 2600; // ms — assez long pour lire sans stresser
+
+  function playPhase(idx){
+    if (!phasesArr.length) return;
+    const all = storyEl.querySelectorAll('.story-phase');
+    all.forEach(p => p.classList.remove('active'));
+    const target = phasesArr[idx % phasesArr.length];
+    if (target) target.classList.add('active');
+  }
+
+  function startCycle(){
+    stopCycle();
+    if (phasesArr.length <= 1) { playPhase(0); return; }
+    playPhase(currentIdx);
+    cycleTimer = setInterval(() => {
+      currentIdx = (currentIdx + 1) % phasesArr.length;
+      playPhase(currentIdx);
+    }, PHASE_DURATION);
+  }
+  function stopCycle(){
+    if (cycleTimer) { clearInterval(cycleTimer); cycleTimer = null; }
+  }
+
+  // Hydrate le loader avec les données du manifest
+  function hydrate(data){
+    const phases = buildPhases(data);
+    if (!phases.length) return; // rien à raconter, on garde la phase "boot" par défaut
+    storyEl.innerHTML = '';
+    phases.forEach(p => storyEl.appendChild(p));
+    phasesArr  = Array.from(storyEl.querySelectorAll('.story-phase'));
+    currentIdx = 0;
+    startCycle();
+  }
+
+  // Micro-status sous la barre (change à chaque étape du chargement réel)
+  function setStatus(msg){
+    if (!statusEl) return;
+    statusEl.textContent = msg || '';
+  }
+
+  // Nettoyage quand le loader disparaît (évite les timers zombies)
+  function teardown(){ stopCycle(); }
+
+  // Observer : dès que le loader est masqué (.hidden ajouté), on stoppe le cycle
+  try {
+    const loader = document.getElementById('loading-bar');
+    if (loader && window.MutationObserver){
+      const mo = new MutationObserver(() => {
+        if (loader.classList.contains('hidden')) teardown();
+      });
+      mo.observe(loader, { attributes: true, attributeFilter: ['class'] });
+    }
+  } catch(_){}
+
+  // Expose l'API pour que loadManifest() puisse appeler hydrate(propertyData)
+  window.__loaderStory = { hydrate: hydrate, setStatus: setStatus, teardown: teardown };
+})();
 
 /* ============================================================================
    POV DE DÉMO — 9 emplacements approximatifs basés sur le plan de référence
