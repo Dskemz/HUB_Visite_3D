@@ -628,9 +628,9 @@
     /* ============ VIEWER 2.0 — Couche cinématique (sur la scène Babylon vivante) ============ */
     /* Letterbox + vignette : donnent le grain « film » au-dessus du canvas 3D */
     .cine-bar { position: fixed; left: 0; right: 0; z-index: 6; pointer-events: none; }
-    .cine-bar.top { top: 0; height: 15vh; background: linear-gradient(180deg, rgba(0,0,0,.62), transparent); }
-    .cine-bar.bottom { bottom: 0; height: 22vh; background: linear-gradient(0deg, rgba(0,0,0,.72), transparent); }
-    .cine-vignette { position: fixed; inset: 0; z-index: 6; pointer-events: none; box-shadow: inset 0 0 200px rgba(0,0,0,.5); }
+    .cine-bar.top { top: 0; height: 15vh; background: linear-gradient(180deg, rgba(46,38,28,.13), transparent); }
+    .cine-bar.bottom { bottom: 0; height: 22vh; background: linear-gradient(0deg, rgba(46,38,28,.15), transparent); }
+    .cine-vignette { position: fixed; inset: 0; z-index: 6; pointer-events: none; box-shadow: inset 0 0 200px rgba(46,38,28,.10); }
 
     /* Mise en veille immersive : toute l'UI s'estompe après 5 s sans mouvement */
     #ui-overlay { transition: opacity .6s ease; }
@@ -4999,7 +4999,7 @@ function frameModel(root) {
       // pour creer un effet de "contact shadow" doux qui se superpose au sol.
       var __floorGlow = scene.getMeshByName('__floorGlow');
       if (!__floorGlow) {
-        var __glowRadius = Math.min(__floorSize * 0.5, Math.max(__span * 1.5, 6));
+        var __glowRadius = Math.min(__floorSize * 0.5, Math.max(__span * 1.8, 6));
         __floorGlow = BABYLON.MeshBuilder.CreateDisc('__floorGlow', {
           radius: __glowRadius, tessellation: 64
         }, scene);
@@ -5013,9 +5013,9 @@ function frameModel(root) {
         var __glowCtx = __glowTex.getContext();
         __glowCtx.clearRect(0, 0, 256, 256);
         var __glowGrad = __glowCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
-        __glowGrad.addColorStop(0, 'rgba(0,0,0,0.38)');
-        __glowGrad.addColorStop(0.35, 'rgba(0,0,0,0.24)');
-        __glowGrad.addColorStop(0.65, 'rgba(0,0,0,0.10)');
+        __glowGrad.addColorStop(0, 'rgba(0,0,0,0.48)');
+        __glowGrad.addColorStop(0.35, 'rgba(0,0,0,0.32)');
+        __glowGrad.addColorStop(0.65, 'rgba(0,0,0,0.14)');
         __glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
         __glowCtx.fillStyle = __glowGrad;
         __glowCtx.fillRect(0, 0, 256, 256);
