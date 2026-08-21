@@ -3268,10 +3268,14 @@ async function init() {
   // Laforêt → identique à l'origine ; ERA → bordeaux ; Sixième → vert d'eau sombre.
   const _bn = (window.__BRAND__ && window.__BRAND__.navyRgb) ? window.__BRAND__.navyRgb.split(',').map(Number) : [11,27,63];
   const _desat = (c, amt) => { const l = 0.3*c[0] + 0.59*c[1] + 0.11*c[2]; return [Math.round(c[0]+(l-c[0])*amt), Math.round(c[1]+(l-c[1])*amt), Math.round(c[2]+(l-c[2])*amt)]; };
-  // V2 : degrade de fond NEUTRE (bleu-nuit tres sombre), independant de la teinte
-  // de marque -> supprime le halo rouge/bordeaux. Doux centre -> bords.
-  let _ctr = [22, 24, 30];   // centre legerement plus clair (#16181e)
-  let _edg = [10, 11, 14];   // bords tres sombres (#0a0b0e)
+  // V3 : degrade de fond CREME/BEIGE (theme clair premium), independant de la
+  // teinte de marque -> supprime le halo rouge/bordeaux. Doux centre -> bords.
+  // NB : ce degrade sert AUSSI de source pour la reflection probe de repli
+  // (metaux/PBR) -> ne pas le pousser vers du blanc pur, sous peine de cramer
+  // toutes les surfaces reflechissantes du modele (cf. scene.environmentIntensity
+  // plus bas, volontairement abaisse pour compenser).
+  let _ctr = [222, 210, 186]; // centre plus clair (#ded2ba)
+  let _edg = [173, 160, 138]; // bords plus sombres (#ada08a)
 
   /* MODE ÉDITEUR UNIQUEMENT : on neutralise la teinte de marque pour un fond
      gris façon viewport Blender — même mécanique de dégradé radial que pour les
@@ -3351,8 +3355,12 @@ async function init() {
       }
       envProbe.renderList.push(skybox);
       scene.environmentTexture = envProbe.cubeTexture;
+      // Skybox V3 nettement plus claire (theme cream) qu'a l'origine (~10x plus
+      // lumineuse) -> intensite reduite d'autant pour eviter que les materiaux
+      // metallic/PBR sans texture (portes, robinetterie...) ne soient cramés
+      // en blanc pur (ils tirent TOUTE leur couleur de cet environment map).
       if (scene.environmentIntensity == null || scene.environmentIntensity === 1) {
-        scene.environmentIntensity = 1.0;
+        scene.environmentIntensity = 0.12;
       }
       window.__envFallbackProbe = envProbe;
       console.log('✅ Réflexion de repli installée (métaux réfléchissent la skybox)');
