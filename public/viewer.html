@@ -5007,7 +5007,7 @@ function frameModel(root) {
       // pour creer un effet de "contact shadow" doux qui se superpose au sol.
       var __floorGlow = scene.getMeshByName('__floorGlow');
       if (!__floorGlow) {
-        var __glowRadius = Math.min(__floorSize * 0.5, Math.max(__span * 1.4, 6));
+        var __glowRadius = Math.min(__floorSize * 0.5, Math.max(__span * 1.7, 6));
         __floorGlow = BABYLON.MeshBuilder.CreateDisc('__floorGlow', {
           radius: __glowRadius, tessellation: 64
         }, scene);
@@ -5021,9 +5021,9 @@ function frameModel(root) {
         var __glowCtx = __glowTex.getContext();
         __glowCtx.clearRect(0, 0, 256, 256);
         var __glowGrad = __glowCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
-        __glowGrad.addColorStop(0, 'rgba(0,0,0,0.22)');
-        __glowGrad.addColorStop(0.35, 'rgba(0,0,0,0.14)');
-        __glowGrad.addColorStop(0.65, 'rgba(0,0,0,0.06)');
+        __glowGrad.addColorStop(0, 'rgba(0,0,0,0.40)');
+        __glowGrad.addColorStop(0.35, 'rgba(0,0,0,0.26)');
+        __glowGrad.addColorStop(0.65, 'rgba(0,0,0,0.11)');
         __glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
         __glowCtx.fillStyle = __glowGrad;
         __glowCtx.fillRect(0, 0, 256, 256);
