@@ -1368,18 +1368,19 @@
       .lightbox-nav { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
     }
 
-    /* ===== MARQUEURS POV (overlay SVG — pin glass frosted minimaliste)
-       Pin en forme de goutte inspiré des icônes Apple-style : verre dépoli
-       blanc dominant, très légère teinte agence en fond, TROU rond au
-       centre (obtenu via fill-rule:evenodd — c'est un vrai vide, pas un
-       remplissage). Aucun contour extérieur. Ombre douce au sol.
+    /* ===== MARQUEURS POV (overlay SVG — anneau de verre, style unifié viewer)
+       Anneau (ring) en verre sombre opaque, aux mêmes tokens que le reste de
+       l'interface (--glass-bg-strong / --glass-brd, cf. section glass plus
+       bas). TROU large et parfaitement centré (obtenu par un simple cercle
+       stroke — le centre est un vrai vide, on voit la scène au travers).
+       Aucune icône, aucune ombre au sol : juste l'anneau, discret et net.
 
        Empilement des transforms (pour éviter les conflits) :
          <g class="poi-mark">    ← translate JS (projection 3D→2D)
            rect.pm-hit           ← zone de clic fixe (hors anims)
            <g class="pm-hover">  ← scale au hover
              <g class="pm-bob">  ← animation bob infinie
-               shadow + tint + frost + glint + rim
+               ring-base + ring-tint + edge-out + edge-in + glint
            <g class="pm-tt">     ← infobulle (apparaît au hover) */
     #poi-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:5; }
     .poi-mark { pointer-events:auto; cursor:pointer; }
@@ -1388,12 +1389,12 @@
     .poi-mark .pm-hover { transition: transform .18s ease; }
     .poi-mark .pm-bob   { animation: pinBob 3.6s ease-in-out infinite; }
 
-    /* Couches du pin */
-    .poi-mark .pm-shadow { fill: rgba(0,0,0,0.28); }
-    .poi-mark .pm-tint   { fill: currentColor; opacity: 0.18; transition: opacity .2s ease; }  /* teinte agence subtile */
-    .poi-mark .pm-frost  { fill: rgba(255,255,255,0.42); }                                     /* verre dépoli blanc */
-    .poi-mark .pm-glint  { fill: rgba(255,255,255,0.38); }                                     /* petit reflet doux */
-    .poi-mark .pm-rim    { fill: none; stroke: rgba(255,255,255,0.55); stroke-width: 0.7; stroke-linecap: round; opacity: 0.7; } /* arc lumineux discret */
+    /* Couches de l'anneau — mêmes teintes que les panneaux verre du viewer */
+    .poi-mark .pm-ring-base { fill: none; stroke: rgba(14,16,20,0.88); stroke-width: 5; }                 /* verre sombre opaque */
+    .poi-mark .pm-ring-tint { fill: none; stroke: currentColor; stroke-width: 5; opacity: 0.24; transition: opacity .2s ease; } /* teinte agence */
+    .poi-mark .pm-edge-out  { fill: none; stroke: rgba(255,255,255,0.22); stroke-width: 0.8; }            /* liseré extérieur */
+    .poi-mark .pm-edge-in   { fill: none; stroke: rgba(255,255,255,0.16); stroke-width: 0.8; }            /* liseré du trou */
+    .poi-mark .pm-glint     { fill: none; stroke: rgba(255,255,255,0.4); stroke-width: 1.4; stroke-linecap: round; }
 
     /* Infobulle — masquée au repos, apparaît au hover */
     .poi-mark .pm-tt {
@@ -1418,10 +1419,10 @@
     }
 
     /* Hover : scale léger, teinte agence renforcée, tooltip visible */
-    .poi-mark:hover .pm-hover { transform: scale(1.1); }
-    .poi-mark:hover .pm-tint  { opacity: 0.32; }
-    .poi-mark:hover .pm-tt    { opacity: 1; transform: translateY(0); }
-    .poi-mark:active .pm-hover{ transform: scale(1.16); transition-duration: .09s; }
+    .poi-mark:hover .pm-hover    { transform: scale(1.12); }
+    .poi-mark:hover .pm-ring-tint{ opacity: 0.4; }
+    .poi-mark:hover .pm-tt       { opacity: 1; transform: translateY(0); }
+    .poi-mark:active .pm-hover   { transform: scale(1.18); transition-duration: .09s; }
 
     @keyframes pinBob {
       0%, 100% { transform: translateY(0); }
@@ -6997,32 +6998,29 @@ function createPoiMarkers() {
     const label = (poi.label || poi.id || '').toString();
     const ttW = Math.max(46, label.length * 6.6 + 18);
     const ttX = -ttW / 2;
-    // Path du pin AVEC son trou central : deux subpaths + fill-rule="evenodd"
-    // → le cercle central devient un vrai vide (on voit la scène derrière).
-    // Bulbe centré sur (0,0), pointe en (0,+22), trou r=4 à (0,-3).
-    const PIN_D = 'M0,-14 C8,-14 14,-8 14,0 C14,7 7,11 2,17 L0,22 L-2,17 C-7,11 -14,7 -14,0 C-14,-8 -8,-14 0,-14 Z ' +
-                  'M4,-3 A4,4 0 1,1 -4,-3 A4,4 0 1,1 4,-3 Z';
+    // Anneau centré sur (0,0) : rayon médian 7, épaisseur de trait 5
+    // → bord extérieur 9.5, trou intérieur 4.5 (grand, bien centré).
     g.innerHTML =
       // Zone de clic (hors bob/hover pour rester stable)
-      '<rect class="pm-hit" x="-17" y="-19" width="34" height="45" fill="transparent"/>' +
-      // Pin (soumis au hover scale + bob)
+      '<rect class="pm-hit" x="-14" y="-14" width="28" height="28" fill="transparent"/>' +
+      // Anneau (soumis au hover scale + bob)
       '<g class="pm-hover"><g class="pm-bob">' +
-        // Ombre douce au sol
-        '<ellipse class="pm-shadow" cx="0" cy="24" rx="7" ry="1.8"/>' +
-        // Couche 1 : teinte agence subtile en fond
-        '<path class="pm-tint"  d="' + PIN_D + '" fill-rule="evenodd"/>' +
-        // Couche 2 : verre dépoli blanc (frosted glass)
-        '<path class="pm-frost" d="' + PIN_D + '" fill-rule="evenodd"/>' +
-        // Petit reflet doux (glint) en haut à gauche
-        '<ellipse class="pm-glint" cx="-5" cy="-9" rx="2.6" ry="3.4"/>' +
-        // Arc lumineux discret sur le bord supérieur du bulbe
-        '<path class="pm-rim" d="M-10,-9.5 C-12,-6 -11.5,-2.5 -9.5,0"/>' +
+        // Verre sombre opaque (base)
+        '<circle class="pm-ring-base" cx="0" cy="0" r="7"/>' +
+        // Teinte agence discrète, mélangée sur le même anneau
+        '<circle class="pm-ring-tint" cx="0" cy="0" r="7"/>' +
+        // Liseré fin du bord extérieur
+        '<circle class="pm-edge-out" cx="0" cy="0" r="9.5"/>' +
+        // Liseré fin du bord du trou
+        '<circle class="pm-edge-in" cx="0" cy="0" r="4.5"/>' +
+        // Reflet doux en haut à gauche de l\'anneau
+        '<path class="pm-glint" d="M-6.58,-2.39 A7,7 0 0,1 -2.39,-6.58"/>' +
       '</g></g>' +
       // Infobulle — apparaît au hover, largeur calibrée sur label
       (label ? (
         '<g class="pm-tt">' +
-          '<rect class="pm-tt-bg" x="' + ttX + '" y="-42" width="' + ttW + '" height="20" rx="10"/>' +
-          '<text class="pm-tt-txt" x="0" y="-32" text-anchor="middle">' +
+          '<rect class="pm-tt-bg" x="' + ttX + '" y="-31" width="' + ttW + '" height="20" rx="10"/>' +
+          '<text class="pm-tt-txt" x="0" y="-21" text-anchor="middle">' +
             label.replace(/[<>&]/g, function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;'}[c];}) +
           '</text>' +
         '</g>'
