@@ -11,1198 +11,688 @@
     *{box-sizing:border-box;margin:0;padding:0}
 
     :root{
-      --hub-bg-1:#070b18;
-      --hub-bg-2:#0d1224;
-      --hub-accent:#5b7cff;
-      --hub-accent-rgb:91,124,255;
-      --hub-text:#e8ecf5;
-      --hub-text-dim:#8891a8;
-      --hub-text-mute:#5a6379;
-      --hub-border:rgba(255,255,255,.10);
-      --hub-border-strong:rgba(255,255,255,.18);
-      --hub-glass:rgba(255,255,255,.045);
-      --hub-glass-strong:rgba(255,255,255,.075);
-      --hub-glass-hover:rgba(255,255,255,.11);
-      --hub-shadow:0 10px 34px rgba(0,0,0,.34);
-      --hub-shadow-lg:0 20px 60px rgba(0,0,0,.5);
-      --hub-hot:#ff8a5b;
-      --hub-warm:#f5c451;
-      --hub-cool:#7ec8ff;
-      --hub-good:#5be0a8;
-      --hub-bad:#ff6b7a;
+      --bg:       #0b0d14;
+      --bg2:      #0e1018;
+      --surface:  #13151f;
+      --surface2: #181b27;
+      --border:   rgba(255,255,255,.07);
+      --border2:  rgba(255,255,255,.12);
+      --text:     #d8dce8;
+      --text-dim: #7a8098;
+      --text-mute:#454c62;
+      --accent:   #5b7cff;
+      --accent-r: 91,124,255;
+      --hot:      #ff8a5b;
+      --warm:     #f5c451;
+      --cool:     #7ec8ff;
+      --good:     #5be0a8;
+      --bad:      #ff6b7a;
+      --radius:   14px;
+      --shadow:   0 4px 20px rgba(0,0,0,.45);
     }
 
-    body{
-      font-family:'Inter',system-ui,sans-serif;
-      color:var(--hub-text);
-      min-height:100vh;
-      background:
-        radial-gradient(1200px 800px at 12% -8%, rgba(91,124,255,.22), transparent 60%),
-        radial-gradient(1000px 700px at 92% 10%, rgba(160,90,255,.14), transparent 55%),
-        radial-gradient(1100px 800px at 60% 110%, rgba(60,180,255,.10), transparent 60%),
-        linear-gradient(180deg, var(--hub-bg-1) 0%, var(--hub-bg-2) 100%);
-      background-attachment:fixed;
-      -webkit-font-smoothing:antialiased;
-    }
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
     a{text-decoration:none;color:inherit}
-    button{font:inherit;color:inherit}
+    button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 
-    /* ============ GATE (porte glass) ============ */
-    #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:50;flex-direction:column;gap:1rem;padding:1.5rem}
-    .gate-card{
-      background:var(--hub-glass);
-      -webkit-backdrop-filter:blur(24px) saturate(140%);
-      backdrop-filter:blur(24px) saturate(140%);
-      border:1px solid var(--hub-border);
-      border-radius:20px;
-      padding:2.4rem 2.6rem;
-      box-shadow:var(--hub-shadow-lg);
-      max-width:400px;width:100%;
-      text-align:center;
-      display:flex;flex-direction:column;gap:1rem;
-    }
-    .gate-eyebrow{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--hub-text-dim);font-weight:700}
-    .gate-card h1{font-size:1.35rem;font-weight:800;color:#fff;letter-spacing:-.01em}
-    .gate-card p{color:var(--hub-text-dim);font-size:.86rem}
-    .gate-box{display:flex;gap:.5rem;margin-top:.6rem}
-    .gate-box input{
-      flex:1;
-      background:rgba(255,255,255,.05);
-      border:1px solid var(--hub-border);
-      color:#fff;
-      border-radius:12px;
-      padding:.78rem 1rem;
-      font-size:.95rem;
-      outline:none;
-      transition:border-color .18s,background .18s;
-    }
-    .gate-box input:focus{border-color:var(--hub-accent);background:rgba(255,255,255,.08)}
-    .gate-box input::placeholder{color:var(--hub-text-mute)}
-    .gate-box button{
-      background:linear-gradient(135deg, var(--hub-accent), #7a95ff);
-      color:#fff;border:none;border-radius:12px;
-      padding:.78rem 1.25rem;font-weight:700;cursor:pointer;
-      box-shadow:0 6px 18px rgba(91,124,255,.35);
-      transition:transform .15s,box-shadow .15s;
-    }
-    .gate-box button:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(91,124,255,.5)}
-    .gate-box button:active{transform:translateY(0)}
-    .err{color:#ff8a95;font-size:.82rem;height:1rem;min-height:1rem}
+    /* ───────────── GATE ───────────── */
+    #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:50;flex-direction:column;gap:.75rem;padding:1.5rem}
+    .gate-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:2.4rem 2.6rem;max-width:380px;width:100%;text-align:center}
+    .gate-eye{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);font-weight:700;margin-bottom:.6rem}
+    .gate-card h1{font-size:1.3rem;font-weight:800;color:#fff}
+    .gate-card p{color:var(--text-dim);font-size:.85rem;margin-top:.4rem}
+    .gate-row{display:flex;gap:.5rem;margin-top:1.1rem}
+    .gate-row input{flex:1;background:var(--bg);border:1px solid var(--border2);color:#fff;border-radius:10px;padding:.72rem 1rem;font-size:.92rem;outline:none;transition:border-color .15s}
+    .gate-row input:focus{border-color:var(--accent)}
+    .gate-row input::placeholder{color:var(--text-mute)}
+    .gate-row button{background:var(--accent);color:#fff;border-radius:10px;padding:.72rem 1.2rem;font-weight:700;transition:opacity .15s}
+    .gate-row button:hover{opacity:.85}
+    .err{color:#ff8a95;font-size:.8rem;min-height:1.2rem;margin-top:.35rem}
 
-    /* ============ LAYOUT ============ */
-    .wrap{max-width:1080px;margin:0 auto;padding:2.6rem 1.4rem 4rem}
+    /* ───────────── LAYOUT ───────────── */
+    .wrap{max-width:960px;margin:0 auto;padding:2.6rem 1.4rem 4rem}
 
-    .head{margin-bottom:1.4rem}
-    .head .eyebrow{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--hub-text-dim);font-weight:700}
-    .head h1{font-size:1.9rem;font-weight:800;margin-top:.4rem;color:#fff;letter-spacing:-.02em}
-    .head p{color:var(--hub-text-dim);margin-top:.5rem;font-size:.9rem;max-width:560px}
+    .head{margin-bottom:1.6rem}
+    .head .eye{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text-mute);font-weight:700}
+    .head h1{font-size:1.75rem;font-weight:800;color:#fff;margin-top:.35rem;letter-spacing:-.02em}
+    .head p{color:var(--text-dim);margin-top:.45rem;font-size:.88rem}
 
-    .tools{display:flex;align-items:center;gap:.8rem;margin:1.4rem 0 1.4rem;flex-wrap:wrap}
-    .tools input{
-      flex:1 1 240px;min-width:0;
-      background:var(--hub-glass);
-      -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
-      border:1px solid var(--hub-border);
-      color:#fff;
-      border-radius:12px;padding:.7rem 1rem;font-size:.88rem;outline:none;
-      transition:border-color .18s,background .18s;
-    }
-    .tools input:focus{border-color:rgba(var(--hub-accent-rgb),.5);background:var(--hub-glass-strong)}
-    .tools input::placeholder{color:var(--hub-text-mute)}
-    .count{font-size:.78rem;color:var(--hub-text-dim);font-weight:600;white-space:nowrap}
+    /* Badge de niveau */
+    .level-badge{display:inline-flex;align-items:center;gap:.4rem;font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:.28rem .65rem;border-radius:999px;border:1px solid var(--border2);color:var(--text-dim);background:var(--surface2);margin-top:.7rem}
+    .level-badge svg{width:11px;height:11px}
 
-    /* ============ ANALYTICS : KPI STRIP (haut de vue) ============ */
-    .kpi-strip{
-      display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
-      gap:.85rem;
-      margin-bottom:1.4rem;
-    }
-    .kpi{
-      background:var(--hub-glass);
-      -webkit-backdrop-filter:blur(20px) saturate(140%);
-      backdrop-filter:blur(20px) saturate(140%);
-      border:1px solid var(--hub-border);
-      border-radius:14px;
-      padding:1rem 1.15rem;
-      position:relative;overflow:hidden;
-      transition:border-color .18s, background .18s;
-    }
-    .kpi::before{
-      content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
-      background:linear-gradient(180deg, var(--hub-accent), transparent);
-      opacity:.6;
-    }
-    .kpi:hover{border-color:var(--hub-border-strong);background:var(--hub-glass-strong)}
-    .kpi-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--hub-text-dim);font-weight:700;margin-bottom:.4rem}
-    .kpi-value{font-size:1.5rem;font-weight:800;color:#fff;line-height:1.1;letter-spacing:-.01em}
-    .kpi-value .unit{font-size:.85rem;font-weight:600;color:var(--hub-text-dim);margin-left:.2rem}
-    .kpi-sub{font-size:.72rem;color:var(--hub-text-dim);margin-top:.3rem;display:flex;align-items:center;gap:.35rem}
-    .kpi-sub .up{color:var(--hub-good)}
-    .kpi-sub .down{color:var(--hub-bad)}
-    .kpi-badge{
-      position:absolute;top:.7rem;right:.7rem;
-      font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-      padding:.2rem .5rem;border-radius:999px;
-      background:rgba(255,138,91,.15);color:var(--hub-hot);border:1px solid rgba(255,138,91,.3);
-    }
-    .kpi-badge.warm{background:rgba(245,196,81,.14);color:var(--hub-warm);border-color:rgba(245,196,81,.3)}
-    .kpi-badge.cool{background:rgba(126,200,255,.12);color:var(--hub-cool);border-color:rgba(126,200,255,.3)}
+    /* Plan tag */
+    .plan-tag{display:inline-flex;align-items:center;gap:.35rem;font-size:.63rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:.24rem .58rem;border-radius:999px}
+    .plan-demarrage{background:rgba(122,128,152,.12);color:#7a8098;border:1px solid rgba(122,128,152,.2)}
+    .plan-pro{background:rgba(245,196,81,.1);color:var(--warm);border:1px solid rgba(245,196,81,.25)}
+    .plan-entreprise{background:rgba(91,224,168,.1);color:var(--good);border:1px solid rgba(91,224,168,.25)}
 
-    /* ============ ACCORDÉON ANALYTICS ============ */
-    .accordion{
-      background:var(--hub-glass);
-      -webkit-backdrop-filter:blur(20px) saturate(140%);
-      backdrop-filter:blur(20px) saturate(140%);
-      border:1px solid var(--hub-border);
-      border-radius:14px;
-      margin-bottom:1.4rem;
-      overflow:hidden;
-      transition:border-color .18s;
-    }
-    .accordion:hover{border-color:var(--hub-border-strong)}
-    .acc-head{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:.95rem 1.15rem;cursor:pointer;
-      background:transparent;border:none;width:100%;text-align:left;
-    }
-    .acc-title{display:flex;align-items:center;gap:.6rem;font-weight:700;color:#fff;font-size:.92rem}
-    .acc-title svg{width:16px;height:16px;color:var(--hub-accent)}
-    .acc-title .tag{font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--hub-text-dim);background:rgba(255,255,255,.06);padding:.18rem .5rem;border-radius:999px;border:1px solid var(--hub-border)}
-    .acc-chevron{width:16px;height:16px;color:var(--hub-text-dim);transition:transform .25s ease}
-    .accordion.open .acc-chevron{transform:rotate(180deg)}
-    .acc-body{
-      max-height:0;overflow:hidden;
-      transition:max-height .3s ease;
-    }
-    .accordion.open .acc-body{max-height:2000px}
-    .acc-inner{padding:0 1.15rem 1.15rem;border-top:1px solid var(--hub-border);padding-top:1rem}
-
-    /* Analytics widgets */
-    .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.7rem;margin-bottom:1rem}
-    .metric{background:rgba(255,255,255,.03);border:1px solid var(--hub-border);border-radius:10px;padding:.7rem .85rem}
-    .metric-l{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--hub-text-dim);font-weight:700;margin-bottom:.25rem}
-    .metric-v{font-size:1.1rem;font-weight:800;color:#fff}
-    .metric-v .u{font-size:.7rem;font-weight:600;color:var(--hub-text-dim);margin-left:.2rem}
-
-    .bar-list{display:flex;flex-direction:column;gap:.55rem}
-    .bar-row{display:flex;align-items:center;gap:.7rem;font-size:.82rem}
-    .bar-row .b-name{flex:0 0 30%;color:var(--hub-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .bar-row .b-track{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;position:relative}
-    .bar-row .b-fill{height:100%;background:linear-gradient(90deg, var(--hub-accent), #a5b8ff);border-radius:999px;transition:width .5s ease}
-    .bar-row .b-val{flex:0 0 auto;color:var(--hub-text-dim);font-weight:700;font-size:.78rem;min-width:38px;text-align:right}
-
-    .top-list{display:flex;flex-direction:column;gap:.5rem}
-    .top-item{display:flex;align-items:center;gap:.7rem;padding:.5rem .7rem;background:rgba(255,255,255,.03);border:1px solid var(--hub-border);border-radius:10px}
-    .top-rank{width:22px;height:22px;border-radius:50%;background:rgba(var(--hub-accent-rgb),.2);color:var(--hub-accent);font-weight:800;font-size:.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .top-name{flex:1;font-size:.85rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .top-stat{font-size:.75rem;color:var(--hub-text-dim);font-weight:600;white-space:nowrap}
-
-    .analytics-note{font-size:.75rem;color:var(--hub-text-mute);padding:.5rem 0 0;font-style:italic}
-    .analytics-locked{
-      display:flex;align-items:center;gap:.7rem;
-      padding:1rem 1.2rem;background:rgba(255,255,255,.03);
-      border:1px dashed var(--hub-border);border-radius:10px;
-      font-size:.82rem;color:var(--hub-text-dim);
-    }
-    .analytics-locked svg{width:18px;height:18px;flex-shrink:0;color:var(--hub-text-mute)}
-    .analytics-locked strong{color:#fff;font-weight:700}
-
-    .suggestion{
-      display:flex;gap:.7rem;padding:.7rem .85rem;
-      background:rgba(91,124,255,.06);border:1px solid rgba(91,124,255,.18);
-      border-radius:10px;font-size:.83rem;color:var(--hub-text);margin-bottom:.5rem;
-    }
-    .suggestion svg{width:16px;height:16px;color:var(--hub-accent);flex-shrink:0;margin-top:2px}
-
-    /* ============ CARDS AGENCE/VILLE/BIEN ============ */
-    .rows{display:flex;flex-direction:column;gap:.8rem;margin-top:.4rem}
-
-    .row{position:relative;display:block;width:100%;text-align:left;border:none;
-         background:none;padding:0 0 10px 0;cursor:pointer;color:inherit;
-         transition:transform .18s cubic-bezier(.22,.9,.3,1)}
-    .row.static{cursor:default}
-
-    .plate{
-      position:absolute;left:0;right:12px;top:10px;bottom:0;border-radius:16px;
-      box-shadow:0 6px 20px rgba(0,0,0,.35);
-      opacity:.85;
-    }
-
-    .lift{display:block;position:relative;transform-origin:center;
-          filter:drop-shadow(0 8px 20px rgba(0,0,0,.4));
-          transition:filter .18s ease, transform .18s cubic-bezier(.22,.9,.3,1)}
-
-    .row:not(.static):hover .lift{transform:scale(1.012);
-          filter:drop-shadow(0 14px 30px rgba(0,0,0,.55))}
-    .row:not(.static):active .lift{transform:scale(.994);
-          filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));
-          transition-duration:.09s}
-
-    .row:focus-visible .lift{filter:drop-shadow(0 0 0 2px var(--hub-accent))}
-
-    @media (prefers-reduced-motion: reduce){
-      .lift{transition:none}
-      .row:not(.static):hover .lift, .row:not(.static):active .lift{transform:none}
-    }
-
-    /* Card = verre teinté sombre pour cohérence visuelle avec le viewer */
-    .card{
-      background:rgba(15,20,40,.72);
-      -webkit-backdrop-filter:blur(20px) saturate(140%);
-      backdrop-filter:blur(20px) saturate(140%);
-      border:1px solid var(--hub-border);
-      border-radius:16px;
-      margin-left:92px;min-height:88px;
-      display:flex;align-items:center;gap:.75rem;
-      padding:.85rem 1.15rem .85rem 3.6rem;
-      color:#fff;
-    }
-
-    .mark{flex:0 0 auto;width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:#fff}
-    .mark svg{width:28px;height:28px}
-
-    .nm{font-size:.95rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
-        color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-    .badge{flex:0 0 auto;font-size:.7rem;font-weight:700;color:var(--hub-text);
-           background:rgba(255,255,255,.08);border:1px solid var(--hub-border);
-           border-radius:999px;padding:.24rem .6rem;white-space:nowrap}
-
-    .side{flex:0 0 auto;margin-left:auto;display:flex;align-items:center;gap:.75rem}
-    .sws{display:flex;gap:.3rem}
-    .sw{width:15px;height:15px;border-radius:4px;border:1px solid rgba(255,255,255,.15);box-shadow:0 1px 3px rgba(0,0,0,.3)}
-    .go{font-size:1.3rem;color:var(--hub-text-mute);line-height:1;transition:color .18s}
-    .row:hover .go{color:#fff}
-
-    /* Boutons d'action */
-    .acts{display:flex;gap:.45rem}
-    .acts a, .acts button{
-      padding:.55rem .9rem;border-radius:10px;font-weight:700;font-size:.78rem;white-space:nowrap;
-      transition:transform .12s, background .15s, border-color .15s;
-      cursor:pointer;font-family:inherit;
-    }
-    .acts .primary{
-      background:linear-gradient(135deg, var(--hub-accent), #7a95ff);
-      color:#fff;border:1px solid rgba(255,255,255,.15);
-      box-shadow:0 4px 12px rgba(91,124,255,.3);
-    }
-    .acts .primary:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(91,124,255,.45)}
-    .acts .ghost{
-      background:rgba(255,255,255,.05);
-      border:1px solid var(--hub-border);color:var(--hub-text);
-    }
-    .acts .ghost:hover{background:rgba(255,255,255,.1);border-color:var(--hub-border-strong)}
-    .acts .analytics-btn{
-      background:rgba(91,124,255,.12);
-      border:1px solid rgba(91,124,255,.3);color:#a5b8ff;
-      display:inline-flex;align-items:center;gap:.35rem;
-    }
-    .acts .analytics-btn:hover{background:rgba(91,124,255,.2);border-color:rgba(91,124,255,.5)}
-    .acts .analytics-btn svg{width:13px;height:13px}
+    /* Barre outils */
+    .tools{display:flex;align-items:center;gap:.75rem;margin-bottom:1.2rem;flex-wrap:wrap}
+    .tools input{flex:1 1 220px;min-width:0;background:var(--surface);border:1px solid var(--border);color:#fff;border-radius:10px;padding:.66rem 1rem;font-size:.85rem;outline:none;transition:border-color .15s}
+    .tools input:focus{border-color:var(--border2)}
+    .tools input::placeholder{color:var(--text-mute)}
+    .count{font-size:.75rem;color:var(--text-mute);font-weight:600;white-space:nowrap}
 
     /* Fil d'Ariane */
-    .crumb{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--hub-text-dim);
-           margin-bottom:1.4rem;flex-wrap:wrap}
-    .crumb button{background:none;border:none;color:var(--hub-text-dim);cursor:pointer;font-weight:600;padding:0;transition:color .15s}
+    .crumb{display:flex;align-items:center;gap:.45rem;font-size:.83rem;color:var(--text-dim);margin-bottom:1.4rem;flex-wrap:wrap}
+    .crumb button{color:var(--text-dim);font-weight:600;padding:0;transition:color .15s}
     .crumb button:hover{color:#fff}
-    .crumb .sep{color:var(--hub-text-mute)}
+    .crumb .sep{color:var(--text-mute)}
     .crumb .cur{color:#fff;font-weight:700}
 
-    /* Bien card enrichie avec analytics inline */
-    .bien-row{position:relative;background:none;border:none;padding:0 0 10px 0;text-align:left;display:block;width:100%;color:inherit;cursor:default}
-    .bien-plate{position:absolute;left:0;right:12px;top:10px;bottom:0;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.35);opacity:.85}
-    .bien-lift{display:block;position:relative;filter:drop-shadow(0 8px 20px rgba(0,0,0,.4))}
-    .bien-card{
-      background:rgba(15,20,40,.72);
-      -webkit-backdrop-filter:blur(20px) saturate(140%);
-      backdrop-filter:blur(20px) saturate(140%);
-      border:1px solid var(--hub-border);
-      border-radius:16px;
-      margin-left:92px;
-      padding:1rem 1.15rem 1rem 3.6rem;
-      color:#fff;
-    }
-    .bien-top{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
-    .bien-top .mark{margin-left:-2.5rem}
-    .bien-top .nm{flex:1;min-width:200px}
+    /* ───────────── KPI STRIP ───────────── */
+    .kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.7rem;margin-bottom:1.3rem}
+    .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.95rem 1.1rem;position:relative;overflow:hidden}
+    .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.5;border-radius:2px 0 0 2px}
+    .kpi-l{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-dim);font-weight:700;margin-bottom:.35rem}
+    .kpi-v{font-size:1.4rem;font-weight:800;color:#fff;line-height:1.1}
+    .kpi-v .u{font-size:.78rem;font-weight:600;color:var(--text-dim);margin-left:.15rem}
+    .kpi-s{font-size:.7rem;color:var(--text-dim);margin-top:.25rem;display:flex;align-items:center;gap:.3rem}
+    .kpi-s .up{color:var(--good)} .kpi-s .dn{color:var(--bad)}
+    .kpi-hot::before{background:var(--hot);opacity:.7}
+    .kpi-good::before{background:var(--good);opacity:.6}
 
-    .bien-kpis{
-      display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-      gap:.55rem;margin-top:.85rem;
-    }
-    .bien-kpi{
-      background:rgba(255,255,255,.04);border:1px solid var(--hub-border);
-      border-radius:10px;padding:.55rem .7rem;
-    }
-    .bien-kpi-l{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--hub-text-dim);font-weight:700;margin-bottom:.2rem}
-    .bien-kpi-v{font-size:.95rem;font-weight:800;color:#fff}
-    .bien-kpi-v.hot{color:var(--hub-hot)}
-    .bien-kpi-v.warm{color:var(--hub-warm)}
-    .bien-kpi-v.cool{color:var(--hub-cool)}
-    .bien-kpi-v .u{font-size:.65rem;font-weight:600;color:var(--hub-text-dim);margin-left:.15rem}
+    /* ───────────── ACCORDÉON ───────────── */
+    .accordion{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.2rem;overflow:hidden}
+    .acc-head{display:flex;align-items:center;justify-content:space-between;padding:.88rem 1.1rem;cursor:pointer;width:100%;text-align:left}
+    .acc-title{display:flex;align-items:center;gap:.55rem;font-weight:700;color:var(--text);font-size:.88rem}
+    .acc-title svg{width:14px;height:14px;color:var(--accent)}
+    .acc-chevron{width:14px;height:14px;color:var(--text-mute);transition:transform .22s ease;flex-shrink:0}
+    .accordion.open .acc-chevron{transform:rotate(180deg)}
+    .acc-body{max-height:0;overflow:hidden;transition:max-height .32s ease}
+    .accordion.open .acc-body{max-height:3000px}
+    .acc-inner{padding:.9rem 1.1rem 1.1rem;border-top:1px solid var(--border)}
 
-    .bien-bench{
-      display:inline-flex;align-items:center;gap:.35rem;
-      font-size:.7rem;font-weight:700;padding:.25rem .55rem;border-radius:999px;
-      margin-top:.7rem;
-    }
-    .bench-up{background:rgba(91,224,168,.12);color:var(--hub-good);border:1px solid rgba(91,224,168,.3)}
-    .bench-avg{background:rgba(245,196,81,.12);color:var(--hub-warm);border:1px solid rgba(245,196,81,.3)}
-    .bench-down{background:rgba(255,107,122,.12);color:var(--hub-bad);border:1px solid rgba(255,107,122,.3)}
+    /* Analytics widgets */
+    .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.6rem;margin-bottom:.8rem}
+    .metric{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.65rem .85rem}
+    .metric-l{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);font-weight:700;margin-bottom:.2rem}
+    .metric-v{font-size:1rem;font-weight:800;color:#fff}
+    .metric-v .u{font-size:.65rem;font-weight:600;color:var(--text-dim);margin-left:.15rem}
 
-    .bien-actions{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.9rem}
+    .section-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-mute);font-weight:700;margin-bottom:.5rem;margin-top:.9rem}
+    .section-label:first-child{margin-top:0}
 
-    /* Accordéon bien (imbriqué) */
-    .bien-acc{margin-top:.8rem}
-    .bien-acc .accordion{margin-bottom:0;background:rgba(255,255,255,.03)}
+    .bar-list{display:flex;flex-direction:column;gap:.48rem}
+    .bar-row{display:flex;align-items:center;gap:.65rem;font-size:.8rem}
+    .b-name{flex:0 0 28%;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .b-track{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+    .b-fill{height:100%;background:linear-gradient(90deg, var(--accent), #8fa6ff);border-radius:999px}
+    .b-val{flex:0 0 36px;color:var(--text-dim);font-weight:700;font-size:.75rem;text-align:right}
 
-    /* ============ MODAL RÉCAP GLOBAL ============ */
-    .modal-overlay{
-      position:fixed;inset:0;background:rgba(3,6,14,.75);
-      -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-      z-index:400;display:none;align-items:flex-start;justify-content:center;
-      padding:2rem 1rem;overflow-y:auto;
-    }
-    .modal-overlay.open{display:flex}
-    .modal{
-      background:linear-gradient(180deg, rgba(20,26,50,.95), rgba(10,15,30,.95));
-      -webkit-backdrop-filter:blur(30px) saturate(140%);
-      backdrop-filter:blur(30px) saturate(140%);
-      border:1px solid var(--hub-border-strong);
-      border-radius:20px;
-      box-shadow:var(--hub-shadow-lg);
-      max-width:820px;width:100%;
-      overflow:hidden;
-      animation:modalIn .28s cubic-bezier(.22,.9,.3,1);
-    }
-    @keyframes modalIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
-    .modal-head{
-      display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;
-      padding:1.5rem 1.75rem 1.25rem;
-      border-bottom:1px solid var(--hub-border);
-    }
-    .modal-head h2{font-size:1.25rem;font-weight:800;color:#fff;letter-spacing:-.01em}
-    .modal-head p{font-size:.82rem;color:var(--hub-text-dim);margin-top:.35rem}
-    .modal-close{
-      background:rgba(255,255,255,.06);border:1px solid var(--hub-border);
-      color:var(--hub-text);width:34px;height:34px;border-radius:50%;
-      cursor:pointer;display:flex;align-items:center;justify-content:center;
-      transition:background .15s,border-color .15s;
-    }
-    .modal-close:hover{background:rgba(255,255,255,.12);border-color:var(--hub-border-strong)}
-    .modal-close svg{width:16px;height:16px}
-    .modal-body{padding:1.4rem 1.75rem}
-    .modal-section{margin-bottom:1.5rem}
-    .modal-section:last-child{margin-bottom:0}
-    .modal-section h3{font-size:.7rem;text-transform:uppercase;letter-spacing:.15em;color:var(--hub-text-dim);font-weight:800;margin-bottom:.7rem}
-    .modal-footer{
-      display:flex;justify-content:flex-end;gap:.55rem;
-      padding:1rem 1.75rem;border-top:1px solid var(--hub-border);
-      background:rgba(255,255,255,.02);
-    }
-    .modal-footer .primary{
-      background:linear-gradient(135deg, var(--hub-accent), #7a95ff);
-      color:#fff;border:none;border-radius:10px;
-      padding:.6rem 1.1rem;font-weight:700;font-size:.82rem;cursor:pointer;
-      box-shadow:0 4px 12px rgba(91,124,255,.3);
-    }
-    .modal-footer .ghost{
-      background:rgba(255,255,255,.05);border:1px solid var(--hub-border);
-      color:var(--hub-text);border-radius:10px;
-      padding:.6rem 1.1rem;font-weight:700;font-size:.82rem;cursor:pointer;
-    }
+    .top-list{display:flex;flex-direction:column;gap:.45rem}
+    .top-item{display:flex;align-items:center;gap:.65rem;padding:.48rem .7rem;background:var(--bg2);border:1px solid var(--border);border-radius:9px}
+    .top-rank{width:20px;height:20px;border-radius:50%;background:rgba(var(--accent-r),.15);color:#8fa6ff;font-weight:800;font-size:.7rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .top-name{flex:1;font-size:.82rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .top-stat{font-size:.72rem;color:var(--text-dim);font-weight:600;white-space:nowrap}
 
-    .empty{color:var(--hub-text-dim);font-size:.9rem;padding:2rem 0;text-align:center}
-    .foot{margin-top:2.4rem;color:var(--hub-text-mute);font-size:.78rem;line-height:1.7;padding:1rem 1.15rem;background:var(--hub-glass);border:1px solid var(--hub-border);border-radius:12px;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
-    .foot b{color:var(--hub-text)}
+    .locked-block{display:flex;align-items:center;gap:.65rem;padding:.9rem 1rem;background:var(--bg2);border:1px dashed var(--border);border-radius:10px;font-size:.8rem;color:var(--text-dim)}
+    .locked-block svg{width:16px;height:16px;flex-shrink:0;color:var(--text-mute)}
+    .locked-block strong{color:var(--text)}
 
-    /* Plan badge (dans le crumb) */
-    .plan-badge{
-      display:inline-flex;align-items:center;gap:.35rem;
-      font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-      padding:.28rem .6rem;border-radius:999px;
-      background:rgba(91,124,255,.12);color:#a5b8ff;
-      border:1px solid rgba(91,124,255,.3);
-      margin-left:auto;
-    }
-    .plan-badge.plan-pro{background:rgba(255,138,91,.12);color:var(--hub-hot);border-color:rgba(255,138,91,.3)}
-    .plan-badge.plan-entreprise{background:rgba(91,224,168,.12);color:var(--hub-good);border-color:rgba(91,224,168,.3)}
-    .plan-badge svg{width:11px;height:11px}
+    .suggestion{display:flex;gap:.6rem;padding:.65rem .85rem;background:rgba(91,124,255,.06);border:1px solid rgba(91,124,255,.14);border-radius:9px;font-size:.8rem;color:var(--text);margin-bottom:.45rem;line-height:1.45}
+    .suggestion svg{width:14px;height:14px;color:var(--accent);flex-shrink:0;margin-top:2px}
+    .note{font-size:.72rem;color:var(--text-mute);margin-top:.6rem;font-style:italic}
 
-    @media(max-width:640px){
-      .wrap{padding:1.8rem 1rem 3rem}
-      .card,.bien-card{margin-left:60px;padding-left:2.6rem;min-height:74px}
-      .bien-card{padding:.85rem 1rem .85rem 2.6rem}
-      .bien-top .mark{margin-left:-1.6rem}
-      .plate,.bien-plate{right:9px;top:9px}
-      .mark{width:24px;height:24px}
-      .mark svg{width:22px;height:22px}
-      .nm{font-size:.85rem;letter-spacing:.02em}
-      .sws{display:none}
-      .acts a, .acts button{padding:.45rem .7rem;font-size:.72rem}
-      .head h1{font-size:1.5rem}
-      .kpi-value{font-size:1.2rem}
-      .modal-head, .modal-body, .modal-footer{padding-left:1.15rem;padding-right:1.15rem}
-      .plan-badge{margin-left:0;margin-top:.5rem}
+    /* ───────────── CARDS LISTE (Agences / Villes) ───────────── */
+    /* Card uniforme : fond sombre opaque, accent couleur sur bord gauche uniquement */
+    .rows{display:flex;flex-direction:column;gap:.65rem;margin-top:.4rem}
+
+    .card-btn{display:flex;align-items:center;gap:.9rem;width:100%;text-align:left;padding:.95rem 1.1rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:background .15s,border-color .15s;position:relative;overflow:hidden}
+    .card-btn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px 0 0 2px;background:var(--accent-bar, var(--accent))}
+    .card-btn:hover{background:var(--surface2);border-color:var(--border2)}
+    .card-btn:active{background:var(--bg2)}
+    .card-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+    .card-ico{width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .card-ico svg{width:28px;height:28px;color:#fff;opacity:.7}
+    .card-body{flex:1;min-width:0}
+    .card-name{font-size:.92rem;font-weight:800;letter-spacing:.025em;text-transform:uppercase;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .card-sub{font-size:.75rem;color:var(--text-dim);margin-top:.18rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+    .card-side{flex-shrink:0;display:flex;align-items:center;gap:.55rem}
+    .pastilles{display:flex;gap:.28rem}
+    .dot{width:13px;height:13px;border-radius:3px;border:1px solid rgba(255,255,255,.1)}
+    .chevron-go{color:var(--text-mute);font-size:1.15rem;transition:color .15s}
+    .card-btn:hover .chevron-go{color:var(--text)}
+
+    /* ───────────── CARTE BIEN (niveau 3 — agent) ───────────── */
+    .bien-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:.65rem}
+    .bien-card::before{content:none} /* pas de ::before ici — on fait la barre différemment */
+    .bien-top{display:flex;align-items:center;gap:.9rem;padding:.95rem 1.1rem;border-left:3px solid var(--accent-bar, var(--accent))}
+    .bien-name{font-size:.9rem;font-weight:800;letter-spacing:.025em;text-transform:uppercase;color:#fff;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .bien-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.55rem;padding:.7rem 1.1rem;border-top:1px solid var(--border)}
+    .bk{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:.55rem .7rem}
+    .bk-l{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);font-weight:700;margin-bottom:.18rem}
+    .bk-v{font-size:.92rem;font-weight:800;color:#fff}
+    .bk-v.hot{color:var(--hot)} .bk-v.warm{color:var(--warm)} .bk-v.cool{color:var(--cool)}
+    .bench-row{padding:.5rem 1.1rem;display:flex;align-items:center;gap:.5rem;border-top:1px solid var(--border)}
+    .bench-tag{font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:999px}
+    .bench-up{background:rgba(91,224,168,.1);color:var(--good);border:1px solid rgba(91,224,168,.25)}
+    .bench-avg{background:rgba(245,196,81,.1);color:var(--warm);border:1px solid rgba(245,196,81,.25)}
+    .bench-down{background:rgba(255,107,122,.1);color:var(--bad);border:1px solid rgba(255,107,122,.25)}
+    .bien-actions{padding:.7rem 1.1rem;display:flex;gap:.45rem;flex-wrap:wrap;border-top:1px solid var(--border)}
+    .btn{display:inline-flex;align-items:center;gap:.35rem;padding:.52rem .9rem;border-radius:9px;font-weight:700;font-size:.76rem;white-space:nowrap;cursor:pointer;transition:background .13s,border-color .13s}
+    .btn-primary{background:var(--accent);color:#fff;border:1px solid transparent}
+    .btn-primary:hover{opacity:.85}
+    .btn-ghost{background:var(--bg2);color:var(--text);border:1px solid var(--border)}
+    .btn-ghost:hover{border-color:var(--border2);color:#fff}
+    .btn-analytics{background:rgba(var(--accent-r),.1);color:#8fa6ff;border:1px solid rgba(var(--accent-r),.2)}
+    .btn-analytics:hover{background:rgba(var(--accent-r),.18);border-color:rgba(var(--accent-r),.35)}
+    .btn-analytics svg{width:12px;height:12px}
+    .bien-acc{border-top:1px solid var(--border)}
+    .bien-acc .accordion{background:transparent;border:none;border-radius:0;margin-bottom:0}
+    .bien-acc .acc-inner{background:var(--bg2)}
+
+    /* ───────────── MODAL RÉCAP ───────────── */
+    .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;display:none;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto}
+    .modal-ov.open{display:flex}
+    .modal{background:var(--surface);border:1px solid var(--border2);border-radius:18px;max-width:760px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.7);animation:mIn .25s cubic-bezier(.22,.9,.3,1)}
+    @keyframes mIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+    .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:1.4rem 1.6rem 1.1rem;border-bottom:1px solid var(--border)}
+    .modal-head h2{font-size:1.15rem;font-weight:800;color:#fff}
+    .modal-head p{font-size:.8rem;color:var(--text-dim);margin-top:.3rem}
+    .modal-x{width:32px;height:32px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:background .13s}
+    .modal-x:hover{background:var(--surface2)}
+    .modal-x svg{width:14px;height:14px;color:var(--text)}
+    .modal-body{padding:1.3rem 1.6rem}
+    .modal-sec{margin-bottom:1.3rem}
+    .modal-sec:last-child{margin-bottom:0}
+    .modal-sec h3{font-size:.63rem;text-transform:uppercase;letter-spacing:.14em;color:var(--text-mute);font-weight:800;margin-bottom:.6rem}
+    .modal-foot{display:flex;justify-content:flex-end;gap:.5rem;padding:.9rem 1.6rem;border-top:1px solid var(--border)}
+
+    .foot-note{color:var(--text-mute);font-size:.76rem;line-height:1.65;padding:.85rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-top:2rem}
+    .foot-note b{color:var(--text-dim)}
+    .empty{color:var(--text-dim);font-size:.88rem;padding:2rem;text-align:center}
+
+    @media(max-width:600px){
+      .wrap{padding:1.6rem .9rem 3rem}
+      .head h1{font-size:1.4rem}
+      .card-btn{padding:.82rem .9rem}
+      .bien-top{padding:.82rem .9rem}
+      .bien-kpis{padding:.6rem .9rem}
+      .bien-actions{padding:.6rem .9rem}
+      .kpi-v{font-size:1.15rem}
+      .modal-head,.modal-body,.modal-foot{padding-left:1rem;padding-right:1rem}
     }
   </style>
 </head>
 <body>
 
-  <!-- GATE -->
-  <div id="gate">
-    <div class="gate-card">
-      <div class="gate-eyebrow">Panneau interne</div>
-      <h1>Hub Visites 3D</h1>
-      <p>Accès réservé aux agences partenaires.</p>
-      <div class="gate-box">
-        <input id="pwd" type="password" placeholder="Mot de passe" autofocus>
-        <button id="go">Entrer</button>
-      </div>
-      <div class="err" id="err"></div>
+<!-- GATE -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-eye">Panneau interne</div>
+    <h1>Hub Visites 3D</h1>
+    <p>Accès réservé</p>
+    <div class="gate-row">
+      <input id="pwd" type="password" placeholder="Mot de passe" autofocus>
+      <button id="go">Entrer</button>
     </div>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="wrap" id="app" style="display:none">
+
+  <!-- VUE 1 : Hub global (toi seul) — toutes agences -->
+  <div id="vHub">
+    <div class="head">
+      <div class="eye">Centre de gestion</div>
+      <h1>Hub — Toutes les agences</h1>
+      <p>Vue propriétaire. Accès complet à l'ensemble du réseau et des métriques globales.</p>
+      <span class="level-badge"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> HUB GLOBAL</span>
+    </div>
+    <div class="kpi-strip" id="kpiHub"></div>
+    <div id="accHub"></div>
+    <div class="tools">
+      <input id="q" placeholder="Rechercher une agence…">
+      <span class="count" id="count"></span>
+    </div>
+    <div class="rows" id="grid"></div>
+    <div class="empty" id="noRes" style="display:none">Aucune agence ne correspond.</div>
+    <div class="foot-note">Nouvelle agence : un bloc dans <b>branding.js</b> + un <b>index-&lt;id&gt;.html</b> — apparaît ici automatiquement.</div>
   </div>
 
-  <!-- APP -->
-  <div class="wrap" id="app" style="display:none">
-
-    <!-- Niveau 1 : agences -->
-    <div id="vAgences">
-      <div class="head">
-        <div class="eyebrow">Panneau siège</div>
-        <h1>Toutes les agences</h1>
-        <p>Vue d'ensemble du réseau. Cliquez sur une agence pour explorer ses villes et ses biens.</p>
-      </div>
-
-      <!-- KPIs Globaux -->
-      <div class="kpi-strip" id="kpiGlobal"></div>
-
-      <!-- Accordéon Analytics Global -->
-      <div id="accGlobal"></div>
-
-      <div class="tools">
-        <input id="q" placeholder="Rechercher une agence…">
-        <span class="count" id="count"></span>
-      </div>
-      <div class="rows" id="grid"></div>
-      <div class="empty" id="noRes" style="display:none">Aucune agence ne correspond.</div>
-      <div class="foot">Nouvelle agence : un bloc dans <b>branding.js</b> + un
-        <b>index-&lt;id&gt;.html</b> — le dossier apparaît ici tout seul.</div>
+  <!-- VUE 2 : Agence (siège) — toutes les villes -->
+  <div id="vVilles" style="display:none">
+    <div class="crumb">
+      <button data-home>← Toutes les agences</button>
+      <span class="sep">/</span>
+      <span class="cur" id="vAgName"></span>
+      <span id="vPlanTag" style="margin-left:.5rem"></span>
     </div>
-
-    <!-- Niveau 2 : villes -->
-    <div id="vVilles" style="display:none">
-      <div class="crumb">
-        <button data-home>← Toutes les agences</button>
-        <span class="sep">/</span>
-        <span class="cur" id="vAgName"></span>
-        <span id="vPlanBadge"></span>
-      </div>
-
-      <!-- KPIs Ville -->
-      <div class="kpi-strip" id="kpiVille"></div>
-
-      <!-- Accordéon Analytics Ville -->
-      <div id="accVille"></div>
-
-      <div class="rows" id="villes"></div>
-      <div class="foot">Une ville apparaît dès qu'un projet de l'agence lui est rattaché
-        (champ <b>city</b>).</div>
+    <div class="head">
+      <div class="eye">Vue Siège</div>
+      <h1 id="vAgH1">Villes</h1>
+      <p>Récapitulatif de toutes les villes et biens du réseau de cette agence.</p>
+      <span class="level-badge"><svg viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> SIÈGE</span>
     </div>
-
-    <!-- Niveau 3 : projets (biens) -->
-    <div id="vProjets" style="display:none">
-      <div class="crumb">
-        <button data-home>← Toutes les agences</button>
-        <span class="sep">/</span>
-        <button id="upVille"></button>
-        <span class="sep">/</span>
-        <span class="cur" id="pVilleName"></span>
-        <span id="pPlanBadge"></span>
-      </div>
-
-      <!-- KPIs Ville (contexte) -->
-      <div class="kpi-strip" id="kpiVilleP"></div>
-
-      <div class="rows" id="plist"></div>
-      <div class="foot">Nouveau projet : un dossier dans <b>/properties/</b>, puis une entrée dans
-        <b>properties</b> du bloc agence (branding.js) :<br>
-        <b>{ id:'demo-x', name:'Maison 5 pièces', city:'Épernon', page:'index-xxx.html' }</b></div>
-    </div>
-
+    <div class="kpi-strip" id="kpiVilles"></div>
+    <div id="accVilles"></div>
+    <div class="rows" id="rowVilles"></div>
+    <div class="foot-note">Une ville apparaît dès qu'un projet lui est rattaché (champ <b>city</b> dans branding.js).</div>
   </div>
 
-  <!-- MODAL RÉCAP GLOBAL -->
-  <div class="modal-overlay" id="modal" role="dialog" aria-modal="true">
-    <div class="modal" id="modalContent">
-      <div class="modal-head">
-        <div>
-          <h2 id="modalTitle"></h2>
-          <p id="modalSubtitle"></p>
-        </div>
-        <button class="modal-close" id="modalClose" aria-label="Fermer">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-      </div>
-      <div class="modal-body" id="modalBody"></div>
-      <div class="modal-footer">
-        <button class="ghost" id="modalCloseBtn">Fermer</button>
-        <button class="primary" id="modalExport">Exporter PDF</button>
-      </div>
+  <!-- VUE 3 : Ville (agence) — biens de la ville -->
+  <div id="vBiens" style="display:none">
+    <div class="crumb">
+      <button data-home>← Toutes les agences</button>
+      <span class="sep">/</span>
+      <button id="upAgence"></button>
+      <span class="sep">/</span>
+      <span class="cur" id="bVilleName"></span>
+      <span id="bPlanTag" style="margin-left:.5rem"></span>
     </div>
+    <div class="head">
+      <div class="eye">Vue Agence</div>
+      <h1 id="bVilleH1">Biens</h1>
+      <p>Tous les biens de cette ville. Analytics par bien disponibles selon votre plan.</p>
+      <span class="level-badge"><svg viewBox="0 0 24 24" fill="none"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> AGENCE</span>
+    </div>
+    <div class="kpi-strip" id="kpiBiens"></div>
+    <div class="rows" id="rowBiens"></div>
+    <div class="foot-note">Nouveau projet : dossier dans <b>/properties/</b> + entrée dans le bloc agence de <b>branding.js</b> :<br>
+      <b>{ id:'demo-x', name:'Maison 5 pièces', city:'Épernon', page:'index-xxx.html' }</b></div>
   </div>
 
-  <script>
-    /* =========================================================================
-       HUB VISITE 3D — Refonte glassmorphisme + analytics par pallier
-       FONCTIONNEMENT INCHANGÉ : gate, PROPERTIES_INDEX, projetsDe, villesDe,
-       agences, routing par hash, biseau clip-path des cartes.
-       NOUVEAU : KPIs, accordéons analytics, modal récap — activés par pallier
-                 tarifaire (démarrage / pro / entreprise) via feature flags.
-       ========================================================================= */
+</div><!-- /wrap -->
 
-    var HUB_PASSWORD = 'visite2026';
+<!-- MODAL RÉCAP BIEN -->
+<div class="modal-ov" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h2 id="mTitle"></h2><p id="mSub"></p></div>
+      <button class="modal-x" id="mClose"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="mCloseBtn">Fermer</button>
+      <button class="btn btn-primary" onclick="window.print()">Exporter PDF</button>
+    </div>
+  </div>
+</div>
 
-    /* Pallier tarifaire par agence — surchargable via A.plan dans branding.js,
-       fallback = 'demarrage'. Défini ici pour ne PAS toucher branding.js.
-       Chaque brique analytics vérifie ce pallier avant d'apparaître. */
-    var HUB_PLANS = {
-      /* Exemples — à ajuster quand les agences signent leur plan */
-      'laforet': 'pro',
-      'era': 'pro',
-      'sixieme-avenue': 'entreprise',
-      'blb': 'demarrage',
-      'guy-hoquet': 'pro',
-      'nestenn': 'demarrage',
-      'foncia-mansart': 'entreprise',
-      'citya-royale': 'demarrage',
-      'jmc': 'demarrage',
-      'aab-immo': 'demarrage',
-      'toulzac-nowak': 'pro',
-      'themeis': 'demarrage',
-      'the-door-man': 'entreprise',
-      'laforet-immo': 'pro'
-    };
-    function getPlan(A){
-      if (!A) return 'demarrage';
-      if (A.plan && ['demarrage','pro','entreprise'].indexOf(A.plan) !== -1) return A.plan;
-      return HUB_PLANS[A.id] || 'demarrage';
-    }
-    function planLabel(p){
-      return { demarrage:'Démarrage', pro:'Pro', entreprise:'Entreprise' }[p] || 'Démarrage';
-    }
-    function planCls(p){ return 'plan-'+p; }
-    function planCanSee(userPlan, requiredPlan){
-      var order = { demarrage:0, pro:1, entreprise:2 };
-      return order[userPlan] >= order[requiredPlan];
-    }
+<script>
+  /* ===================================================================
+     HUB VISITE 3D — glassmorphisme v2
+     Structure :
+       VUE 1 : Hub global        → toutes agences   (toi seul)
+       VUE 2 : Vue Siège         → villes d'une agence
+       VUE 3 : Vue Agence/Agent  → biens d'une ville
+     Fonctionnement INCHANGÉ : gate, PROPERTIES_INDEX, routing hash,
+     projetsDe, villesDe, agences, biseau clip-path.
+     AJOUT : plans, KPIs, accordéons, analytics mock, modal récap.
+  =================================================================== */
 
-    /* Registre visites créées via visite-tools (properties-index.json) */
-    var PROPERTIES_INDEX = {};
+  var HUB_PASSWORD = 'visite2026';
+  var PROPERTIES_INDEX = {};
 
-    var PIN = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/></svg>';
-    var CUBE = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 7l9 5 9-5M12 12v10" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+  /* Plans par agence — 'demarrage' | 'pro' | 'entreprise'
+     Surcharger via A.plan dans branding.js si besoin */
+  var HUB_PLANS = {
+    laforet:'pro', era:'pro', 'sixieme-avenue':'entreprise',
+    'guy-hoquet':'pro', nestenn:'demarrage', 'foncia-mansart':'entreprise',
+    'citya-royale':'demarrage', jmc:'demarrage', 'aab-immo':'demarrage',
+    'toulzac-nowak':'pro', themeis:'demarrage', 'the-door-man':'entreprise',
+    'laforet-immo':'pro', blb:'demarrage'
+  };
+  function getPlan(A){ return (A&&A.plan)||HUB_PLANS[A&&A.id]||'demarrage'; }
+  function planLabel(p){ return {demarrage:'Démarrage',pro:'Pro',entreprise:'Entreprise'}[p]||'Démarrage'; }
+  function canSee(plan,req){ return {demarrage:0,pro:1,entreprise:2}[plan]>={demarrage:0,pro:1,entreprise:2}[req]; }
+  function planTagHTML(p){
+    return '<span class="plan-tag plan-'+p+'">'+planLabel(p)+'</span>';
+  }
 
-    /* Icônes analytics */
-    var IC_CHART = '<svg viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 15l4-4 3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    var IC_LOCK = '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2"/></svg>';
-    var IC_CROWN = '<svg viewBox="0 0 24 24" fill="none"><path d="M3 18l2-10 5 5 2-8 2 8 5-5 2 10H3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
-    var IC_CHEV = '<svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    var IC_BULB = '<svg viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3.5V18h5v-.5c0-1.5.5-2.5 1.5-3.5A7 7 0 0 0 12 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  /* SVG icons */
+  var I={
+    pin: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/></svg>',
+    cube:'<svg viewBox="0 0 24 24" fill="none"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 7l9 5 9-5M12 12v10" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+    chart:'<svg viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 15l4-4 3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2"/></svg>',
+    bulb: '<svg viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12c1 1 1.5 2 1.5 3.5V18h5v-.5c0-1.5.5-2.5 1.5-3.5A7 7 0 0 0 12 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    chev:'<svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
 
-    /* ========== MOCK DATA DÉTERMINISTE ==========
-       Génère des chiffres réalistes stables (basés sur seed = id).
-       Remplacer par appels API réels le jour où le backend analytics existe. */
-    function seedHash(str){
-      var h = 0, s = String(str||'');
-      for (var i=0; i<s.length; i++){ h = ((h<<5)-h) + s.charCodeAt(i); h |= 0; }
-      return Math.abs(h) || 1;
+  /* ===== MOCK DATA (déterministe, remplacer par API réelle) ===== */
+  function h(str){ var x=0,s=String(str||''); for(var i=0;i<s.length;i++){x=((x<<5)-x)+s.charCodeAt(i);x|=0;} return Math.abs(x)||1; }
+  function rnd(seed,min,max){ var x=Math.sin(seed)*10000; x=x-Math.floor(x); return Math.floor(x*(max-min+1))+min; }
+
+  function bienStats(id){
+    var s=h('b:'+id);
+    var vis=rnd(s+1,12,340), dw=rnd(s+2,45,260);
+    var pieces=['Salon','Cuisine','Chambre','Salle de bain','Balcon','Entrée','Bureau'];
+    var hm=pieces.map(function(p,i){return{name:p,value:rnd(s+10+i,8,90)}}).sort(function(a,b){return b.value-a.value});
+    var pois=['Balcon','Cuisine équipée','Placard','Fenêtre sud','Douche italienne','Parquet','Cheminée'];
+    var poi=pois.map(function(p,i){return{name:p,value:rnd(s+30+i,5,120)}}).sort(function(a,b){return b.value-a.value}).slice(0,5);
+    var mob=rnd(s+50,45,72),dsk=rnd(s+51,15,100-mob-5),tab=100-mob-dsk;
+    var bounce=rnd(s+60,8,32), v24=rnd(s+70,0,12), v7=rnd(s+71,Math.floor(vis*.15),Math.floor(vis*.35));
+    var perf=dw>144?'up':dw<96?'down':'avg';
+    var sig=dw>180?'hot':dw>100?'warm':'cool';
+    return{vis:vis,v7:v7,v24:v24,dw:dw,perf:perf,sig:sig,hm:hm,top:hm[0],poi:poi,mob:mob,dsk:dsk,tab:tab,bounce:bounce};
+  }
+  function fmtDw(s){ if(s<60) return s+'s'; return Math.floor(s/60)+'m '+(s%60<10?'0':'')+s%60+'s'; }
+  function sigLabel(s){ return s==='hot'?'Chaud':s==='warm'?'Tiède':'Froid'; }
+
+  /* ===== DATA (INCHANGÉ) ===== */
+  function projetsDe(A){
+    var base;
+    if(A.properties&&A.properties.length){
+      base=A.properties.map(function(p){return{id:p.id,name:p.name||p.id,city:p.city||'Autres',page:p.page||('index-'+A.id+'.html')};});
+    } else {
+      base=[{id:A.property||'demo-rambouillet',name:'Appartement 2 pièces',city:'Rambouillet',page:'index-'+A.id+'.html'}];
     }
-    function srand(seed, min, max){
-      var x = Math.sin(seed) * 10000;
-      x = x - Math.floor(x);
-      return Math.floor(x*(max-min+1))+min;
+    var ex=PROPERTIES_INDEX[A.id];
+    if(ex&&ex.length){ var vus={}; base.forEach(function(p){vus[p.id]=true});
+      ex.forEach(function(p){ if(!p||!p.id||vus[p.id])return; base.push({id:p.id,name:p.name||p.id,city:p.city||'Autres',page:p.page||('index-'+A.id+'.html')}); vus[p.id]=true; });
     }
-    function bienStats(bienId){
-      var s = seedHash('bien:'+bienId);
-      var visites = srand(s+1, 12, 340);
-      var dwellSec = srand(s+2, 45, 260);
-      var moy = 120;
-      var perf = dwellSec > moy*1.15 ? 'up' : (dwellSec < moy*0.85 ? 'down' : 'avg');
-      var pieces = ['Salon','Cuisine','Chambre','Salle de bain','Balcon','Entrée','Bureau'];
-      var heatmap = pieces.map(function(p, i){
-        return { name:p, value:srand(s+10+i, 8, 90) };
-      }).sort(function(a,b){ return b.value - a.value; });
-      var topPiece = heatmap[0];
-      var poi = ['Balcon','Cuisine équipée','Placard','Fenêtre sud','Douche italienne','Parquet','Cheminée'];
-      var poiRank = poi.map(function(p, i){
-        return { name:p, value:srand(s+30+i, 5, 120) };
-      }).sort(function(a,b){ return b.value - a.value; }).slice(0, 5);
-      var mobile = srand(s+50, 45, 75);
-      var desktop = srand(s+51, 15, 100-mobile-5);
-      var tablet = 100 - mobile - desktop;
-      var bounce = srand(s+60, 8, 32);
-      var visites24h = srand(s+70, 0, 12);
-      var visitesSemaine = srand(s+71, Math.floor(visites*.15), Math.floor(visites*.35));
-      var signal = dwellSec > 180 ? 'hot' : (dwellSec > 100 ? 'warm' : 'cool');
-      return {
-        visites:visites, visitesSemaine:visitesSemaine, visites24h:visites24h,
-        dwellSec:dwellSec, perf:perf, signal:signal,
-        heatmap:heatmap, topPiece:topPiece,
-        poiRank:poiRank,
-        devices:{ mobile:mobile, desktop:desktop, tablet:tablet },
-        bounce:bounce
-      };
-    }
-    function agenceStats(agenceId, biens){
-      var s = seedHash('ag:'+agenceId);
-      var total = biens.reduce(function(a, b){ return a + bienStats(b.id).visites; }, 0);
-      var semaine = biens.reduce(function(a, b){ return a + bienStats(b.id).visitesSemaine; }, 0);
-      var dwellAvg = biens.length ? Math.round(biens.reduce(function(a,b){ return a + bienStats(b.id).dwellSec; }, 0) / biens.length) : 0;
-      var ventes = srand(s+1, 0, Math.max(1, Math.floor(biens.length/3)));
-      var uplift = srand(s+2, 35, 78);
-      return { total:total, semaine:semaine, dwellAvg:dwellAvg, ventes:ventes, uplift:uplift };
-    }
-    function villeStats(agenceId, ville, biens){
-      var s = seedHash('v:'+agenceId+':'+ville);
-      var total = biens.reduce(function(a, b){ return a + bienStats(b.id).visites; }, 0);
-      var semaine = biens.reduce(function(a, b){ return a + bienStats(b.id).visitesSemaine; }, 0);
-      var dwellAvg = biens.length ? Math.round(biens.reduce(function(a,b){ return a + bienStats(b.id).dwellSec; }, 0) / biens.length) : 0;
-      var trend = srand(s+3, -18, 42);
-      var perf = dwellAvg > 138 ? 'up' : (dwellAvg < 102 ? 'down' : 'avg');
-      return { total:total, semaine:semaine, dwellAvg:dwellAvg, trend:trend, perf:perf };
-    }
-    function globalStats(){
-      var all = agences();
-      var totalSem = 0, dwellSum = 0, dwellN = 0, totalBiens = 0, hotBien = null, hotVal = 0;
-      all.forEach(function(A){
-        var biens = projetsDe(A);
-        totalBiens += biens.length;
-        biens.forEach(function(b){
-          var st = bienStats(b.id);
-          totalSem += st.visitesSemaine;
-          dwellSum += st.dwellSec; dwellN++;
-          if (st.dwellSec > hotVal){ hotVal = st.dwellSec; hotBien = { name:b.name, agence:A.name, city:b.city, id:b.id }; }
-        });
+    return base;
+  }
+  function villesDe(A){
+    var par={};
+    projetsDe(A).forEach(function(p){(par[p.city]=par[p.city]||[]).push(p);});
+    return Object.keys(par).sort(function(a,b){return a.localeCompare(b,'fr');}).map(function(v){return{ville:v,projets:par[v]};});
+  }
+  function agences(){
+    var ag=window.AGENCIES||{};
+    return Object.keys(ag).map(function(k){return ag[k];}).filter(function(A){return A&&!A.hubHidden;});
+  }
+  function svgDe(A){
+    var l=(window.brandLogoHTML&&window.brandLogoHTML(A))||'';
+    return (l.match(/<svg[\s\S]*?<\/svg>/)||[''])[0];
+  }
+  function slug(s){
+    return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  }
+
+  /* ===== HELPERS RENDER ===== */
+  function kpiEl(label,value,unit,sub,cls){
+    return '<div class="kpi'+(cls?' '+cls:'')+'"><div class="kpi-l">'+label+'</div><div class="kpi-v">'+value+(unit?'<span class="u">'+unit+'</span>':'')+'</div>'+(sub?'<div class="kpi-s">'+sub+'</div>':'')+'</div>';
+  }
+  function acc(id,title,tag,body){
+    return '<div class="accordion" id="'+id+'"><button class="acc-head" onclick="tog(\''+id+'\')"><span class="acc-title">'+I.chart+' '+title+(tag?' <span class="plan-tag plan-'+tag+'" style="font-size:.6rem">'+planLabel(tag)+'</span>':'')+'</span><span class="acc-chevron">'+I.chev+'</span></button><div class="acc-body"><div class="acc-inner">'+body+'</div></div></div>';
+  }
+  function tog(id){ var el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+  window.tog=tog;
+
+  function lockedHTML(req){ return '<div class="locked-block">'+I.lock+'<span>Disponible à partir du plan <strong>'+planLabel(req)+'</strong>.</span></div>'; }
+  function barListHTML(items,max){
+    var m=max||Math.max.apply(null,items.map(function(i){return i.value}));
+    return '<div class="bar-list">'+items.map(function(i){var p=m?Math.round(i.value/m*100):0; return '<div class="bar-row"><span class="b-name">'+i.name+'</span><span class="b-track"><span class="b-fill" style="width:'+p+'%"></span></span><span class="b-val">'+i.value+'%</span></div>';}).join('')+'</div>';
+  }
+  function topListHTML(items,unit){
+    return '<div class="top-list">'+items.slice(0,3).map(function(it,i){return '<div class="top-item"><span class="top-rank">'+(i+1)+'</span><span class="top-name">'+it.name+'</span><span class="top-stat">'+it.value+' '+(unit||'')+'</span></div>';}).join('')+'</div>';
+  }
+  function sectionLbl(t){ return '<div class="section-label">'+t+'</div>'; }
+  function metricGridHTML(items){
+    return '<div class="metric-grid">'+items.map(function(m){return '<div class="metric"><div class="metric-l">'+m.l+'</div><div class="metric-v">'+m.v+(m.u?'<span class="u">'+m.u+'</span>':'')+'</div></div>';}).join('')+'</div>';
+  }
+
+  /* ===== VUE 1 : HUB GLOBAL ===== */
+  function renderHubKpis(){
+    var all=agences(), totalBiens=0, totalV7=0, dwSum=0, dwN=0, hotV=0, hotB=null;
+    all.forEach(function(A){
+      projetsDe(A).forEach(function(b){
+        var st=bienStats(b.id);
+        totalBiens++; totalV7+=st.v7; dwSum+=st.dw; dwN++;
+        if(st.dw>hotV){hotV=st.dw; hotB={name:b.name,ag:A.name};}
       });
-      var dwellAvg = dwellN ? Math.round(dwellSum / dwellN) : 0;
-      return {
-        totalBiens:totalBiens, totalSem:totalSem, dwellAvg:dwellAvg,
-        hotBien:hotBien, hotVal:hotVal,
-        nbAgences:all.length
-      };
-    }
-
-    /* ========== FORMATTERS ========== */
-    function fmtDwell(sec){
-      if (sec < 60) return sec + 's';
-      var m = Math.floor(sec/60), s = sec % 60;
-      return m + 'm ' + (s<10?'0':'') + s + 's';
-    }
-
-    /* ========== DONNÉES (INCHANGÉES) ========== */
-    function projetsDe(A){
-      var base;
-      if (A.properties && A.properties.length) {
-        base = A.properties.map(function(p){
-          return { id:p.id, name:p.name || p.id, city:p.city || 'Autres',
-                   page:p.page || ('index-' + A.id + '.html') };
-        });
-      } else {
-        base = [{ id:A.property || 'demo-rambouillet', name:'Appartement 2 pièces',
-                  city:'Rambouillet', page:'index-' + A.id + '.html' }];
-      }
-      var extra = PROPERTIES_INDEX[A.id];
-      if (extra && extra.length) {
-        var vus = {}; base.forEach(function(p){ vus[p.id] = true; });
-        extra.forEach(function(p){
-          if (!p || !p.id || vus[p.id]) return;
-          base.push({ id:p.id, name:p.name || p.id, city:p.city || 'Autres',
-                      page:p.page || ('index-' + A.id + '.html') });
-          vus[p.id] = true;
-        });
-      }
-      return base;
-    }
-    function villesDe(A){
-      var par = {};
-      projetsDe(A).forEach(function(p){ (par[p.city] = par[p.city] || []).push(p); });
-      return Object.keys(par).sort(function(a,b){ return a.localeCompare(b,'fr'); })
-        .map(function(v){ return { ville:v, projets:par[v] }; });
-    }
-    function agences(){
-      var ag = window.AGENCIES || {};
-      return Object.keys(ag).map(function(k){ return ag[k]; })
-               .filter(function(A){ return A && !A.hubHidden; });
-    }
-    function svgDe(A){
-      var l = (window.brandLogoHTML && window.brandLogoHTML(A)) || '';
-      return (l.match(/<svg[\s\S]*?<\/svg>/) || [''])[0];
-    }
-    function slug(s){
-      return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-              .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-    }
-
-    /* ========== BANDE — INCHANGÉE (mais habillage glass) ========== */
-    function bande(A, o){
-      var el = document.createElement(o.onClick ? 'button' : 'div');
-      el.className = 'row' + (o.onClick ? '' : ' static');
-      el.innerHTML =
-        '<span class="plate" style="background:linear-gradient(140deg,'+A.accent+' 0%,'+(A.accentDark||A.navy)+' 100%)"></span>' +
-        '<span class="lift"><span class="card">' +
-          '<span class="mark">'+o.icon+'</span>' +
-          '<span class="nm">'+o.titre+'</span>' +
-          (o.badge ? '<span class="badge">'+o.badge+'</span>' : '') +
-          '<span class="side">'+ (o.side || '') +'</span>' +
-        '</span></span>';
-      if (o.onClick) {
-        el.setAttribute('aria-label', 'Ouvrir ' + o.titre);
-        el.addEventListener('click', o.onClick);
-      }
-      return el;
-    }
-    function pastilles(A){
-      return '<span class="sws"><span class="sw" style="background:'+A.navy+'"></span>' +
-             '<span class="sw" style="background:'+A.accent+'"></span></span>' +
-             '<span class="go">›</span>';
-    }
-
-    /* ========== BUILDERS ANALYTICS ========== */
-    function kpi(label, value, unit, sub, badge, badgeCls){
-      return '<div class="kpi">' +
-        (badge ? '<span class="kpi-badge '+(badgeCls||'')+'">'+badge+'</span>' : '') +
-        '<div class="kpi-label">'+label+'</div>' +
-        '<div class="kpi-value">'+value+(unit?'<span class="unit">'+unit+'</span>':'')+'</div>' +
-        (sub ? '<div class="kpi-sub">'+sub+'</div>' : '') +
-      '</div>';
-    }
-    function accordion(id, title, tag, bodyHTML){
-      return '<div class="accordion" id="'+id+'">' +
-        '<button class="acc-head" onclick="toggleAcc(\''+id+'\')">' +
-          '<span class="acc-title">'+IC_CHART+' <span>'+title+'</span>' + (tag?'<span class="tag">'+tag+'</span>':'') + '</span>' +
-          '<span class="acc-chevron">'+IC_CHEV+'</span>' +
-        '</button>' +
-        '<div class="acc-body"><div class="acc-inner">'+bodyHTML+'</div></div>' +
-      '</div>';
-    }
-    function toggleAcc(id){
-      var el = document.getElementById(id);
-      if (el) el.classList.toggle('open');
-    }
-    window.toggleAcc = toggleAcc;
-
-    function lockedBlock(planReq){
-      return '<div class="analytics-locked">'+IC_LOCK+
-        '<span>Fonctionnalité <strong>'+planLabel(planReq)+'</strong> ou supérieur. Débloquez ces analyses en passant au plan supérieur.</span>' +
-      '</div>';
-    }
-    function barList(items, max){
-      var m = max || Math.max.apply(null, items.map(function(i){return i.value}));
-      return '<div class="bar-list">' + items.map(function(i){
-        var pct = m ? Math.round(i.value/m*100) : 0;
-        return '<div class="bar-row"><span class="b-name">'+i.name+'</span>' +
-          '<span class="b-track"><span class="b-fill" style="width:'+pct+'%"></span></span>' +
-          '<span class="b-val">'+i.value+'%</span></div>';
-      }).join('') + '</div>';
-    }
-    function topList(items, unit){
-      return '<div class="top-list">' + items.slice(0, 3).map(function(it, i){
-        return '<div class="top-item"><span class="top-rank">'+(i+1)+'</span>' +
-          '<span class="top-name">'+it.name+'</span>' +
-          '<span class="top-stat">'+it.value+' '+(unit||'')+'</span></div>';
-      }).join('') + '</div>';
-    }
-
-    /* ========== NIVEAU 1 : GLOBAL ========== */
-    function renderKpiGlobal(){
-      var s = globalStats();
-      var host = document.getElementById('kpiGlobal');
-      var html = '';
-      html += kpi('Agences actives', s.nbAgences, '', '');
-      html += kpi('Biens répertoriés', s.totalBiens, '', '');
-      html += kpi('Visites cette semaine', s.totalSem, '', '', 'RÉSEAU');
-      html += kpi('Dwell time moyen', fmtDwell(s.dwellAvg), '', 'benchmark réseau');
-      if (s.hotBien){
-        html += kpi('Bien le + engageant', s.hotBien.name, '', s.hotBien.agence + ' · ' + s.hotBien.city, 'HOT');
-      }
-      host.innerHTML = html;
-    }
-    function renderAccGlobal(){
-      var host = document.getElementById('accGlobal');
-      /* Global = vue siège = pallier "pro" ou "entreprise" pour analyses détaillées */
-      var all = agences();
-      var allBiens = [];
-      all.forEach(function(A){
-        projetsDe(A).forEach(function(b){
-          allBiens.push({ agence:A.name, city:b.city, name:b.name, id:b.id, stats:bienStats(b.id) });
-        });
-      });
-      var top3 = allBiens.sort(function(a,b){ return b.stats.visites - a.stats.visites; }).slice(0, 3)
-        .map(function(b){ return { name:b.name + ' — ' + b.agence, value:b.stats.visites }; });
-      var uplift = 62;
-      var body = '<div class="metric-grid">' +
-        '<div class="metric"><div class="metric-l">Ventes avec visite 3D</div><div class="metric-v">' + Math.floor(allBiens.length*0.18) + '<span class="u">biens</span></div></div>' +
-        '<div class="metric"><div class="metric-l">Contacts qualifiés</div><div class="metric-v">+' + uplift + '<span class="u">% vs sans</span></div></div>' +
-        '<div class="metric"><div class="metric-l">Temps moy. sur annonce</div><div class="metric-v">2.5<span class="u">x plus</span></div></div>' +
-        '</div>' +
-        '<div style="font-size:.75rem;color:var(--hub-text-dim);font-weight:700;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">Top 3 biens réseau (visites totales)</div>' +
-        topList(top3, 'visites') +
-        '<div class="analytics-note">Comparatif visite 3D vs annonces classiques agrégé sur l\'ensemble du réseau. Débloqué au pallier siège (Entreprise).</div>';
-      host.innerHTML = accordion('acc-global', 'Vue Siège — Performance réseau', 'ENTREPRISE', body);
-    }
-
-    function renderAgences(filtre){
-      var grid = document.getElementById('grid');
-      var toutes = agences();
-      var f = (filtre||'').trim().toLowerCase();
-      var list = f ? toutes.filter(function(A){
-        return (A.name+' '+A.id).toLowerCase().indexOf(f) !== -1; }) : toutes;
-
-      grid.innerHTML = '';
-      list.forEach(function(A){
-        var biens = projetsDe(A);
-        var n = biens.length;
-        var st = agenceStats(A.id, biens);
-        var plan = getPlan(A);
-        var planBadge = '<span class="badge" style="background:rgba(91,124,255,.15);color:#a5b8ff;border-color:rgba(91,124,255,.3)">'+planLabel(plan)+'</span>';
-        var visitesBadge = '<span class="badge">'+st.semaine+' visites/sem</span>';
-        grid.appendChild(bande(A, {
-          icon: svgDe(A), titre: A.name,
-          badge: n + ' bien' + (n>1?'s':'') + ' · ' + planLabel(plan),
-          side: visitesBadge + pastilles(A),
-          onClick: function(){ go(A.id); }
-        }));
-      });
-      document.getElementById('count').textContent = list.length+' / '+toutes.length+' agences';
-      document.getElementById('noRes').style.display = list.length ? 'none' : 'block';
-    }
-
-    /* ========== NIVEAU 2 : VILLES ========== */
-    function renderKpiVille(A, host){
-      var biens = projetsDe(A);
-      var st = agenceStats(A.id, biens);
-      var plan = getPlan(A);
-      var html = '';
-      html += kpi('Biens répertoriés', biens.length, '', '');
-      html += kpi('Visites cette semaine', st.semaine, '', '');
-      html += kpi('Dwell time moyen', fmtDwell(st.dwellAvg), '', 'agence');
-      if (planCanSee(plan, 'pro')){
-        var perfLabel = st.dwellAvg > 138 ? 'Au-dessus marché' : (st.dwellAvg < 102 ? 'Sous marché' : 'Dans le marché');
-        var perfCls = st.dwellAvg > 138 ? '' : (st.dwellAvg < 102 ? 'cool' : 'warm');
-        html += kpi('Engagement vs marché', perfLabel, '', 'benchmark réseau', perfLabel.split(' ')[0].toUpperCase(), perfCls);
-      }
-      document.getElementById(host).innerHTML = html;
-    }
-    function renderAccVille(A){
-      var host = document.getElementById('accVille');
-      var plan = getPlan(A);
-      if (!planCanSee(plan, 'pro')){
-        host.innerHTML = accordion('acc-ville', 'Analyses détaillées ville', 'PRO', lockedBlock('pro'));
-        return;
-      }
-      var villes = villesDe(A);
-      var body = '';
-      body += '<div style="font-size:.75rem;color:var(--hub-text-dim);font-weight:700;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">Répartition des biens par ville</div>';
-      body += barList(villes.map(function(v){ return { name:v.ville, value:v.projets.length }; }));
-      body += '<div style="margin-top:1rem;font-size:.75rem;color:var(--hub-text-dim);font-weight:700;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">Top 3 biens de l\'agence</div>';
-      var allBiens = projetsDe(A).map(function(b){ return { name:b.name, ville:b.city, value:bienStats(b.id).visites }; })
-                    .sort(function(a,b){ return b.value - a.value; }).slice(0, 3)
-                    .map(function(b){ return { name:b.name + ' — ' + b.ville, value:b.value }; });
-      body += topList(allBiens, 'visites');
-      if (planCanSee(plan, 'entreprise')){
-        var s = seedHash('trend:'+A.id);
-        var trend = srand(s, 8, 42);
-        body += '<div style="margin-top:1rem;padding:.7rem .85rem;background:rgba(91,224,168,.06);border:1px solid rgba(91,224,168,.18);border-radius:10px;font-size:.83rem;color:var(--hub-text)">📈 Tendance 30j : <strong style="color:var(--hub-good)">+'+trend+'%</strong> d\'engagement vs mois précédent</div>';
-      }
-      host.innerHTML = accordion('acc-ville', 'Analyses détaillées ville', 'PRO', body);
-    }
-    function renderVilles(A){
-      var plan = getPlan(A);
-      document.getElementById('vAgName').textContent = A.name;
-      document.getElementById('vPlanBadge').innerHTML =
-        '<span class="plan-badge '+planCls(plan)+'">'+IC_CROWN+' '+planLabel(plan)+'</span>';
-      renderKpiVille(A, 'kpiVille');
-      renderAccVille(A);
-
-      var box = document.getElementById('villes');
-      box.innerHTML = '';
-      villesDe(A).forEach(function(v){
-        var n = v.projets.length;
-        var st = villeStats(A.id, v.ville, v.projets);
-        box.appendChild(bande(A, {
-          icon: PIN, titre: v.ville,
-          badge: n + ' bien' + (n>1?'s':'') + ' · ' + st.semaine + ' visites/sem',
-          side: pastilles(A),
-          onClick: function(){ go(A.id, slug(v.ville)); }
-        }));
-      });
-    }
-
-    /* ========== NIVEAU 3 : PROJETS (BIENS) ========== */
-    function bienRow(A, p, plan){
-      var st = bienStats(p.id);
-      var el = document.createElement('div');
-      el.className = 'bien-row';
-      var signalCls = st.signal;
-      var signalLbl = st.signal === 'hot' ? 'Chaud' : (st.signal === 'warm' ? 'Tiède' : 'Froid');
-      var benchCls = st.perf === 'up' ? 'bench-up' : (st.perf === 'down' ? 'bench-down' : 'bench-avg');
-      var benchLbl = st.perf === 'up' ? '↑ Au-dessus similaires' : (st.perf === 'down' ? '↓ Sous similaires' : '→ Dans le marché');
-
-      /* KPIs de base (démarrage +) */
-      var kpisHtml = '';
-      kpisHtml += '<div class="bien-kpi"><div class="bien-kpi-l">Visites total</div><div class="bien-kpi-v">'+st.visites+'</div></div>';
-      kpisHtml += '<div class="bien-kpi"><div class="bien-kpi-l">Dwell time</div><div class="bien-kpi-v">'+fmtDwell(st.dwellSec)+'</div></div>';
-      kpisHtml += '<div class="bien-kpi"><div class="bien-kpi-l">Pièce top</div><div class="bien-kpi-v">'+st.topPiece.name+'</div></div>';
-      if (planCanSee(plan, 'pro')){
-        kpisHtml += '<div class="bien-kpi"><div class="bien-kpi-l">Signal conversion</div><div class="bien-kpi-v '+signalCls+'">'+signalLbl+'</div></div>';
-      }
-
-      /* Bench (pro +) */
-      var benchHtml = '';
-      if (planCanSee(plan, 'pro')){
-        benchHtml = '<div class="bien-bench '+benchCls+'">'+benchLbl+'</div>';
-      }
-
-      /* Accordéon analytics bien */
-      var accBody = '';
-      if (planCanSee(plan, 'pro')){
-        accBody += '<div style="font-size:.75rem;color:var(--hub-text-dim);font-weight:700;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">Heatmap pièces (temps regardé)</div>';
-        accBody += barList(st.heatmap.slice(0, 5));
-        accBody += '<div style="margin-top:1rem;font-size:.75rem;color:var(--hub-text-dim);font-weight:700;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">POI les plus cliqués</div>';
-        accBody += topList(st.poiRank, 'clics');
-        accBody += '<div style="margin-top:1rem" class="metric-grid">';
-        accBody += '<div class="metric"><div class="metric-l">Visites 24h</div><div class="metric-v">'+st.visites24h+'</div></div>';
-        accBody += '<div class="metric"><div class="metric-l">Visites 7j</div><div class="metric-v">'+st.visitesSemaine+'</div></div>';
-        accBody += '<div class="metric"><div class="metric-l">Bounce rate</div><div class="metric-v">'+st.bounce+'<span class="u">%</span></div></div>';
-        accBody += '</div>';
-        accBody += '<div style="margin-top:.5rem;font-size:.75rem;color:var(--hub-text-dim);font-weight:700;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">Répartition devices</div>';
-        accBody += barList([{name:'Mobile',value:st.devices.mobile},{name:'Desktop',value:st.devices.desktop},{name:'Tablet',value:st.devices.tablet}], 100);
-      }
-      if (planCanSee(plan, 'entreprise')){
-        accBody += '<div style="margin-top:1.2rem;font-size:.75rem;color:var(--hub-text-dim);font-weight:700;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">Suggestions d\'action</div>';
-        if (st.perf === 'down') accBody += '<div class="suggestion">'+IC_BULB+' <span>Ce bien est sous-performant. Vérifiez la qualité des photos et le FOV initial du POV principal.</span></div>';
-        if (st.bounce > 25) accBody += '<div class="suggestion">'+IC_BULB+' <span>Taux de rebond élevé ('+st.bounce+'%). Le point d\'entrée gagnerait à cadrer la pièce la plus vendeuse.</span></div>';
-        if (st.topPiece.value > 60) accBody += '<div class="suggestion">'+IC_BULB+' <span>La pièce « '+st.topPiece.name+' » concentre l\'attention. Ajoutez-y des POI de valorisation (matériaux, équipements).</span></div>';
-        if (st.perf === 'up') accBody += '<div class="suggestion">'+IC_BULB+' <span>Excellent engagement. Ce bien est un bon candidat pour une mise en avant dans les campagnes de l\'agence.</span></div>';
-      }
-      if (!planCanSee(plan, 'pro')) accBody = lockedBlock('pro');
-
-      var accId = 'acc-b-' + p.id;
-      var accHtml = '<div class="bien-acc">' + accordion(accId, 'Analytics détaillés', planCanSee(plan,'pro') ? 'PRO' : 'PRO', accBody) + '</div>';
-
-      /* Actions */
-      var actionsHtml = '<div class="bien-actions">' +
-        '<a class="primary" href="'+p.page+'">Annonce</a>' +
-        '<a class="ghost" href="viewer.html?agency='+A.id+'&property='+p.id+'">Visite 3D</a>';
-      if (planCanSee(plan, 'pro')){
-        actionsHtml += '<button class="analytics-btn" data-recap="'+p.id+'">'+IC_CHART+' Récap complet</button>';
-      }
-      actionsHtml += '</div>';
-
-      el.innerHTML =
-        '<span class="bien-plate" style="background:linear-gradient(140deg,'+A.accent+' 0%,'+(A.accentDark||A.navy)+' 100%)"></span>' +
-        '<span class="bien-lift"><span class="bien-card">' +
-          '<div class="bien-top">' +
-            '<span class="mark">'+CUBE+'</span>' +
-            '<span class="nm">'+p.name+'</span>' +
-            (pastilles(A)) +
-          '</div>' +
-          '<div class="bien-kpis">'+kpisHtml+'</div>' +
-          benchHtml +
-          actionsHtml +
-          accHtml +
-        '</span></span>';
-
-      /* Récap modal handler */
-      var recapBtn = el.querySelector('[data-recap]');
-      if (recapBtn){
-        recapBtn.addEventListener('click', function(){ openRecap(A, p, st, plan); });
-      }
-      return el;
-    }
-
-    function renderProjets(A, villeSlug){
-      var v = villesDe(A).filter(function(x){ return slug(x.ville) === villeSlug; })[0];
-      if (!v) return false;
-      var plan = getPlan(A);
-
-      document.getElementById('pVilleName').textContent = v.ville;
-      document.getElementById('pPlanBadge').innerHTML =
-        '<span class="plan-badge '+planCls(plan)+'">'+IC_CROWN+' '+planLabel(plan)+'</span>';
-      var up = document.getElementById('upVille');
-      up.textContent = A.name;
-      up.onclick = function(){ go(A.id); };
-
-      /* KPIs ville */
-      var st = villeStats(A.id, v.ville, v.projets);
-      var html = '';
-      html += kpi('Biens en ville', v.projets.length, '', '');
-      html += kpi('Visites cette semaine', st.semaine, '', '');
-      html += kpi('Dwell time moyen', fmtDwell(st.dwellAvg), '', '');
-      if (planCanSee(plan, 'pro')){
-        var trend = st.trend;
-        var trendSub = (trend >= 0 ? '<span class="up">↑ +'+trend+'%</span>' : '<span class="down">↓ '+trend+'%</span>') + ' vs mois précédent';
-        html += kpi('Tendance 30j', (trend >= 0 ? '+' : '') + trend + '%', '', trendSub);
-      }
-      document.getElementById('kpiVilleP').innerHTML = html;
-
-      var pl = document.getElementById('plist');
-      pl.innerHTML = '';
-      v.projets.forEach(function(p){
-        pl.appendChild(bienRow(A, p, plan));
-      });
-      return true;
-    }
-
-    /* ========== MODAL RÉCAP ========== */
-    function openRecap(A, p, st, plan){
-      document.getElementById('modalTitle').textContent = p.name;
-      document.getElementById('modalSubtitle').textContent = A.name + ' · ' + p.city + ' · Plan ' + planLabel(plan);
-
-      var body = '';
-      /* Synthèse KPIs */
-      body += '<div class="modal-section"><h3>Synthèse</h3><div class="metric-grid">';
-      body += '<div class="metric"><div class="metric-l">Visites totales</div><div class="metric-v">'+st.visites+'</div></div>';
-      body += '<div class="metric"><div class="metric-l">Cette semaine</div><div class="metric-v">'+st.visitesSemaine+'</div></div>';
-      body += '<div class="metric"><div class="metric-l">Dernières 24h</div><div class="metric-v">'+st.visites24h+'</div></div>';
-      body += '<div class="metric"><div class="metric-l">Dwell time</div><div class="metric-v">'+fmtDwell(st.dwellSec)+'</div></div>';
-      body += '<div class="metric"><div class="metric-l">Bounce</div><div class="metric-v">'+st.bounce+'<span class="u">%</span></div></div>';
-      body += '<div class="metric"><div class="metric-l">Signal</div><div class="metric-v '+st.signal+'">'+(st.signal==='hot'?'Chaud':st.signal==='warm'?'Tiède':'Froid')+'</div></div>';
-      body += '</div></div>';
-
-      /* Heatmap */
-      body += '<div class="modal-section"><h3>Heatmap pièces</h3>'+ barList(st.heatmap) +'</div>';
-
-      /* POI */
-      body += '<div class="modal-section"><h3>Points d\'intérêt les plus cliqués</h3>'+ topList(st.poiRank, 'clics') +'</div>';
-
-      /* Devices */
-      body += '<div class="modal-section"><h3>Répartition devices</h3>'+ barList([{name:'Mobile',value:st.devices.mobile},{name:'Desktop',value:st.devices.desktop},{name:'Tablet',value:st.devices.tablet}], 100) +'</div>';
-
-      /* Benchmark */
-      var benchLbl = st.perf === 'up' ? 'Ce bien performe MIEUX que la moyenne des biens similaires en ville.' :
-                     st.perf === 'down' ? 'Ce bien performe MOINS BIEN que la moyenne des biens similaires en ville.' :
-                     'Ce bien performe dans la moyenne des biens similaires en ville.';
-      var benchCls = st.perf === 'up' ? 'bench-up' : (st.perf === 'down' ? 'bench-down' : 'bench-avg');
-      body += '<div class="modal-section"><h3>Benchmark</h3>';
-      body += '<div style="padding:1rem 1.2rem;background:rgba(255,255,255,.03);border:1px solid var(--hub-border);border-radius:12px;font-size:.88rem;line-height:1.5">'+benchLbl+'</div></div>';
-
-      /* Suggestions (entreprise) */
-      if (planCanSee(plan, 'entreprise')){
-        var sug = '';
-        if (st.perf === 'down') sug += '<div class="suggestion">'+IC_BULB+' <span>Bien sous-performant. Vérifier qualité photos + FOV initial POV.</span></div>';
-        if (st.bounce > 25) sug += '<div class="suggestion">'+IC_BULB+' <span>Bounce élevé. Cadrer la pièce la plus vendeuse au démarrage.</span></div>';
-        if (st.topPiece.value > 60) sug += '<div class="suggestion">'+IC_BULB+' <span>Concentration attention sur « '+st.topPiece.name+' ». Ajouter POI valorisation.</span></div>';
-        if (st.perf === 'up') sug += '<div class="suggestion">'+IC_BULB+' <span>Excellent engagement. Candidat pour mise en avant campagnes.</span></div>';
-        if (sug) body += '<div class="modal-section"><h3>Suggestions d\'action</h3>'+sug+'</div>';
-      }
-
-      document.getElementById('modalBody').innerHTML = body;
-      document.getElementById('modal').classList.add('open');
-    }
-    function closeRecap(){ document.getElementById('modal').classList.remove('open'); }
-    document.getElementById('modalClose').addEventListener('click', closeRecap);
-    document.getElementById('modalCloseBtn').addEventListener('click', closeRecap);
-    document.getElementById('modal').addEventListener('click', function(e){
-      if (e.target.id === 'modal') closeRecap();
     });
-    document.getElementById('modalExport').addEventListener('click', function(){
-      window.print();
+    var dw=dwN?Math.round(dwSum/dwN):0;
+    var html='';
+    html+=kpiEl('Agences',all.length,'','');
+    html+=kpiEl('Biens total',totalBiens,'','');
+    html+=kpiEl('Visites cette semaine',totalV7,'','');
+    html+=kpiEl('Dwell time moyen réseau',fmtDw(dw),'','');
+    if(hotB) html+=kpiEl('Bien le + engageant',hotB.name,'','<span class="up">'+hotB.ag+'</span>','kpi-hot');
+    document.getElementById('kpiHub').innerHTML=html;
+  }
+  function renderHubAcc(){
+    var all=agences(), allBiens=[];
+    all.forEach(function(A){ projetsDe(A).forEach(function(b){ allBiens.push({name:b.name+' — '+A.name, value:bienStats(b.id).vis}); }); });
+    var top3=allBiens.sort(function(a,b){return b.value-a.value}).slice(0,3);
+    var body=sectionLbl('Top 3 biens réseau (visites totales)')+topListHTML(top3,'visites');
+    body+=metricGridHTML([
+      {l:'Ventes avec visite 3D',v:Math.max(1,Math.floor(allBiens.length*.18))},
+      {l:'Uplift contacts',v:'+62',u:'%'},
+      {l:'Temps moy. annonce',v:'2.5',u:'x plus'}
+    ]);
+    body+='<p class="note">Analytics propriétaires — vue globale toutes agences confondues.</p>';
+    document.getElementById('accHub').innerHTML=acc('a-hub','Performance réseau','entreprise',body);
+  }
+  function renderAgences(filtre){
+    var toutes=agences(), f=(filtre||'').trim().toLowerCase();
+    var list=f?toutes.filter(function(A){return(A.name+' '+A.id).toLowerCase().indexOf(f)!==-1;}):toutes;
+    var grid=document.getElementById('grid');
+    grid.innerHTML='';
+    list.forEach(function(A){
+      var biens=projetsDe(A), n=biens.length;
+      var st=bienStats(biens[0]&&biens[0].id||A.id);
+      var plan=getPlan(A);
+      var el=document.createElement('button');
+      el.className='card-btn';
+      el.style.setProperty('--accent-bar', A.accent);
+      el.innerHTML='<span class="card-ico">'+svgDe(A)+'</span>'+
+        '<span class="card-body"><span class="card-name">'+A.name+'</span>'+
+        '<span class="card-sub">'+n+' bien'+(n>1?'s':'')+' · '+planLabel(plan)+'</span></span>'+
+        '<span class="card-side">'+
+          '<span class="pastilles"><span class="dot" style="background:'+A.navy+'"></span><span class="dot" style="background:'+A.accent+'"></span></span>'+
+          '<span class="chevron-go">›</span>'+
+        '</span>';
+      el.addEventListener('click',function(){go(A.id);});
+      grid.appendChild(el);
     });
+    document.getElementById('count').textContent=list.length+'/'+toutes.length+' agences';
+    document.getElementById('noRes').style.display=list.length?'none':'block';
+  }
 
-    /* ========== BISEAU BAS-GAUCHE (INCHANGÉ) ========== */
-    function galber(){
-      var petit = window.innerWidth <= 640;
-      var c  = petit ? 34 : 48;
-      var r  = petit ? 14 : 16;
-      var rr = petit ? 9  : 12;
-      var k  = 0.7071 * rr;
-      Array.prototype.forEach.call(document.querySelectorAll('.card, .bien-card'), function(el){
-        var b = el.getBoundingClientRect();
-        var W = Math.round(b.width), H = Math.round(b.height);
-        if (!W || !H) return;
-        var d = [
-          'M ' + r + ',0',
-          'L ' + (W-r) + ',0',
-          'Q ' + W + ',0 ' + W + ',' + r,
-          'L ' + W + ',' + (H-r),
-          'Q ' + W + ',' + H + ' ' + (W-r) + ',' + H,
-          'L ' + (c+rr) + ',' + H,
-          'Q ' + c + ',' + H + ' ' + (c-k) + ',' + (H-k),
-          'L ' + k + ',' + (H-c+k),
-          'Q 0,' + (H-c) + ' 0,' + (H-c-rr),
-          'L 0,' + r,
-          'Q 0,0 ' + r + ',0',
-          'Z'
-        ].join(' ');
-        el.style.clipPath = "path('" + d + "')";
-      });
-    }
-    var galberT;
-    window.addEventListener('resize', function(){
-      clearTimeout(galberT); galberT = setTimeout(galber, 80);
-    });
+  /* ===== VUE 2 : SIÈGE (villes d'une agence) ===== */
+  function renderVilles(A){
+    var plan=getPlan(A);
+    document.getElementById('vAgName').textContent=A.name;
+    document.getElementById('vAgH1').textContent=A.name;
+    document.getElementById('vPlanTag').innerHTML=planTagHTML(plan);
+    var biens=projetsDe(A), villes=villesDe(A);
+    var totV7=0, dwSum=0;
+    biens.forEach(function(b){var st=bienStats(b.id);totV7+=st.v7;dwSum+=st.dw;});
+    var dw=biens.length?Math.round(dwSum/biens.length):0;
+    var html='';
+    html+=kpiEl('Villes',villes.length,'','');
+    html+=kpiEl('Biens total',biens.length,'','');
+    html+=kpiEl('Visites cette semaine',totV7,'','');
+    html+=kpiEl('Dwell time moyen',fmtDw(dw),'','');
+    document.getElementById('kpiVilles').innerHTML=html;
 
-    /* ========== NAVIGATION (INCHANGÉE) ========== */
-    function montrer(id){
-      ['vAgences','vVilles','vProjets'].forEach(function(v){
-        document.getElementById(v).style.display = (v === id) ? 'block' : 'none';
-      });
-      window.scrollTo(0,0);
-    }
-    function go(agId, villeSlug){
-      location.hash = agId ? (villeSlug ? agId+'/'+villeSlug : agId) : '';
-      route();
-    }
-    function route(){
-      var parts = location.hash.replace(/^#/,'').split('/').filter(Boolean);
-      var A = (window.AGENCIES||{})[parts[0]];
-      if (!A){
-        renderKpiGlobal();
-        renderAccGlobal();
-        renderAgences(document.getElementById('q').value);
-        montrer('vAgences');
-      } else if (parts[1] && renderProjets(A, parts[1])){
-        montrer('vProjets');
-      } else {
-        renderVilles(A);
-        montrer('vVilles');
+    /* Accordéon siège */
+    var accBody='';
+    if(canSee(plan,'pro')){
+      var topBiens=biens.map(function(b){return{name:b.name+' – '+b.city,value:bienStats(b.id).vis};}).sort(function(a,b){return b.value-a.value;});
+      accBody+=sectionLbl('Répartition biens par ville')+barListHTML(villes.map(function(v){return{name:v.ville,value:v.projets.length};}));
+      accBody+=sectionLbl('Top 3 biens de l\'agence')+topListHTML(topBiens,'visites');
+      if(canSee(plan,'entreprise')){
+        var trend=rnd(h('tr:'+A.id),8,42);
+        accBody+='<div class="suggestion">'+I.bulb+' Tendance 30j : <strong style="color:var(--good)">+'+trend+'%</strong> d\'engagement vs mois précédent</div>';
       }
-      galber();
+    } else {
+      accBody=lockedHTML('pro');
     }
+    document.getElementById('accVilles').innerHTML=acc('a-v','Analyses détaillées agence','pro',accBody);
 
-    /* ========== GATE (INCHANGÉ) ========== */
-    function unlock(){
-      document.getElementById('gate').style.display='none';
-      document.getElementById('app').style.display='block';
-      route();
-    }
-    function tryPwd(){
-      var v=document.getElementById('pwd').value;
-      if(v===HUB_PASSWORD){try{sessionStorage.setItem('hub_ok','1');}catch(e){}unlock();}
-      else{document.getElementById('err').textContent='Mot de passe incorrect.';}
-    }
-    document.getElementById('go').addEventListener('click',tryPwd);
-    document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')tryPwd();});
-
-    /* Registre visites-tools (INCHANGÉ) */
-    fetch('properties-index.json', { cache: 'no-cache' })
-      .then(function(r){ return r.ok ? r.json() : {}; })
-      .then(function(j){ PROPERTIES_INDEX = (j && typeof j === 'object') ? j : {};
-        if (document.getElementById('app').style.display === 'block') route(); })
-      .catch(function(){});
-
-    try{if(sessionStorage.getItem('hub_ok')==='1')unlock();}catch(e){}
-
-    document.getElementById('q').addEventListener('input',function(e){
-      renderAgences(e.target.value); galber();
+    var rows=document.getElementById('rowVilles');
+    rows.innerHTML='';
+    villes.forEach(function(v){
+      var n=v.projets.length, sv7=0;
+      v.projets.forEach(function(b){sv7+=bienStats(b.id).v7;});
+      var el=document.createElement('button');
+      el.className='card-btn';
+      el.style.setProperty('--accent-bar', A.accent);
+      el.innerHTML='<span class="card-ico">'+I.pin+'</span>'+
+        '<span class="card-body"><span class="card-name">'+v.ville+'</span>'+
+        '<span class="card-sub">'+n+' bien'+(n>1?'s':'')+' · '+sv7+' visites/sem</span></span>'+
+        '<span class="card-side">'+
+          '<span class="pastilles"><span class="dot" style="background:'+A.navy+'"></span><span class="dot" style="background:'+A.accent+'"></span></span>'+
+          '<span class="chevron-go">›</span>'+
+        '</span>';
+      el.addEventListener('click',(function(vv){return function(){go(A.id,slug(vv.ville));};})(v));
+      rows.appendChild(el);
     });
-    Array.prototype.forEach.call(document.querySelectorAll('[data-home]'), function(b){
-      b.addEventListener('click', function(){ go(''); });
-    });
-    window.addEventListener('hashchange', route);
-    window.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeRecap(); });
-  </script>
+  }
+
+  /* ===== VUE 3 : AGENCE/AGENT (biens d'une ville) ===== */
+  function renderBiens(A, villeSlug){
+    var v=villesDe(A).filter(function(x){return slug(x.ville)===villeSlug;})[0];
+    if(!v) return false;
+    var plan=getPlan(A);
+    document.getElementById('bVilleName').textContent=v.ville;
+    document.getElementById('bVilleH1').textContent=v.ville+' — '+A.name;
+    document.getElementById('bPlanTag').innerHTML=planTagHTML(plan);
+    var up=document.getElementById('upAgence');
+    up.textContent=A.name; up.onclick=function(){go(A.id);};
+
+    var totV7=0, dwSum=0;
+    v.projets.forEach(function(b){var st=bienStats(b.id);totV7+=st.v7;dwSum+=st.dw;});
+    var dw=v.projets.length?Math.round(dwSum/v.projets.length):0;
+    var html='';
+    html+=kpiEl('Biens en ville',v.projets.length,'','');
+    html+=kpiEl('Visites cette semaine',totV7,'','');
+    html+=kpiEl('Dwell time moyen',fmtDw(dw),'','');
+    if(canSee(plan,'pro')){
+      var trend=rnd(h('t:'+A.id+v.ville),-18,42);
+      html+=kpiEl('Tendance 30j',(trend>=0?'+':'')+trend+'%','',
+        trend>=0?'<span class="up">↑ vs mois précédent</span>':'<span class="dn">↓ vs mois précédent</span>',
+        trend>=0?'kpi-good':'');
+    }
+    document.getElementById('kpiBiens').innerHTML=html;
+
+    var rows=document.getElementById('rowBiens');
+    rows.innerHTML='';
+    v.projets.forEach(function(p){ rows.appendChild(makeBienCard(A,p,plan)); });
+    return true;
+  }
+
+  function makeBienCard(A, p, plan){
+    var st=bienStats(p.id);
+    var wrap=document.createElement('div');
+    wrap.className='bien-card';
+
+    /* Top */
+    var benchCls=st.perf==='up'?'bench-up':st.perf==='down'?'bench-down':'bench-avg';
+    var benchLbl=st.perf==='up'?'↑ Au-dessus des similaires':st.perf==='down'?'↓ Sous les similaires':'→ Dans la moyenne';
+
+    /* KPIs base (démarrage +) */
+    var kpis='<div class="bk"><div class="bk-l">Visites totales</div><div class="bk-v">'+st.vis+'</div></div>';
+    kpis+='<div class="bk"><div class="bk-l">Dwell time</div><div class="bk-v">'+fmtDw(st.dw)+'</div></div>';
+    kpis+='<div class="bk"><div class="bk-l">Pièce top</div><div class="bk-v">'+st.top.name+'</div></div>';
+    if(canSee(plan,'pro')) kpis+='<div class="bk"><div class="bk-l">Signal</div><div class="bk-v '+st.sig+'">'+sigLabel(st.sig)+'</div></div>';
+
+    /* Actions */
+    var acts='<a class="btn btn-primary" href="'+p.page+'">Annonce</a>';
+    acts+='<a class="btn btn-ghost" href="viewer.html?agency='+A.id+'&property='+p.id+'">Visite 3D</a>';
+    if(canSee(plan,'pro')) acts+='<button class="btn btn-analytics" data-recap>'+I.chart+' Récap complet</button>';
+
+    /* Accordéon analytics */
+    var accBdy='';
+    if(canSee(plan,'pro')){
+      accBdy+=sectionLbl('Heatmap pièces')+barListHTML(st.hm.slice(0,5));
+      accBdy+=sectionLbl('Points d\'intérêt les + cliqués')+topListHTML(st.poi,'clics');
+      accBdy+=sectionLbl('Données détaillées')+metricGridHTML([
+        {l:'Visites 24h',v:st.v24},{l:'Visites 7j',v:st.v7},
+        {l:'Bounce rate',v:st.bounce,u:'%'},{l:'Mobile',v:st.mob,u:'%'}
+      ]);
+      if(canSee(plan,'entreprise')){
+        var sugs='';
+        if(st.perf==='down') sugs+='<div class="suggestion">'+I.bulb+' <span>Bien sous-performant. Vérifiez la qualité des photos et le point d\'entrée du POV.</span></div>';
+        if(st.bounce>25) sugs+='<div class="suggestion">'+I.bulb+' <span>Taux de rebond élevé ('+st.bounce+'%). Cadrez la pièce vendeuse au démarrage.</span></div>';
+        if(st.top.value>60) sugs+='<div class="suggestion">'+I.bulb+' <span>« '+st.top.name+' » concentre l\'attention : ajoutez-y des POI de valorisation.</span></div>';
+        if(st.perf==='up') sugs+='<div class="suggestion">'+I.bulb+' <span>Excellent engagement. Bon candidat pour mise en avant campagne.</span></div>';
+        if(sugs) accBdy+=sectionLbl('Suggestions')+sugs;
+      }
+    } else {
+      accBdy=lockedHTML('pro');
+    }
+
+    wrap.innerHTML=
+      '<div class="bien-top" style="--accent-bar:'+A.accent+'">'+
+        '<span class="card-ico">'+I.cube+'</span>'+
+        '<span class="bien-name">'+p.name+'</span>'+
+        '<span class="card-side">'+
+          '<span class="pastilles"><span class="dot" style="background:'+A.navy+'"></span><span class="dot" style="background:'+A.accent+'"></span></span>'+
+        '</span>'+
+      '</div>'+
+      '<div class="bien-kpis">'+kpis+'</div>'+
+      (canSee(plan,'pro')?'<div class="bench-row"><span class="bench-tag '+benchCls+'">'+benchLbl+'</span></div>':'')+
+      '<div class="bien-actions">'+acts+'</div>'+
+      '<div class="bien-acc">'+acc('a-b-'+p.id,'Analytics détaillés','pro',accBdy)+'</div>';
+
+    /* Récap modal */
+    var recapBtn=wrap.querySelector('[data-recap]');
+    if(recapBtn) recapBtn.addEventListener('click',function(){openModal(A,p,st,plan);});
+    return wrap;
+  }
+
+  /* ===== MODAL ===== */
+  function openModal(A,p,st,plan){
+    document.getElementById('mTitle').textContent=p.name;
+    document.getElementById('mSub').textContent=A.name+' · '+p.city+' · Plan '+planLabel(plan);
+    var b='';
+    b+='<div class="modal-sec"><h3>Synthèse</h3>'+metricGridHTML([
+      {l:'Visites totales',v:st.vis},{l:'Cette semaine',v:st.v7},
+      {l:'Dernières 24h',v:st.v24},{l:'Dwell time',v:fmtDw(st.dw)},
+      {l:'Bounce',v:st.bounce,u:'%'},{l:'Signal',v:sigLabel(st.sig)}
+    ])+'</div>';
+    b+='<div class="modal-sec"><h3>Heatmap pièces</h3>'+barListHTML(st.hm)+'</div>';
+    b+='<div class="modal-sec"><h3>POI les plus cliqués</h3>'+topListHTML(st.poi,'clics')+'</div>';
+    b+='<div class="modal-sec"><h3>Devices</h3>'+barListHTML([{name:'Mobile',value:st.mob},{name:'Desktop',value:st.dsk},{name:'Tablet',value:st.tab}],100)+'</div>';
+    var bl=st.perf==='up'?'Ce bien performe au-dessus des similaires.':st.perf==='down'?'Ce bien performe sous les similaires.':'Ce bien est dans la moyenne.';
+    b+='<div class="modal-sec"><h3>Benchmark</h3><div class="suggestion" style="border-color:rgba(255,255,255,.08);background:var(--bg2)"><span>'+bl+'</span></div></div>';
+    if(canSee(plan,'entreprise')){
+      var sg='';
+      if(st.perf==='down') sg+='<div class="suggestion">'+I.bulb+' <span>Vérifier photos + FOV POV principal.</span></div>';
+      if(st.bounce>25) sg+='<div class="suggestion">'+I.bulb+' <span>Bounce élevé — cadrer la pièce vendeuse au démarrage.</span></div>';
+      if(st.top.value>60) sg+='<div class="suggestion">'+I.bulb+' <span>Ajouter des POI dans "'+st.top.name+'".</span></div>';
+      if(st.perf==='up') sg+='<div class="suggestion">'+I.bulb+' <span>Bon candidat pour mise en avant.</span></div>';
+      if(sg) b+='<div class="modal-sec"><h3>Suggestions</h3>'+sg+'</div>';
+    }
+    document.getElementById('mBody').innerHTML=b;
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+  document.getElementById('mClose').addEventListener('click',closeModal);
+  document.getElementById('mCloseBtn').addEventListener('click',closeModal);
+  document.getElementById('modal').addEventListener('click',function(e){if(e.target.id==='modal')closeModal();});
+  window.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+  /* ===== NAVIGATION (INCHANGÉE) ===== */
+  function show(id){
+    ['vHub','vVilles','vBiens'].forEach(function(v){document.getElementById(v).style.display=(v===id?'block':'none');});
+    window.scrollTo(0,0);
+  }
+  function go(agId,villeSlug){
+    location.hash=agId?(villeSlug?agId+'/'+villeSlug:agId):'';
+    route();
+  }
+  function route(){
+    var parts=location.hash.replace(/^#/,'').split('/').filter(Boolean);
+    var A=(window.AGENCIES||{})[parts[0]];
+    if(!A){ renderHubKpis(); renderHubAcc(); renderAgences(document.getElementById('q').value); show('vHub'); }
+    else if(parts[1]&&renderBiens(A,parts[1])){ show('vBiens'); }
+    else { renderVilles(A); show('vVilles'); }
+  }
+
+  /* ===== GATE (INCHANGÉ) ===== */
+  function unlock(){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block';route();}
+  function tryPwd(){ var v=document.getElementById('pwd').value; if(v===HUB_PASSWORD){try{sessionStorage.setItem('hub_ok','1');}catch(e){}unlock();}else{document.getElementById('err').textContent='Mot de passe incorrect.';} }
+  document.getElementById('go').addEventListener('click',tryPwd);
+  document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')tryPwd();});
+  fetch('properties-index.json',{cache:'no-cache'})
+    .then(function(r){return r.ok?r.json():{};})
+    .then(function(j){PROPERTIES_INDEX=(j&&typeof j==='object')?j:{};if(document.getElementById('app').style.display==='block')route();})
+    .catch(function(){});
+  try{if(sessionStorage.getItem('hub_ok')==='1')unlock();}catch(e){}
+  document.getElementById('q').addEventListener('input',function(e){renderAgences(e.target.value);});
+  Array.prototype.forEach.call(document.querySelectorAll('[data-home]'),function(b){b.addEventListener('click',function(){go('');});});
+  window.addEventListener('hashchange',route);
+</script>
 </body>
 </html>
