@@ -3597,13 +3597,13 @@ async function init() {
 
   // --- AO (SSAO2) : créé détaché, attaché seulement quand activé --------------
   window.ssao2Pipeline   = null;
-  window.__AO_STATE__    = { enabled:true, strength:1.0, radius:1.2, base:0.2 };
-  window.__AO_STRENGTH__ = 1.0;
+  window.__AO_STATE__    = { enabled:true, strength:1.35, radius:1.6, base:0.2 };
+  window.__AO_STRENGTH__ = 1.35;
   if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
     try {
       var ssao2 = new BABYLON.SSAO2RenderingPipeline('ssao2', scene, { ssaoRatio:0.5, blurRatio:0.5 }, []);
-      ssao2.radius        = 1.2;
-      ssao2.totalStrength = 1.0;
+      ssao2.radius        = 1.6;
+      ssao2.totalStrength = 1.35;
       ssao2.base          = 0.2;
       ssao2.samples       = 16;
       ssao2.maxZ          = 60;
@@ -4999,7 +4999,7 @@ function frameModel(root) {
       // pour creer un effet de "contact shadow" doux qui se superpose au sol.
       var __floorGlow = scene.getMeshByName('__floorGlow');
       if (!__floorGlow) {
-        var __glowRadius = Math.min(__floorSize * 0.5, Math.max(__span * 1.8, 6));
+        var __glowRadius = Math.min(__floorSize * 0.5, Math.max(__span * 1.4, 6));
         __floorGlow = BABYLON.MeshBuilder.CreateDisc('__floorGlow', {
           radius: __glowRadius, tessellation: 64
         }, scene);
@@ -5013,9 +5013,9 @@ function frameModel(root) {
         var __glowCtx = __glowTex.getContext();
         __glowCtx.clearRect(0, 0, 256, 256);
         var __glowGrad = __glowCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
-        __glowGrad.addColorStop(0, 'rgba(0,0,0,0.48)');
-        __glowGrad.addColorStop(0.35, 'rgba(0,0,0,0.32)');
-        __glowGrad.addColorStop(0.65, 'rgba(0,0,0,0.14)');
+        __glowGrad.addColorStop(0, 'rgba(0,0,0,0.22)');
+        __glowGrad.addColorStop(0.35, 'rgba(0,0,0,0.14)');
+        __glowGrad.addColorStop(0.65, 'rgba(0,0,0,0.06)');
         __glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
         __glowCtx.fillStyle = __glowGrad;
         __glowCtx.fillRect(0, 0, 256, 256);
