@@ -1368,22 +1368,19 @@
       .lightbox-nav { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
     }
 
-    /* ===== MARQUEURS POV (overlay SVG glassmorphism) ==================
-       Pin en forme de goutte, aspect verre translucide avec très légère
-       teinte agence (currentColor). Icône mini-caméra blanche au centre.
-       Oscillation douce haut/bas au repos. Au survol : léger scale, teinte
-       renforcée, infobulle avec nom de la pièce.
+    /* ===== MARQUEURS POV (overlay SVG — pin glass frosted minimaliste)
+       Pin en forme de goutte inspiré des icônes Apple-style : verre dépoli
+       blanc dominant, très légère teinte agence en fond, TROU rond au
+       centre (obtenu via fill-rule:evenodd — c'est un vrai vide, pas un
+       remplissage). Aucun contour extérieur. Ombre douce au sol.
 
        Empilement des transforms (pour éviter les conflits) :
          <g class="poi-mark">    ← translate JS (projection 3D→2D)
            rect.pm-hit           ← zone de clic fixe (hors anims)
            <g class="pm-hover">  ← scale au hover
              <g class="pm-bob">  ← animation bob infinie
-               shadow + body + outline + highlights + camera icon
-           <g class="pm-tt">     ← infobulle (apparaît au hover)
-               rect.pm-tt-bg + text.pm-tt-txt
-       Le centre visuel du pin est à peu près (0, 0) — la projection JS
-       reste correcte, comme avant. */
+               shadow + tint + frost + glint + rim
+           <g class="pm-tt">     ← infobulle (apparaît au hover) */
     #poi-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:5; }
     .poi-mark { pointer-events:auto; cursor:pointer; }
     .poi-mark .pm-hover,
@@ -1391,19 +1388,12 @@
     .poi-mark .pm-hover { transition: transform .18s ease; }
     .poi-mark .pm-bob   { animation: pinBob 3.6s ease-in-out infinite; }
 
-    /* Corps du pin — très translucide, teinte légère agence */
-    .poi-mark .pm-body       { fill: currentColor; opacity: 0.22; transition: opacity .2s ease; }
-    .poi-mark .pm-outline    { fill: none; stroke: rgba(255,255,255,0.65); stroke-width: 1; }
-    .poi-mark .pm-highlight  { fill: none; stroke: rgba(255,255,255,0.9); stroke-width: 1.2; stroke-linecap: round; }
-    .poi-mark .pm-shine      { fill: rgba(255,255,255,0.55); }
-    .poi-mark .pm-rim        { fill: none; stroke: rgba(255,255,255,0.3); stroke-width: 0.6; }
-    .poi-mark .pm-shadow     { fill: rgba(0,0,0,0.32); }
-
-    /* Icône caméra blanche au centre */
-    .poi-mark .pm-cam-body,
-    .poi-mark .pm-cam-vf     { fill: #fff; }
-    .poi-mark .pm-cam-lens   { fill: rgba(15,20,35,0.78); }
-    .poi-mark .pm-cam-lens-hl{ fill: rgba(255,255,255,0.85); }
+    /* Couches du pin */
+    .poi-mark .pm-shadow { fill: rgba(0,0,0,0.28); }
+    .poi-mark .pm-tint   { fill: currentColor; opacity: 0.18; transition: opacity .2s ease; }  /* teinte agence subtile */
+    .poi-mark .pm-frost  { fill: rgba(255,255,255,0.42); }                                     /* verre dépoli blanc */
+    .poi-mark .pm-glint  { fill: rgba(255,255,255,0.38); }                                     /* petit reflet doux */
+    .poi-mark .pm-rim    { fill: none; stroke: rgba(255,255,255,0.55); stroke-width: 0.7; stroke-linecap: round; opacity: 0.7; } /* arc lumineux discret */
 
     /* Infobulle — masquée au repos, apparaît au hover */
     .poi-mark .pm-tt {
@@ -1427,11 +1417,11 @@
       dominant-baseline: middle;
     }
 
-    /* Hover : scale du pin, teinte renforcée, tooltip visible */
-    .poi-mark:hover .pm-hover { transform: scale(1.12); }
-    .poi-mark:hover .pm-body  { opacity: 0.42; }
+    /* Hover : scale léger, teinte agence renforcée, tooltip visible */
+    .poi-mark:hover .pm-hover { transform: scale(1.1); }
+    .poi-mark:hover .pm-tint  { opacity: 0.32; }
     .poi-mark:hover .pm-tt    { opacity: 1; transform: translateY(0); }
-    .poi-mark:active .pm-hover{ transform: scale(1.2); transition-duration: .09s; }
+    .poi-mark:active .pm-hover{ transform: scale(1.16); transition-duration: .09s; }
 
     @keyframes pinBob {
       0%, 100% { transform: translateY(0); }
@@ -7005,31 +6995,28 @@ function createPoiMarkers() {
     g.style.display = 'none';                  // affiché à la 1re projection valide
     // Nom pour infobulle — label prioritaire, fallback id capitalisé
     const label = (poi.label || poi.id || '').toString();
-    // Largeur pill infobulle : approx 6.5px par char + padding
     const ttW = Math.max(46, label.length * 6.6 + 18);
     const ttX = -ttW / 2;
+    // Path du pin AVEC son trou central : deux subpaths + fill-rule="evenodd"
+    // → le cercle central devient un vrai vide (on voit la scène derrière).
+    // Bulbe centré sur (0,0), pointe en (0,+22), trou r=4 à (0,-3).
+    const PIN_D = 'M0,-14 C8,-14 14,-8 14,0 C14,7 7,11 2,17 L0,22 L-2,17 C-7,11 -14,7 -14,0 C-14,-8 -8,-14 0,-14 Z ' +
+                  'M4,-3 A4,4 0 1,1 -4,-3 A4,4 0 1,1 4,-3 Z';
     g.innerHTML =
       // Zone de clic (hors bob/hover pour rester stable)
       '<rect class="pm-hit" x="-17" y="-19" width="34" height="45" fill="transparent"/>' +
       // Pin (soumis au hover scale + bob)
       '<g class="pm-hover"><g class="pm-bob">' +
-        // Ombre au sol
-        '<ellipse class="pm-shadow" cx="0" cy="24" rx="6.5" ry="1.8"/>' +
-        // Corps translucide teinté
-        '<path class="pm-body"    d="M0,-14 C8,-14 14,-8 14,0 C14,7 7,11 2,17 L0,22 L-2,17 C-7,11 -14,7 -14,0 C-14,-8 -8,-14 0,-14 Z"/>' +
-        // Contour lumineux
-        '<path class="pm-outline" d="M0,-14 C8,-14 14,-8 14,0 C14,7 7,11 2,17 L0,22 L-2,17 C-7,11 -14,7 -14,0 C-14,-8 -8,-14 0,-14 Z"/>' +
-        // Highlight courbe (arc lumineux à gauche du bulbe)
-        '<path class="pm-highlight" d="M-9.5,-10 C-12,-6.5 -11,-2.5 -8.5,0.5"/>' +
-        // Reflet ellipse
-        '<ellipse class="pm-shine" cx="-4" cy="-8" rx="3.2" ry="4.2"/>' +
-        // Icône caméra blanche centrée
-        '<g class="pm-cam">' +
-          '<rect class="pm-cam-body" x="-3.6" y="-5"   width="7.2" height="4.6" rx="1"/>' +
-          '<rect class="pm-cam-vf"   x="-1.7" y="-6"   width="3.4" height="1.2" rx="0.4"/>' +
-          '<circle class="pm-cam-lens"    cx="0"    cy="-2.6" r="1.5"/>' +
-          '<circle class="pm-cam-lens-hl" cx="-0.5" cy="-3"   r="0.55"/>' +
-        '</g>' +
+        // Ombre douce au sol
+        '<ellipse class="pm-shadow" cx="0" cy="24" rx="7" ry="1.8"/>' +
+        // Couche 1 : teinte agence subtile en fond
+        '<path class="pm-tint"  d="' + PIN_D + '" fill-rule="evenodd"/>' +
+        // Couche 2 : verre dépoli blanc (frosted glass)
+        '<path class="pm-frost" d="' + PIN_D + '" fill-rule="evenodd"/>' +
+        // Petit reflet doux (glint) en haut à gauche
+        '<ellipse class="pm-glint" cx="-5" cy="-9" rx="2.6" ry="3.4"/>' +
+        // Arc lumineux discret sur le bord supérieur du bulbe
+        '<path class="pm-rim" d="M-10,-9.5 C-12,-6 -11.5,-2.5 -9.5,0"/>' +
       '</g></g>' +
       // Infobulle — apparaît au hover, largeur calibrée sur label
       (label ? (
