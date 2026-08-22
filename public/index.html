@@ -1,10 +1,183 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Redirection…</title>
-  <meta http-equiv="refresh" content="0; url=hub.html">
-  <script>location.replace('hub.html');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visite3D — Automatisation 3D immobilier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:       #0b0d14;
+  --bg2:      #0e1018;
+  --surface:  #13151f;
+  --surface2: #181b27;
+  --border:   rgba(255,255,255,.07);
+  --border2:  rgba(255,255,255,.12);
+  --text:     #d8dce8;
+  --text-dim: #7a8098;
+  --text-mute:#454c62;
+  --accent:   #5b7cff;
+  --accent-r: 91,124,255;
+  --hot:      #ff8a5b;
+  --warm:     #f5c451;
+  --cool:     #7ec8ff;
+  --good:     #5be0a8;
+  --bad:      #ff6b7a;
+  --radius:   14px;
+  --shadow:   0 4px 20px rgba(0,0,0,.45);
+}
+
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+button{font:inherit}
+
+/* ───────────── GATE ───────────── */
+#gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:50;flex-direction:column;gap:.75rem;padding:1.5rem}
+.gate-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:2.4rem 2.6rem;max-width:380px;width:100%;text-align:center;box-shadow:var(--shadow)}
+.gate-eye{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);font-weight:700;margin-bottom:.6rem}
+.gate-card h1{font-size:1.3rem;font-weight:800;color:#fff}
+.gate-card p{color:var(--text-dim);font-size:.85rem;margin-top:.4rem}
+.gate-row{display:flex;gap:.5rem;margin-top:1.1rem}
+.gate-row input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border2);color:#fff;border-radius:10px;padding:.72rem 1rem;font-size:.92rem;outline:none;transition:border-color .15s}
+.gate-row input:focus{border-color:var(--hot)}
+.gate-row input::placeholder{color:var(--text-mute)}
+.gate-row button{background:var(--hot);color:#1a1206;border:none;border-radius:10px;padding:.72rem 1.2rem;font-weight:700;cursor:pointer;transition:opacity .15s}
+.gate-row button:hover{opacity:.85}
+.gate-err{color:#ff8a95;font-size:.8rem;min-height:1.2rem;margin-top:.35rem}
+
+/* ───────────── NAVBAR GLOBALE ───────────── */
+.gnav{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.9rem 1.4rem;border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;background:rgba(11,13,20,.92);backdrop-filter:blur(8px);z-index:40}
+.gnav-brand{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:.95rem;color:#fff;letter-spacing:-.01em}
+.gnav-logo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg, var(--hot), var(--accent));font-size:.85rem;color:#fff;flex-shrink:0}
+@media(max-width:600px){.gnav{padding:.75rem 1rem}.gnav-brand{font-size:.85rem}}
+
+/* ───────────── LANDING ───────────── */
+.landing-wrap{max-width:920px;margin:0 auto;padding:0 1.4rem 4rem}
+
+.landing-head{text-align:center;padding:3.6rem 1rem 2.4rem}
+.landing-head .eye{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-mute);font-weight:700}
+.landing-head h1{font-size:2rem;font-weight:800;color:#fff;margin-top:.6rem;letter-spacing:-.02em;line-height:1.2}
+.landing-head p{color:var(--text-dim);margin-top:.9rem;font-size:.95rem;max-width:560px;margin-left:auto;margin-right:auto;line-height:1.6}
+
+.landing-cards{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+@media(max-width:700px){.landing-cards{grid-template-columns:1fr}.landing-head{padding:2.4rem 1rem 1.8rem}.landing-head h1{font-size:1.5rem}}
+
+.lcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2rem 1.7rem;display:flex;flex-direction:column;gap:.6rem;transition:border-color .15s,transform .15s,background .15s,box-shadow .15s;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.lcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.lcard.hub::before{background:var(--accent)}
+.lcard.editor::before{background:var(--hot)}
+.lcard:hover{border-color:var(--border2);background:var(--surface2);transform:translateY(-3px)}
+.lcard.hub:hover{box-shadow:var(--shadow),0 0 0 1px rgba(var(--accent-r),.18)}
+.lcard.editor:hover{box-shadow:var(--shadow),0 0 0 1px rgba(255,138,91,.18)}
+.lcard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lico{font-size:2.1rem;line-height:1}
+.lcard h2{font-size:1.15rem;font-weight:800;color:#fff;margin-top:.3rem}
+.lcard p{font-size:.85rem;color:var(--text-dim);line-height:1.55;flex:1}
+.lgo{margin-top:.3rem;font-size:.8rem;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:.35rem}
+.lcard.editor .lgo{color:var(--hot)}
+
+.landing-foot{text-align:center;color:var(--text-mute);font-size:.76rem;margin-top:2.2rem}
+.logout-btn{display:block;margin:.6rem auto 0;background:none;border:none;color:var(--text-mute);font-size:.72rem;cursor:pointer;text-decoration:underline;transition:color .15s}
+.logout-btn:hover{color:var(--text-dim)}
+</style>
 </head>
-<body></body>
+<body>
+
+<!-- GATE -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-eye">Authentification Visite3D</div>
+    <h1>Visite3D</h1>
+    <p>Accès réservé</p>
+    <div class="gate-row">
+      <input id="pwd" type="password" placeholder="Mot de passe" autofocus>
+      <button id="go">Accéder</button>
+    </div>
+    <div class="gate-err" id="gateErr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+  <nav class="gnav">
+    <span class="gnav-brand"><span class="gnav-logo">◆</span> Visite3D</span>
+  </nav>
+
+  <div class="landing-wrap">
+    <div class="landing-head">
+      <div class="eye">Automatisation</div>
+      <h1>Visite3D — Automatisation 3D immobilier</h1>
+      <p>Générez des visites virtuelles 3D à partir d'un plan et de photos, puis pilotez vos agences et leurs performances depuis un hub unique.</p>
+    </div>
+
+    <div class="landing-cards">
+      <a class="lcard hub" href="hub.html">
+        <div class="lico">📊</div>
+        <h2>Hub</h2>
+        <p>Vue d'ensemble des agences, villes et biens. KPIs, analytics de visite et récapitulatifs par bien.</p>
+        <span class="lgo">Ouvrir le Hub →</span>
+      </a>
+      <a class="lcard editor" href="editor-bloc1.html">
+        <div class="lico">🔧</div>
+        <h2>Éditeur Bloc 1</h2>
+        <p>Uploadez un plan et des photos pour détecter automatiquement murs, pièces, ouvertures et escaliers.</p>
+        <span class="lgo">Ouvrir l'éditeur →</span>
+      </a>
+    </div>
+
+    <div class="landing-foot">
+      Visite3D · Automatisation Engine
+      <button class="logout-btn" id="logoutBtn">Se déconnecter</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var PASSWORD = 'visite2026';
+  var STORAGE_KEY = 'v3d_auth_session';
+
+  function $(id){ return document.getElementById(id); }
+
+  function unlock(){
+    $('gate').style.display = 'none';
+    $('app').style.display = 'block';
+  }
+  function lock(){
+    $('app').style.display = 'none';
+    $('gate').style.display = 'flex';
+    $('pwd').value = '';
+    $('gateErr').textContent = '';
+    $('pwd').focus();
+  }
+
+  function tryPwd(){
+    var v = $('pwd').value;
+    if(v === PASSWORD){
+      try{ sessionStorage.setItem(STORAGE_KEY, '1'); }catch(e){}
+      unlock();
+    } else {
+      $('gateErr').textContent = 'Mot de passe incorrect';
+    }
+  }
+
+  $('go').addEventListener('click', tryPwd);
+  $('pwd').addEventListener('keydown', function(e){ if(e.key === 'Enter') tryPwd(); });
+  $('logoutBtn').addEventListener('click', function(){
+    try{ sessionStorage.removeItem(STORAGE_KEY); }catch(e){}
+    lock();
+  });
+
+  try{
+    if(sessionStorage.getItem(STORAGE_KEY) === '1') unlock();
+  }catch(e){}
+})();
+</script>
+
+</body>
 </html>

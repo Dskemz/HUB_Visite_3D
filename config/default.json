@@ -1,0 +1,6 @@
+{
+  "project": {"name": "Visite3D", "version": "1.0.0-alpha"},
+  "paths": {"root": "./", "assets": "./assets", "generation": "./data/generation", "logs": "./data/generation/logs", "output_glb": "./data/generation/glb", "temp": "./data/generation/temp"},
+  "services": {"vlm_parser": {"enabled": true, "timeout_seconds": 300, "opencv": {"min_area": 1000, "edge_threshold1": 50, "edge_threshold2": 150}, "claude_api": {"model": "claude-opus-4-8", "max_tokens": 4000}}},
+  "logging": {"level": "INFO", "format": "json"}
+}

@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visite3D Bloc 1 Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:       #0b0d14;
+  --bg2:      #0e1018;
+  --surface:  #13151f;
+  --surface2: #181b27;
+  --border:   rgba(255,255,255,.07);
+  --border2:  rgba(255,255,255,.12);
+  --text:     #d8dce8;
+  --text-dim: #7a8098;
+  --text-mute:#454c62;
+  --accent:   #5b7cff;
+  --accent-r: 91,124,255;
+  --hot:      #ff8a5b;
+  --warm:     #f5c451;
+  --cool:     #7ec8ff;
+  --good:     #5be0a8;
+  --bad:      #ff6b7a;
+  --radius:   14px;
+  --shadow:   0 4px 20px rgba(0,0,0,.45);
+}
+
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* ───────────── GATE ───────────── */
+#gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:50;flex-direction:column;gap:.75rem;padding:1.5rem}
+.gate-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:2.4rem 2.6rem;max-width:380px;width:100%;text-align:center;box-shadow:var(--shadow)}
+.gate-eye{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);font-weight:700;margin-bottom:.6rem}
+.gate-card h1{font-size:1.3rem;font-weight:800;color:#fff}
+.gate-card p{color:var(--text-dim);font-size:.85rem;margin-top:.4rem}
+.gate-row{display:flex;gap:.5rem;margin-top:1.1rem}
+.gate-row input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border2);color:#fff;border-radius:10px;padding:.72rem 1rem;font-size:.92rem;outline:none;transition:border-color .15s}
+.gate-row input:focus{border-color:var(--hot)}
+.gate-row input::placeholder{color:var(--text-mute)}
+.gate-row button{background:var(--hot);color:#1a1206;border:none;border-radius:10px;padding:.72rem 1.2rem;font-weight:700;cursor:pointer;transition:opacity .15s}
+.gate-row button:hover{opacity:.85}
+.gate-err{color:#ff8a95;font-size:.8rem;min-height:1.2rem;margin-top:.35rem}
+
+.logout-btn{display:block;margin:1.6rem auto 0;background:none;border:none;color:var(--text-mute);font-size:.72rem;cursor:pointer;text-decoration:underline;transition:color .15s}
+.logout-btn:hover{color:var(--text-dim)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:2.6rem 1.4rem 4rem}
+
+.head{margin-bottom:1.8rem}
+.head .eye{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text-mute);font-weight:700}
+.head h1{font-size:1.75rem;font-weight:800;color:#fff;margin-top:.35rem;letter-spacing:-.02em}
+.head p{color:var(--text-dim);margin-top:.45rem;font-size:.88rem}
+
+.api-row{display:flex;align-items:center;gap:.5rem;margin-top:.9rem;font-size:.78rem;color:var(--text-dim)}
+.api-row input{background:var(--surface);border:1px solid var(--border2);color:#fff;border-radius:8px;padding:.4rem .65rem;font-size:.78rem;outline:none;min-width:220px}
+.api-row input:focus{border-color:var(--hot)}
+.dot{width:8px;height:8px;border-radius:999px;background:var(--text-mute);flex-shrink:0}
+.dot.up{background:var(--good)}
+.dot.down{background:var(--bad)}
+
+.stack{display:grid;grid-template-columns:1fr .25fr;gap:1.2rem;align-items:start}
+.stack .photos-card{position:sticky;top:4.7rem}
+@media(max-width:900px){.stack{grid-template-columns:1fr}.stack .photos-card{position:static}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.3rem;display:flex;flex-direction:column;gap:.9rem;box-shadow:var(--shadow)}
+.card h2{font-size:1rem;font-weight:800;color:#fff}
+.card .sub{font-size:.78rem;color:var(--text-dim);margin-top:-.5rem}
+
+.dropzone{border:2px dashed var(--border2);border-radius:12px;padding:1.8rem 1rem;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;background:var(--bg2)}
+.dropzone:hover{border-color:var(--hot)}
+.dropzone.drag{border-color:var(--hot);background:rgba(255,138,91,.08)}
+.dropzone .ico{font-size:1.6rem;margin-bottom:.4rem}
+.dropzone .main{font-size:.85rem;color:var(--text);font-weight:600}
+.dropzone .hint{font-size:.72rem;color:var(--text-mute);margin-top:.25rem}
+.dropzone input{display:none}
+
+.filelist{display:flex;flex-wrap:wrap;gap:.4rem}
+.chip{display:flex;align-items:center;gap:.4rem;background:var(--surface2);border:1px solid var(--border2);border-radius:999px;padding:.28rem .5rem .28rem .7rem;font-size:.72rem;color:var(--text)}
+.chip button{background:none;border:none;color:var(--text-mute);font-size:.85rem;line-height:1;padding:0 .15rem}
+.chip button:hover{color:var(--bad)}
+
+.field{display:flex;flex-direction:column;gap:.3rem}
+.field label{font-size:.72rem;color:var(--text-dim);font-weight:600}
+.field input[type=number],.field input[type=text]{background:var(--bg2);border:1px solid var(--border2);color:#fff;border-radius:8px;padding:.5rem .7rem;font-size:.85rem;outline:none}
+.field input[type=number]:focus,.field input[type=text]:focus{border-color:var(--hot)}
+
+.btn{display:inline-flex;align-items:center;gap:.35rem;background:var(--hot);color:#1a1206;border:none;border-radius:10px;padding:.7rem 1.1rem;font-weight:700;font-size:.85rem;transition:opacity .15s,background .15s,border-color .15s,color .15s}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:var(--bg2);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--border2);color:#fff;opacity:1}
+
+.status{font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:.5rem;min-height:1.2rem}
+.status.idle{color:var(--text-mute)}
+.status.busy{color:var(--warm)}
+.status.done{color:var(--good)}
+.status.error{color:var(--bad)}
+.spin{width:12px;height:12px;border-radius:999px;border:2px solid rgba(245,196,81,.25);border-top-color:var(--warm);animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--hot);opacity:.5;border-radius:2px 0 0 2px}
+.kpi-l{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);font-weight:700;margin-bottom:.3rem}
+.kpi-v{font-size:1.25rem;font-weight:800;color:#fff}
+
+.json-tabs{display:flex;flex-wrap:wrap;gap:.3rem}
+.jtab{font-size:.66rem;font-weight:700;padding:.3rem .55rem;border-radius:8px;background:var(--bg2);border:1px solid var(--border);color:var(--text-dim);transition:color .15s,border-color .15s,background .15s}
+.jtab.active{color:#fff;border-color:var(--hot);background:rgba(255,138,91,.14)}
+.level-kpi-block{display:flex;flex-direction:column;gap:.4rem}
+.level-kpi-head{font-size:.72rem;font-weight:800;color:#fff}
+.json-viewer{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.9rem;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:.76rem;line-height:1.55;max-height:70vh;overflow:auto;white-space:pre}
+.json-viewer:empty::before{content:'—';color:var(--text-mute)}
+.jk{color:var(--cool)}
+.js{color:var(--good)}
+.jn{color:var(--warm)}
+.jb{color:var(--hot)}
+.jnull{color:var(--text-mute)}
+
+/* ───────────── NAVBAR GLOBALE ───────────── */
+.gnav{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.9rem 1.4rem;border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;background:rgba(11,13,20,.92);backdrop-filter:blur(8px);z-index:40}
+.gnav-brand{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:.95rem;color:#fff;letter-spacing:-.01em;transition:opacity .15s;text-decoration:none}
+.gnav-brand:hover{opacity:.8}
+.gnav-logo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg, var(--hot), var(--accent));font-size:.85rem;color:#fff;flex-shrink:0}
+.gnav-links{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.gnav-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .8rem;border-radius:9px;font-size:.78rem;font-weight:700;color:var(--text-dim);background:var(--surface);border:1px solid var(--border);text-decoration:none;transition:background .15s,color .15s,border-color .15s}
+.gnav-btn:hover{color:#fff;border-color:var(--border2);background:var(--surface2)}
+.gnav-btn.active{color:#fff;background:rgba(91,124,255,.12);border-color:rgba(91,124,255,.3)}
+@media(max-width:600px){
+  .gnav{padding:.75rem 1rem}
+  .gnav-brand{font-size:.85rem}
+  .gnav-btn{padding:.4rem .6rem;font-size:.72rem}
+}
+
+/* ───────────── PLAN WORKFLOW (state machine) ───────────── */
+.plan-steps{display:flex;flex-wrap:wrap;gap:.4rem}
+.pstep{font-size:.68rem;font-weight:700;letter-spacing:.03em;color:var(--text-mute);background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:.32rem .7rem;transition:color .15s,border-color .15s,background .15s}
+.pstep.active{color:#fff;border-color:var(--hot);background:rgba(255,138,91,.14)}
+.pstep.done{color:var(--good);border-color:rgba(91,224,168,.35)}
+
+.plan-panel{display:grid;grid-template-columns:1fr .25fr;gap:1rem;align-items:start}
+.plan-panel>.pcol{display:flex;flex-direction:column;gap:.75rem;min-width:0}
+.plan-panel>.full-span{grid-column:1/-1}
+@media(max-width:600px){.plan-panel{grid-template-columns:1fr}}
+.btn-row{display:flex;flex-wrap:wrap;gap:.6rem}
+.stepper-sub{font-size:.82rem;color:#fff;font-weight:700}
+.stepper-hint{font-size:.76rem;color:var(--text-dim)}
+
+.progress-bar{height:8px;border-radius:999px;background:var(--bg2);border:1px solid var(--border);overflow:hidden}
+.progress-fill{height:100%;width:6%;background:linear-gradient(90deg,var(--hot),var(--accent));transition:width .35s ease}
+
+.crop-stage{position:relative;display:flex;align-items:center;justify-content:center;width:100%;max-height:70vh;margin:0 auto;user-select:none;-webkit-user-select:none;background:#000;border-radius:10px;overflow:hidden;border:1px solid var(--border2);touch-action:none;cursor:grab}
+.crop-stage.panning{cursor:grabbing}
+.stage-inner{position:relative;display:inline-block;transform-origin:center center;will-change:transform}
+.stage-inner img{display:block;max-width:100%;max-height:70vh;width:auto;height:auto;pointer-events:none;user-select:none;-webkit-user-drag:none}
+.stage-inner svg{position:absolute;inset:0;width:100%;height:100%}
+.zoom-hint{font-size:.68rem;color:var(--text-mute)}
+
+.section-badge{position:absolute;border:2px solid;border-radius:4px;pointer-events:none;box-sizing:border-box}
+.section-badge.privatif{border-color:var(--good);background:rgba(91,224,168,.10)}
+.section-badge.commun{border-color:var(--warm);background:rgba(245,196,81,.08)}
+.section-badge .lbl{position:absolute;top:-1.3rem;left:0;font-size:.6rem;font-weight:800;padding:.12rem .4rem;border-radius:4px;white-space:nowrap}
+.section-badge.privatif .lbl{background:var(--good);color:#04241a}
+.section-badge.commun .lbl{background:var(--warm);color:#2a1f04}
+
+.crop-box{position:absolute;border:2px dashed var(--hot);background:rgba(255,138,91,.08);box-sizing:border-box;cursor:move}
+.crop-handle{position:absolute;width:16px;height:16px;background:var(--hot);border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);cursor:nwse-resize;z-index:5}
+.crop-handle[data-corner=tr],.crop-handle[data-corner=bl]{cursor:nesw-resize}
+.crop-handle[data-corner=tl]{left:0;top:0}
+.crop-handle[data-corner=tr]{right:0;top:0;left:auto}
+.crop-handle[data-corner=bl]{left:0;bottom:0;top:auto}
+.crop-handle[data-corner=br]{right:0;bottom:0;left:auto;top:auto}
+
+.calib-dot{position:absolute;width:14px;height:14px;background:var(--accent);border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);z-index:4}
+
+.legend{display:flex;flex-wrap:wrap;gap:1rem;font-size:.72rem;color:var(--text-dim)}
+.legend span{display:inline-flex;align-items:center;gap:.35rem}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.legend i.privatif{background:var(--good)}
+.legend i.commun{background:var(--warm)}
+.legend i.select{background:var(--hot)}
+
+.error-box{background:rgba(255,107,122,.08);border:1px solid rgba(255,107,122,.35);border-radius:10px;padding:.8rem .9rem;font-size:.82rem;color:#ffb3ba;display:flex;flex-direction:column;gap:.5rem}
+.warn-box{background:rgba(245,196,81,.08);border:1px solid rgba(245,196,81,.35);border-radius:10px;padding:.7rem .85rem;font-size:.8rem;color:var(--warm)}
+
+/* ───────────── STEP 3 — Isolation (zen / glass) ───────────── */
+.iso-panel{align-items:stretch}
+.iso-panel>.pcol{display:flex;flex-direction:column}
+.glass-stage{position:relative;background:rgba(19,21,31,.6)}
+.stage-hint{position:absolute;right:.6rem;bottom:.6rem;font-size:.65rem;color:rgba(255,255,255,.55);background:rgba(11,13,20,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:999px;padding:.3rem .65rem;pointer-events:none}
+
+.iso-side{gap:.65rem}
+.iso-header{font-size:.85rem;font-weight:700;color:#fff}
+.legend-compact{display:flex;flex-wrap:wrap;gap:.75rem;font-size:.7rem;color:var(--text-dim);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.5rem .65rem}
+.legend-compact span{display:inline-flex;align-items:center;gap:.3rem}
+.legend-compact i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.legend-compact i.privatif{background:var(--good)}
+.legend-compact i.commun{background:var(--warm)}
+.legend-compact i.select{background:var(--hot)}
+
+.iso-actions{display:flex;gap:.5rem;margin-top:auto}
+.icon-btn{flex:1;display:flex;align-items:center;justify-content:center;height:42px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--border2);font-size:1.05rem;font-weight:700;transition:background .15s,border-color .15s,box-shadow .15s,transform .1s}
+.icon-btn:active{transform:scale(.94)}
+.icon-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.icon-btn.reset{color:var(--hot);border-color:rgba(255,138,91,.35)}
+.icon-btn.reset:hover{background:rgba(255,138,91,.12);box-shadow:0 0 12px rgba(255,138,91,.25)}
+.icon-btn.skip{color:var(--cool);border-color:rgba(126,200,255,.35)}
+.icon-btn.skip:hover{background:rgba(126,200,255,.12);box-shadow:0 0 12px rgba(126,200,255,.25)}
+.icon-btn.confirm{color:var(--good);border-color:rgba(91,224,168,.35)}
+.icon-btn.confirm:hover{background:rgba(91,224,168,.12);box-shadow:0 0 12px rgba(91,224,168,.25)}
+
+/* ───────────── VECTORIEL — Étape 3.5 ───────────── */
+.vector-summary{display:flex;flex-direction:column;gap:.5rem}
+.vector-summary .row{display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-dim);padding:.15rem 0;border-bottom:1px dashed var(--border)}
+.vector-summary .row b{color:#fff;font-weight:700}
+.provisional-badge{font-size:.68rem;font-weight:700;color:var(--warm);background:rgba(245,196,81,.1);border:1px solid rgba(245,196,81,.35);border-radius:6px;padding:.3rem .5rem}
+
+.level-switcher{display:flex;flex-direction:column;gap:.5rem;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.7rem}
+.level-switcher .field{gap:.2rem}
+.level-switcher select{background:var(--surface);border:1px solid var(--border2);color:#fff;border-radius:8px;padding:.4rem .55rem;font-size:.82rem;outline:none}
+
+.error-panel-head{display:flex;align-items:center;gap:.5rem;font-weight:800;color:#fff;font-size:.9rem}
+.error-panel-head .n{color:var(--bad)}
+.error-panel-head .n.zero{color:var(--good)}
+.error-list{display:flex;flex-direction:column;gap:.5rem;max-height:38vh;overflow:auto}
+.error-card{border-radius:10px;padding:.65rem .75rem;font-size:.8rem;display:flex;flex-direction:column;gap:.4rem;border:1px solid;cursor:pointer;transition:box-shadow .15s}
+.error-card.sev-error{background:rgba(255,107,122,.08);border-color:rgba(255,107,122,.35)}
+.error-card.sev-warning{background:rgba(245,196,81,.08);border-color:rgba(245,196,81,.35)}
+.error-card.flash{box-shadow:0 0 0 2px var(--hot)}
+.error-card .msg{color:var(--text);font-weight:600}
+.error-card .sub{color:var(--text-dim);font-size:.72rem}
+.error-card .actions{display:flex;flex-wrap:wrap;gap:.35rem}
+.error-card .actions button{font-size:.7rem;font-weight:700;padding:.32rem .6rem;border-radius:7px;background:var(--surface2);border:1px solid var(--border2);color:var(--text)}
+.error-card .actions button:hover{color:#fff;border-color:var(--hot)}
+.error-card .actions button.primary{background:var(--hot);color:#1a1206;border-color:var(--hot)}
+.error-card.resolved{opacity:.45}
+.error-empty{font-size:.82rem;color:var(--good);padding:.6rem 0}
+
+.svg-stage{position:relative;width:100%;height:70vh;overflow:hidden;background:#fff;border-radius:10px;border:1px solid var(--border2);touch-action:none;cursor:grab}
+.svg-stage.panning{cursor:grabbing}
+.svg-stage .stage-inner{position:relative;display:inline-block;transform-origin:center center;will-change:transform;width:100%;height:100%}
+.svg-stage svg{width:100%;height:100%;display:block}
+.svg-stage .plan-error-marker{cursor:pointer}
+
+.notes-toggle{display:flex;gap:.5rem}
+.notes-panel{display:flex;flex-direction:column;gap:.5rem;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.7rem}
+.notes-panel textarea{background:var(--surface);border:1px solid var(--border2);color:#fff;border-radius:8px;padding:.5rem .6rem;font-size:.8rem;font-family:inherit;resize:vertical;min-height:60px;outline:none}
+.notes-panel textarea:focus{border-color:var(--hot)}
+.note-item{font-size:.74rem;color:var(--text-dim);background:var(--surface2);border-radius:8px;padding:.4rem .55rem;border:1px solid var(--border)}
+.note-item .tags{display:flex;gap:.3rem;margin-top:.25rem;flex-wrap:wrap}
+.note-item .tag{font-size:.62rem;font-weight:700;color:var(--accent);background:rgba(91,124,255,.12);border-radius:5px;padding:.12rem .4rem}
+
+.plan-item-list{display:flex;flex-direction:column;gap:.4rem}
+.plan-item-row{display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:var(--text-dim);background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.45rem .65rem}
+.plan-item-row .n{font-weight:700;color:#fff}
+.plan-item-row .st{margin-left:auto;font-weight:700}
+.plan-item-row .st.ok{color:var(--good)}
+.plan-item-row .st.busy{color:var(--warm)}
+.plan-item-row .st.err{color:var(--bad)}
+
+/* ───────────── STEP 3 — glass shell (stage header, panels, warning) ───────────── */
+.glassmorphic{
+  background: rgba(19,21,31,.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border2);
+  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+}
+
+.stage{display:none;flex-direction:column;gap:1rem}
+.stage.plan-panel{flex-direction:column;align-items:stretch;gap:1rem}
+
+.stage-header{padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.25rem}
+.stage-title{font-size:1rem;font-weight:800;color:#fff;letter-spacing:.02em}
+.stage-subtitle{font-size:.78rem;color:var(--text-dim)}
+
+.warning-box{background:rgba(245,196,81,.08);border:1px solid rgba(245,196,81,.35);border-radius:10px;padding:.7rem .9rem;font-size:.8rem;color:var(--warm)}
+
+.stage-content-2col {
+  display: grid;
+  grid-template-columns: 1fr 0.25fr;
+  gap: 16px;
+  height: auto;
+}
+
+.stage-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stage-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.legend-compact {
+  display: flex;
+  gap: 20px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #E0E0E0;
+  flex-wrap: wrap;
+}
+
+.plan-container {
+  max-height: 70vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.plan-container svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hints {
+  font-size: 11px;
+  color: #999;
+  opacity: 0.6;
+  padding: 6px;
+  text-align: center;
+}
+
+.actions-bar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+}
+
+.action-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 140, 66, 0.2);
+  border: 1px solid rgba(255, 140, 66, 0.4);
+  color: #FF8C42;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.action-btn:hover {
+  background: rgba(255, 140, 66, 0.3);
+  box-shadow: 0 0 12px rgba(255, 140, 66, 0.3);
+  transform: scale(1.05);
+}
+
+.action-btn.skip { color: #64B5F6; }
+.action-btn.skip:hover { background: rgba(100, 181, 246, 0.2); box-shadow: 0 0 12px rgba(100, 181, 246, 0.3); }
+
+.action-btn.validate { color: #4CAF50; }
+.action-btn.validate:hover { background: rgba(76, 175, 80, 0.2); box-shadow: 0 0 12px rgba(76, 175, 80, 0.3); }
+
+.kpi-panel {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kpi-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: #F0F0F0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.kpi-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpi-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #D0D0D0;
+}
+
+.kpi-row span {
+  color: #FF8C42;
+  font-weight: 600;
+}
+
+.actions-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.action-btn-secondary {
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 140, 66, 0.15);
+  border: 1px solid rgba(255, 140, 66, 0.3);
+  color: #F0F0F0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.action-btn-secondary:hover {
+  background: rgba(255, 140, 66, 0.25);
+  box-shadow: 0 0 10px rgba(255, 140, 66, 0.25);
+}
+
+.action-btn-secondary.skip {
+  background: rgba(100, 181, 246, 0.15);
+  border-color: rgba(100, 181, 246, 0.3);
+}
+
+.action-btn-secondary.skip:hover {
+  background: rgba(100, 181, 246, 0.25);
+  box-shadow: 0 0 10px rgba(100, 181, 246, 0.25);
+}
+
+.action-btn-secondary.validate {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.action-btn-secondary.validate:hover {
+  background: rgba(76, 175, 80, 0.25);
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.25);
+}
+</style>
+</head>
+<body>
+
+<!-- GATE -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-eye">Authentification Visite3D</div>
+    <h1>Visite3D</h1>
+    <p>Accès réservé</p>
+    <div class="gate-row">
+      <input id="pwd" type="password" placeholder="Mot de passe" autofocus>
+      <button id="go">Accéder</button>
+    </div>
+    <div class="gate-err" id="gateErr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+<nav class="gnav">
+  <a class="gnav-brand" href="index.html"><span class="gnav-logo">◆</span> Visite3D</a>
+  <div class="gnav-links">
+    <a class="gnav-btn" href="hub.html">📊 Hub</a>
+    <a class="gnav-btn active" href="editor-bloc1.html">🔧 Éditeur</a>
+    <a class="gnav-btn" href="index.html">🏠 Accueil</a>
+  </div>
+</nav>
+<div class="wrap">
+
+  <div class="head">
+    <div class="eye">Visite3D · Bloc 1</div>
+    <h1>Éditeur Plan &amp; Photos</h1>
+    <p>Upload le plan 2D du bien (1 à 3 PDF) et des photos pour tester la détection de géométrie et l'analyse VLM.</p>
+    <div class="api-row">
+      <span class="dot" id="apiDot"></span>
+      <span id="apiLabel">API non vérifiée</span>
+      <input id="apiBase" value="http://localhost:8000" spellcheck="false">
+      <button class="btn btn-ghost" id="pingBtn" style="padding:.35rem .7rem;font-size:.72rem">Vérifier</button>
+    </div>
+  </div>
+
+  <div class="stack">
+
+    <!-- PLAN 2D -->
+    <div class="card">
+      <h2>📋 PLAN 2D du bien</h2>
+      <div class="sub">Upload 1 à 3 PDF — un plan simple ou un plan multi-niveaux. Chaque niveau est isolé et calibré visuellement avant le parsing.</div>
+
+      <div class="plan-steps" id="planSteps">
+        <span class="pstep" data-step="upload">1 · Upload</span>
+        <span class="pstep" data-step="detect">2 · Détection</span>
+        <span class="pstep" data-step="crop">3 · Isolation</span>
+        <span class="pstep" data-step="vector">3.5 · Vectoriel</span>
+        <span class="pstep" data-step="calibrate">4 · Calibration</span>
+        <span class="pstep" data-step="parse">5 · Parsing</span>
+        <span class="pstep" data-step="results">6 · Résultats</span>
+      </div>
+
+      <!-- STEP 1: upload -->
+      <div class="plan-panel" data-panel="upload">
+        <div class="pcol">
+          <div class="dropzone" id="planZone">
+            <div class="ico">📐</div>
+            <div class="main">Glisser-déposer 1 à 3 PDF ici</div>
+            <div class="hint">ou cliquer pour parcourir · PDF · 1 fichier = plan simple, 2-3 fichiers = multi-niveaux</div>
+            <input type="file" id="planInput" accept="application/pdf,.pdf" multiple>
+          </div>
+          <div class="filelist" id="planFiles"></div>
+        </div>
+        <div class="pcol">
+          <div class="field">
+            <label>Lot / Section (optionnel) — ex: "C45". Laisser vide pour auto-détection.</label>
+            <input type="text" id="targetLot" placeholder="ex: C45">
+          </div>
+        </div>
+        <button class="btn full-span" id="parseBtn" disabled>Analyser les plans</button>
+        <div class="status idle full-span" id="planStatus">En attente d'un plan</div>
+      </div>
+
+      <!-- STEP 2: détection niveaux (loading) -->
+      <div class="plan-panel" data-panel="detect" style="display:none">
+        <div class="pcol">
+          <div class="status busy" id="detectStatus"><span class="spin"></span> Détection niveaux…</div>
+        </div>
+        <div class="pcol">
+          <div class="plan-item-list" id="detectList"></div>
+        </div>
+        <div class="error-box full-span" id="detectError" style="display:none"></div>
+      </div>
+
+      <!-- STEP 3: cropping + validation -->
+      <div class="stage stage-3 plan-panel" data-panel="crop" id="stage3" style="display:none">
+        <div class="stage-header glassmorphic">
+          <span class="stage-title">VISITE3D — ÉTAPE 3/6 : Isolation</span>
+          <span class="stage-subtitle" id="stage3Subtitle">Plan 1/3 — Niveau 1</span>
+        </div>
+
+        <div class="stage-content-2col">
+          <div class="stage-left">
+            <div class="plan-container crop-stage" id="cropStage">
+              <div class="stage-inner" id="cropStageInner">
+                <img id="cropImg" alt="Plan">
+                <div id="cropOverlays"></div>
+                <div class="crop-box" id="cropBox">
+                  <div class="crop-handle" data-corner="tl"></div>
+                  <div class="crop-handle" data-corner="tr"></div>
+                  <div class="crop-handle" data-corner="bl"></div>
+                  <div class="crop-handle" data-corner="br"></div>
+                </div>
+              </div>
+              <div class="hints">🖱️ Molette : zoom • 🖱️ Glisser : pan • 🖱️ Double-clic : reset</div>
+            </div>
+
+            <div class="actions-bar glassmorphic">
+              <button class="action-btn reset" id="stage3ResetBtn" title="Réinitialiser">
+                🔄
+              </button>
+              <button class="action-btn skip" id="stage3SkipBtn" title="Passer ce PDF">
+                ⏭️
+              </button>
+              <button class="action-btn validate" id="stage3ValidateBtn" title="Valider">
+                ✅
+              </button>
+            </div>
+          </div>
+
+          <div class="stage-right">
+            <div class="legend-compact glassmorphic">
+              <span>■ Vert = Votre bien</span>
+              <span>■ Jaune = Commun</span>
+              <span>■ Orange = Sélection</span>
+            </div>
+
+            <div class="status idle" id="cropStatus"></div>
+
+            <div class="kpi-panel glassmorphic">
+              <div class="kpi-header" id="stage3KpiHeader">Lot 1/3 • Niveau 1</div>
+              <div class="kpi-content">
+                <div class="kpi-row">Murs: <span id="kpiWalls">-</span></div>
+                <div class="kpi-row">Pièces: <span id="kpiRooms">-</span></div>
+                <div class="kpi-row">Portes: <span id="kpiDoors">-</span></div>
+                <div class="kpi-row">Fenêtres: <span id="kpiWindows">-</span></div>
+                <div class="kpi-row">Escaliers: <span id="kpiStairs">-</span></div>
+                <div class="kpi-row">Aire: <span id="kpiArea">-</span> m²</div>
+              </div>
+            </div>
+
+            <div class="actions-sidebar glassmorphic">
+              <button class="action-btn-secondary validate" id="stage3ValidateSidebarBtn">
+                ✅ Valider
+              </button>
+              <button class="action-btn-secondary skip" id="stage3SkipSidebarBtn">
+                ⏭️ Skip
+              </button>
+              <button class="action-btn-secondary reset" id="stage3ResetSidebarBtn">
+                🔄 Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="stage3Warning" class="warning-box" style="display:none;"></div>
+        <div id="cropError" class="error-box" style="display:none"></div>
+      </div>
+
+      <!-- STEP 3.5: vectoriel redessiné + erreurs -->
+      <div class="plan-panel" data-panel="vector" style="display:none">
+        <div class="pcol">
+          <div class="error-panel-head">
+            ⚠️ Erreurs détectées (<span class="n" id="errorCount">0</span>)
+            <span class="provisional-badge" id="provisionalBadge" style="display:none">échelle provisoire — à confirmer en calibration</span>
+          </div>
+          <div class="error-list" id="errorList"></div>
+
+          <div class="svg-stage" id="vectorStage">
+            <div class="stage-inner" id="vectorStageInner">
+              <div id="vectorSvgContainer"></div>
+            </div>
+          </div>
+          <div class="zoom-hint">🔍 Molette = zoom · glisser le fond = déplacer · double-clic = réinitialiser · clic sur une pièce = annoter</div>
+          <div class="status idle" id="vectorStatus"></div>
+          <div class="error-box" id="vectorError" style="display:none"></div>
+        </div>
+
+        <div class="pcol">
+          <div class="level-switcher">
+            <div class="field">
+              <label>Niveau</label>
+              <select id="levelSelect"></select>
+            </div>
+            <div class="field" id="basementField" style="display:none">
+              <label>Sous-sol</label>
+              <select id="basementSelect"></select>
+            </div>
+          </div>
+
+          <div class="vector-summary" id="vectorSummary"></div>
+
+          <div class="notes-toggle">
+            <button class="btn btn-ghost" id="addNoteBtn" style="font-size:.78rem;padding:.5rem .75rem">📝 Ajouter note</button>
+            <button class="btn btn-ghost" id="scrollToPhotosBtn" style="font-size:.78rem;padding:.5rem .75rem">📷 Upload photos</button>
+          </div>
+          <div class="notes-panel" id="notesForm" style="display:none">
+            <textarea id="noteText" placeholder="Note libre pour ce niveau…"></textarea>
+            <input type="text" id="noteTags" placeholder="Tags séparés par des virgules (optionnel)">
+            <div class="btn-row">
+              <button class="btn" id="saveNoteBtn" style="font-size:.78rem">Enregistrer</button>
+              <button class="btn btn-ghost" id="cancelNoteBtn" style="font-size:.78rem">Annuler</button>
+            </div>
+          </div>
+          <div id="notesList"></div>
+        </div>
+
+        <div class="btn-row full-span">
+          <button class="btn btn-ghost" id="vectorRefreshBtn">↺ Recalculer les erreurs</button>
+          <button class="btn" id="vectorContinueBtn">✓ Valider &amp; continuer vers Calibration (optionnel)</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: calibration -->
+      <div class="plan-panel" data-panel="calibrate" style="display:none">
+        <div class="pcol">
+          <div class="stepper-hint" id="calibHint">Cliquez 2 points sur une longueur connue (ex : la largeur d'une porte), puis indiquez sa longueur réelle.</div>
+          <div class="crop-stage" id="calibStage">
+            <div class="stage-inner" id="calibStageInner">
+              <img id="calibImg" alt="Plan isolé">
+              <svg id="calibSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+              <div id="calibDots"></div>
+            </div>
+          </div>
+          <div class="zoom-hint">🔍 Molette = zoom · glisser le fond = déplacer · double-clic = réinitialiser</div>
+        </div>
+        <div class="pcol">
+          <div class="stepper-sub" id="calibSubHeader"></div>
+          <div class="field">
+            <label>Longueur réelle mesurée (m) — ex : 0.90 pour une porte standard</label>
+            <input type="number" id="calibLength" min="0.1" max="10" step="0.01" placeholder="0.90">
+          </div>
+          <div class="zoom-hint" id="calibScaleHint"></div>
+          <div class="status idle" id="calibStatus"></div>
+          <div class="error-box" id="calibError" style="display:none"></div>
+          <div class="btn-row" style="flex-direction:column;align-items:stretch">
+            <button class="btn btn-ghost" id="calibSkipBtn">⏭ Passer (pas de calibration)</button>
+            <button class="btn" id="calibConfirmBtn" disabled>✓ Valider calibration</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 5: parsing (loading) -->
+      <div class="plan-panel" data-panel="parse" style="display:none">
+        <div class="pcol">
+          <div class="status busy" id="parseStepStatus"><span class="spin"></span> Parsing…</div>
+        </div>
+        <div class="pcol">
+          <div class="progress-bar"><div class="progress-fill" id="parseProgressFill"></div></div>
+          <div class="stepper-hint">Cela peut prendre jusqu'à 30 secondes, veuillez patienter…</div>
+        </div>
+        <div class="error-box full-span" id="parseError" style="display:none"></div>
+      </div>
+
+      <!-- STEP 6: résultats -->
+      <div class="plan-panel" data-panel="results" style="display:none">
+        <div class="pcol" id="planKpisWrap"></div>
+        <div class="pcol">
+          <div class="json-tabs" id="jsonTabs"></div>
+          <div class="json-viewer" id="planJson"></div>
+        </div>
+        <div class="warn-box full-span" id="resultsFailWarn" style="display:none"></div>
+        <div class="btn-row full-span">
+          <button class="btn" id="validateContinueBtn">✓ Valider &amp; Continuer vers Photos</button>
+          <button class="btn btn-ghost" id="restartBtn">↺ Recommencer</button>
+        </div>
+        <div class="status idle full-span" id="validateStatus"></div>
+      </div>
+    </div>
+
+    <!-- PHOTOS -->
+    <div class="card photos-card">
+      <h2>Photos des pièces</h2>
+      <div class="sub">Labels de pièces &amp; textures (Claude Vision)</div>
+
+      <div class="dropzone" id="photoZone">
+        <div class="ico">🖼️</div>
+        <div class="main">Photos individuelles ou ZIP</div>
+        <div class="hint">ou cliquer pour parcourir · .jpg .jpeg .png .zip · plusieurs fichiers</div>
+        <input type="file" id="photoInput" accept="image/jpeg,image/png,.jpg,.jpeg,.png,.zip" multiple>
+      </div>
+      <div class="progress-bar" id="photoProgressBar" style="display:none"><div class="progress-fill" id="photoProgressFill" style="width:20%"></div></div>
+      <div class="status idle" id="photoUploadStatus"></div>
+      <div class="filelist" id="photoFiles"></div>
+      <div class="stepper-hint" id="photoCountHint" style="display:none"></div>
+
+      <button class="btn" id="analyzeBtn" disabled>Analyze Photos</button>
+      <div class="status idle" id="photoStatus">En attente de photos</div>
+
+      <div class="kpi-strip" id="photoKpis" style="display:none;grid-template-columns:repeat(2,1fr)">
+        <div class="kpi"><div class="kpi-l">Photos analysées</div><div class="kpi-v" id="kPhotos">0</div></div>
+        <div class="kpi"><div class="kpi-l">Pièces identifiées</div><div class="kpi-v" id="kLabels">0</div></div>
+      </div>
+
+      <div class="json-viewer" id="photoJson"></div>
+    </div>
+
+  </div>
+
+  <button class="logout-btn" id="logoutBtn">Se déconnecter</button>
+</div>
+</div><!-- /app -->
+
+<script>
+(function(){
+  var PASSWORD = 'visite2026';
+  var STORAGE_KEY = 'v3d_auth_session';
+
+  function $a(id){ return document.getElementById(id); }
+
+  function unlock(){
+    $a('gate').style.display = 'none';
+    $a('app').style.display = 'block';
+  }
+  function lock(){
+    $a('app').style.display = 'none';
+    $a('gate').style.display = 'flex';
+    $a('pwd').value = '';
+    $a('gateErr').textContent = '';
+    $a('pwd').focus();
+  }
+  function tryPwd(){
+    var v = $a('pwd').value;
+    if(v === PASSWORD){
+      try{ sessionStorage.setItem(STORAGE_KEY, '1'); }catch(e){}
+      unlock();
+    } else {
+      $a('gateErr').textContent = 'Mot de passe incorrect';
+    }
+  }
+
+  $a('go').addEventListener('click', tryPwd);
+  $a('pwd').addEventListener('keydown', function(e){ if(e.key === 'Enter') tryPwd(); });
+  $a('logoutBtn').addEventListener('click', function(){
+    try{ sessionStorage.removeItem(STORAGE_KEY); }catch(e){}
+    lock();
+  });
+
+  try{
+    if(sessionStorage.getItem(STORAGE_KEY) === '1') unlock();
+  }catch(e){}
+})();
+</script>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+let planFileList = [];
+let lastPlanResult = null;
+
+// ───────────── API base / ping ─────────────
+function apiBase() { return $('apiBase').value.replace(/\/+$/, ''); }
+
+async function pingApi() {
+  $('apiDot').className = 'dot';
+  $('apiLabel').textContent = 'Vérification...';
+  try {
+    const res = await fetch(apiBase() + '/', { method: 'GET' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    $('apiDot').className = 'dot up';
+    $('apiLabel').textContent = 'API en ligne';
+  } catch (e) {
+    $('apiDot').className = 'dot down';
+    $('apiLabel').textContent = 'API injoignable';
+  }
+}
+$('pingBtn').addEventListener('click', pingApi);
+pingApi();
+
+// ───────────── Drag & drop helpers ─────────────
+function wireDropzone(zone, input, onFiles) {
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => onFiles(Array.from(input.files)));
+
+  ['dragenter', 'dragover'].forEach((evt) =>
+    zone.addEventListener(evt, (e) => { e.preventDefault(); zone.classList.add('drag'); })
+  );
+  ['dragleave', 'drop'].forEach((evt) =>
+    zone.addEventListener(evt, (e) => { e.preventDefault(); zone.classList.remove('drag'); })
+  );
+  zone.addEventListener('drop', (e) => {
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length) onFiles(files);
+  });
+}
+
+function renderChips(container, files, onRemove) {
+  container.innerHTML = '';
+  files.forEach((f, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `${escapeHtml(f.name)} <button type="button" aria-label="Retirer">×</button>`;
+    chip.querySelector('button').addEventListener('click', () => onRemove(i));
+    container.appendChild(chip);
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ───────────── PLAN 2D zone (1-3 PDF, single ou multi-niveaux) ─────────────
+wireDropzone($('planZone'), $('planInput'), (files) => {
+  const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
+  planFileList = planFileList.concat(pdfs).slice(0, 3);
+  renderPlanChips();
+});
+
+function renderPlanChips() {
+  renderChips($('planFiles'), planFileList, (i) => {
+    planFileList.splice(i, 1);
+    renderPlanChips();
+  });
+  $('parseBtn').disabled = planFileList.length === 0;
+}
+
+// ───────────── Photo zone (individual images and/or ZIP) ─────────────
+// photoServerList holds every photo actually on the server after upload:
+// { filename, path, fromZip }. Uploads run immediately on drop (rather than
+// waiting for "Analyze"), since a ZIP has to be extracted server-side before
+// there is anything to show as a thumbnail or count.
+let photoServerList = [];
+
+wireDropzone($('photoZone'), $('photoInput'), (files) => {
+  uploadPhotoFiles(files);
+});
+
+async function uploadPhotoFiles(files) {
+  if (!files.length) return;
+  const hasZip = files.some((f) => /\.zip$/i.test(f.name));
+
+  $('photoProgressBar').style.display = 'block';
+  $('photoProgressFill').style.width = '15%';
+  setStatus($('photoUploadStatus'), 'busy', hasZip ? 'Extraction ZIP…' : 'Upload des photos…');
+
+  const form = new FormData();
+  files.forEach((f) => form.append('photos', f));
+
+  try {
+    const res = await fetch(apiBase() + '/upload/photos', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+
+    photoServerList = photoServerList.concat(
+      data.photos.map((p) => ({ filename: p.filename, path: p.path, fromZip: p.from_zip }))
+    );
+    $('photoProgressFill').style.width = '100%';
+    setStatus($('photoUploadStatus'), 'done', `✓ ${data.count} photo(s) ajoutée(s)`);
+    renderPhotoThumbs();
+  } catch (e) {
+    setStatus($('photoUploadStatus'), 'error', 'Erreur upload : ' + e.message);
+  } finally {
+    setTimeout(() => { $('photoProgressBar').style.display = 'none'; }, 600);
+  }
+}
+
+function renderPhotoThumbs() {
+  const container = $('photoFiles');
+  container.innerHTML = '';
+  photoServerList.forEach((p, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    const thumbUrl = apiBase() + '/photos/thumb/' + encodeURIComponent(p.filename);
+    chip.innerHTML = `<img src="${thumbUrl}" alt="" style="width:22px;height:22px;object-fit:cover;border-radius:4px;margin-right:.15rem">`
+      + `${escapeHtml(p.filename.replace(/^[0-9a-f]{32}_/, ''))} <button type="button" aria-label="Retirer">×</button>`;
+    chip.querySelector('button').addEventListener('click', () => {
+      photoServerList.splice(i, 1);
+      renderPhotoThumbs();
+    });
+    container.appendChild(chip);
+  });
+
+  const fromZip = photoServerList.filter((p) => p.fromZip).length;
+  const individual = photoServerList.length - fromZip;
+  if (photoServerList.length) {
+    $('photoCountHint').style.display = 'block';
+    $('photoCountHint').textContent = `${photoServerList.length} photo(s) (${fromZip} du ZIP, ${individual} individuelle(s))`;
+  } else {
+    $('photoCountHint').style.display = 'none';
+  }
+  $('analyzeBtn').disabled = photoServerList.length === 0;
+}
+
+// ───────────── JSON syntax highlight ─────────────
+function escapeJsonHtml(s) {
+  // Only & < > need escaping for safe <pre> text content; quotes must
+  // survive untouched so the highlighter regex below can still match them.
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlightJson(obj) {
+  const json = JSON.stringify(obj, null, 2);
+  const escaped = escapeJsonHtml(json);
+  return escaped.replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false)\b|\bnull\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
+    (match) => {
+      let cls = 'jn';
+      if (/^"/.test(match)) cls = /:$/.test(match) ? 'jk' : 'js';
+      else if (/true|false/.test(match)) cls = 'jb';
+      else if (/null/.test(match)) cls = 'jnull';
+      return `<span class="${cls}">${match}</span>`;
+    }
+  );
+}
+
+function setStatus(el, kind, text) {
+  el.className = 'status ' + kind;
+  el.innerHTML = kind === 'busy' ? `<span class="spin"></span> ${text}` : text;
+}
+
+// ═════════════ PLAN 2D — state machine (upload → detect → crop → calibrate → parse → results) ═════════════
+const PLAN_STEP_ORDER = ['upload', 'detect', 'crop', 'vector', 'calibrate', 'parse', 'results'];
+let planStep = 'upload';
+let planItems = [];   // [{ file, tempId, level, imageBase64, sections, bbox, cropImageBase64, isolated, reason, pixelsPerMeter, calibrated, error }]
+let cropIndex = 0;
+let calibIndex = 0;
+
+function setPlanStep(step) {
+  planStep = step;
+  document.querySelectorAll('.plan-panel').forEach((p) => {
+    p.style.display = p.dataset.panel === step ? 'flex' : 'none';
+  });
+  const order = PLAN_STEP_ORDER.indexOf(step);
+  document.querySelectorAll('.pstep').forEach((el) => {
+    const i = PLAN_STEP_ORDER.indexOf(el.dataset.step);
+    el.classList.toggle('active', i === order);
+    el.classList.toggle('done', i < order);
+  });
+}
+
+function resetPlanFlow() {
+  planItems = [];
+  cropIndex = 0;
+  calibIndex = 0;
+  vectorLevelIndex = 0;
+  ignoredErrorIds = {};
+  for (const level in _notesByLevel) delete _notesByLevel[level];
+  lastPlanResult = null;
+  planFileList = [];
+  renderPlanChips();
+  $('targetLot').value = '';
+  $('planFiles').innerHTML = '';
+  $('planJson').innerHTML = '';
+  $('planKpisWrap').innerHTML = '';
+  $('jsonTabs').innerHTML = '';
+  $('resultsFailWarn').style.display = 'none';
+  $('errorList').innerHTML = '';
+  $('vectorSummary').innerHTML = '';
+  $('vectorSvgContainer').innerHTML = '';
+  $('notesList').innerHTML = '';
+  setStatus($('validateStatus'), 'idle', '');
+  setPlanStep('upload');
+}
+
+// ───────────── Fetch with a "still waiting" notice past 30s ─────────────
+async function fetchPatient(url, opts, statusEl, busyText) {
+  setStatus(statusEl, 'busy', busyText);
+  const timer = setTimeout(() => {
+    setStatus(statusEl, 'busy', busyText + ' (en attente, veuillez patienter…)');
+  }, 30000);
+  try {
+    const res = await fetch(url, opts);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ───────────── Zoom / pan (CSS transform, molette = zoom, glisser le fond = pan si zoomé) ─────────────
+function wireZoomPan(stageEl, innerEl) {
+  let scale = 1, tx = 0, ty = 0;
+  let panning = false, panStart = null, moved = false;
+
+  function apply() {
+    innerEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }
+  function clamp() {
+    const r = stageEl.getBoundingClientRect();
+    const maxX = Math.max(0, (scale - 1) * r.width / 2 + 40);
+    const maxY = Math.max(0, (scale - 1) * r.height / 2 + 40);
+    tx = Math.min(maxX, Math.max(-maxX, tx));
+    ty = Math.min(maxY, Math.max(-maxY, ty));
+  }
+  function reset() {
+    scale = 1; tx = 0; ty = 0; moved = false; apply();
+  }
+
+  stageEl.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const dir = e.deltaY < 0 ? 1 : -1;
+    scale = Math.min(3, Math.max(0.5, +(scale + dir * 0.1).toFixed(2)));
+    clamp();
+    apply();
+  }, { passive: false });
+
+  stageEl.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.crop-box') || e.target.closest('.calib-dot')) return;
+    moved = false;
+    if (scale <= 1) return; // pas de pan tant qu'on n'a pas zoomé — laisse le clic simple passer
+    panning = true;
+    panStart = { x: e.clientX, y: e.clientY, tx, ty };
+    stageEl.setPointerCapture(e.pointerId);
+    stageEl.classList.add('panning');
+  });
+  stageEl.addEventListener('pointermove', (e) => {
+    if (!panning) return;
+    const dx = e.clientX - panStart.x, dy = e.clientY - panStart.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+    tx = panStart.tx + dx; ty = panStart.ty + dy;
+    clamp();
+    apply();
+  });
+  ['pointerup', 'pointercancel'].forEach((evt) => {
+    stageEl.addEventListener(evt, () => { panning = false; stageEl.classList.remove('panning'); });
+  });
+  stageEl.addEventListener('dblclick', () => reset());
+
+  reset();
+  return { reset, wasDrag: () => moved };
+}
+
+// ───────────── Draggable/resizable crop box (fractional 0-1 coords) ─────────────
+function wireCropBox(stageEl, boxEl, refEl, getBox, setBox) {
+  let dragging = null;
+
+  function frac(clientX, clientY) {
+    const r = refEl.getBoundingClientRect();
+    return {
+      x: Math.min(1, Math.max(0, (clientX - r.left) / r.width)),
+      y: Math.min(1, Math.max(0, (clientY - r.top) / r.height)),
+    };
+  }
+
+  function render() {
+    const b = getBox();
+    boxEl.style.left = (b.x_min * 100) + '%';
+    boxEl.style.top = (b.y_min * 100) + '%';
+    boxEl.style.width = ((b.x_max - b.x_min) * 100) + '%';
+    boxEl.style.height = ((b.y_max - b.y_min) * 100) + '%';
+  }
+
+  boxEl.onpointerdown = (e) => {
+    if (e.target.classList.contains('crop-handle')) return;
+    e.stopPropagation();
+    dragging = { type: 'move', start: frac(e.clientX, e.clientY), box: { ...getBox() } };
+    boxEl.setPointerCapture(e.pointerId);
+  };
+  boxEl.querySelectorAll('.crop-handle').forEach((h) => {
+    h.onpointerdown = (e) => {
+      e.stopPropagation();
+      dragging = { type: 'corner', corner: h.dataset.corner, box: { ...getBox() } };
+      h.setPointerCapture(e.pointerId);
+    };
+  });
+  stageEl.onpointermove = (e) => {
+    if (!dragging) return;
+    const p = frac(e.clientX, e.clientY);
+    let box = { ...dragging.box };
+    const MIN = 0.03;
+    if (dragging.type === 'move') {
+      const dx = p.x - dragging.start.x, dy = p.y - dragging.start.y;
+      const w = box.x_max - box.x_min, h = box.y_max - box.y_min;
+      const nx0 = Math.min(1 - w, Math.max(0, box.x_min + dx));
+      const ny0 = Math.min(1 - h, Math.max(0, box.y_min + dy));
+      box = { x_min: nx0, y_min: ny0, x_max: nx0 + w, y_max: ny0 + h };
+    } else {
+      if (dragging.corner === 'tl') { box.x_min = Math.min(p.x, box.x_max - MIN); box.y_min = Math.min(p.y, box.y_max - MIN); }
+      if (dragging.corner === 'tr') { box.x_max = Math.max(p.x, box.x_min + MIN); box.y_min = Math.min(p.y, box.y_max - MIN); }
+      if (dragging.corner === 'bl') { box.x_min = Math.min(p.x, box.x_max - MIN); box.y_max = Math.max(p.y, box.y_min + MIN); }
+      if (dragging.corner === 'br') { box.x_max = Math.max(p.x, box.x_min + MIN); box.y_max = Math.max(p.y, box.y_min + MIN); }
+      box.x_min = Math.max(0, box.x_min); box.y_min = Math.max(0, box.y_min);
+      box.x_max = Math.min(1, box.x_max); box.y_max = Math.min(1, box.y_max);
+    }
+    setBox(box);
+    render();
+  };
+  ['pointerup', 'pointercancel'].forEach((evt) => { stageEl['on' + evt] = () => { dragging = null; }; });
+
+  render();
+  return render;
+}
+
+// ───────────── STEP 1 → STEP 2 : analyser les plans ─────────────
+$('parseBtn').addEventListener('click', async () => {
+  if (!planFileList.length) return;
+
+  planItems = planFileList.map((f) => ({
+    file: f, tempId: null, level: null, imageBase64: null, sections: [], bbox: null,
+    cropImageBase64: null, isolated: null, reason: null, pixelsPerMeter: null,
+    calibrated: false, error: null,
+  }));
+  cropIndex = 0;
+  calibIndex = 0;
+
+  setPlanStep('detect');
+  $('detectError').style.display = 'none';
+  await runDetectionLoop();
+});
+
+async function runDetectionLoop() {
+  const targetLot = $('targetLot').value.trim();
+  const total = planItems.length;
+  $('detectList').innerHTML = '';
+  const rows = planItems.map((item) => {
+    const row = document.createElement('div');
+    row.className = 'plan-item-row';
+    row.innerHTML = `<span class="n">${escapeHtml(item.file.name)}</span><span class="st busy">en attente…</span>`;
+    $('detectList').appendChild(row);
+    return row;
+  });
+
+  for (let i = 0; i < total; i++) {
+    const item = planItems[i];
+    setStatus($('detectStatus'), 'busy', `Détection niveaux… ${i + 1}/${total}`);
+    rows[i].querySelector('.st').className = 'st busy';
+    rows[i].querySelector('.st').textContent = 'analyse…';
+
+    try {
+      const form = new FormData();
+      form.append('plan', item.file);
+      if (targetLot) form.append('target_lot', targetLot);
+      const data = await fetchPatient(apiBase() + '/plan/detect', { method: 'POST', body: form }, $('detectStatus'), `Détection niveaux… ${i + 1}/${total}`);
+
+      item.tempId = data.temp_id;
+      item.level = data.level;
+      item.imageBase64 = data.image_base64;
+      item.sections = data.sections || [];
+      const target = data.target_section;
+      item.bbox = target ? { ...target.bbox } : { x_min: 0.1, y_min: 0.1, x_max: 0.9, y_max: 0.9 };
+
+      rows[i].querySelector('.st').className = 'st ok';
+      rows[i].querySelector('.st').textContent = `niveau ${data.level} ✓`;
+    } catch (e) {
+      item.error = e.message;
+      rows[i].querySelector('.st').className = 'st err';
+      rows[i].querySelector('.st').textContent = 'échec';
+    }
+  }
+
+  const ok = planItems.filter((it) => it.tempId && !it.error);
+  const failed = planItems.filter((it) => it.error);
+
+  if (failed.length) {
+    $('detectError').style.display = 'flex';
+    $('detectError').innerHTML = '';
+    const msg = document.createElement('div');
+    msg.textContent = `${failed.length} plan(s) en échec : ` + failed.map((f) => `${escapeHtml(f.file.name)} — ${escapeHtml(f.error)}`).join(' · ');
+    $('detectError').appendChild(msg);
+    const btnRow = document.createElement('div');
+    btnRow.className = 'btn-row';
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn btn-ghost';
+    retryBtn.textContent = '↺ Réessayer les échecs';
+    retryBtn.onclick = async () => {
+      const stillFailed = planItems.filter((it) => it.error);
+      stillFailed.forEach((it) => { it.error = null; });
+      $('detectError').style.display = 'none';
+      await runDetectionLoop();
+    };
+    const dropBtn = document.createElement('button');
+    dropBtn.className = 'btn btn-ghost';
+    dropBtn.textContent = '⏭ Continuer sans ces plans';
+    dropBtn.onclick = () => { proceedAfterDetection(); };
+    btnRow.appendChild(retryBtn);
+    btnRow.appendChild(dropBtn);
+    $('detectError').appendChild(btnRow);
+  } else {
+    proceedAfterDetection();
+  }
+
+  function proceedAfterDetection() {
+    planItems = planItems.filter((it) => it.tempId && !it.error);
+    if (!planItems.length) {
+      setStatus($('detectStatus'), 'error', 'Aucun plan n’a pu être analysé.');
+      return;
+    }
+    setStatus($('detectStatus'), 'done', `${planItems.length} plan(s) détecté(s)`);
+    cropIndex = 0;
+    setPlanStep('crop');
+    showCropStep();
+  }
+}
+
+// ───────────── STEP 3 : cropping + validation (loop) ─────────────
+let cropBoxRender = null;
+const cropZoom = wireZoomPan($('cropStage'), $('cropStageInner'));
+
+function showCropStep() {
+  const item = planItems[cropIndex];
+  cropZoom.reset();
+  $('stage3Subtitle').textContent = `Plan ${cropIndex + 1}/${planItems.length} — Niveau ${item.level}`;
+  $('stage3Subtitle').title = item.file.name;
+  $('stage3KpiHeader').textContent = `Lot ${cropIndex + 1}/${planItems.length} • Niveau ${item.level}`;
+  $('cropImg').src = 'data:image/png;base64,' + item.imageBase64;
+  $('stage3Warning').style.display = 'none';
+  $('cropError').style.display = 'none';
+  setStatus($('cropStatus'), 'idle', '');
+
+  const overlays = $('cropOverlays');
+  overlays.innerHTML = '';
+  (item.sections || []).forEach((s) => {
+    const b = s.bbox;
+    const badge = document.createElement('div');
+    badge.className = 'section-badge ' + (s.zone_type === 'PRIVATIF' ? 'privatif' : 'commun');
+    badge.style.left = (b.x_min * 100) + '%';
+    badge.style.top = (b.y_min * 100) + '%';
+    badge.style.width = ((b.x_max - b.x_min) * 100) + '%';
+    badge.style.height = ((b.y_max - b.y_min) * 100) + '%';
+    const lbl = document.createElement('span');
+    lbl.className = 'lbl';
+    lbl.textContent = `${s.label} (${s.zone_type})`;
+    badge.appendChild(lbl);
+    overlays.appendChild(badge);
+  });
+
+  cropBoxRender = wireCropBox(
+    $('cropStage'), $('cropBox'), $('cropStageInner'),
+    () => item.bbox,
+    (box) => { item.bbox = box; }
+  );
+}
+
+$('stage3ResetBtn').addEventListener('click', () => {
+  const item = planItems[cropIndex];
+  const target = (item.sections || []).find((s) => s.zone_type === 'PRIVATIF') || null;
+  item.bbox = target ? { ...target.bbox } : { x_min: 0.1, y_min: 0.1, x_max: 0.9, y_max: 0.9 };
+  if (cropBoxRender) cropBoxRender();
+});
+
+$('stage3SkipBtn').addEventListener('click', () => {
+  planItems.splice(cropIndex, 1);
+  if (!planItems.length) {
+    resetPlanFlow();
+    return;
+  }
+  if (cropIndex >= planItems.length) cropIndex = planItems.length - 1;
+  showCropStep();
+});
+
+$('stage3ValidateBtn').addEventListener('click', async () => {
+  const item = planItems[cropIndex];
+  $('cropError').style.display = 'none';
+  $('stage3ValidateBtn').disabled = true;
+
+  try {
+    const form = new FormData();
+    form.append('temp_id', item.tempId);
+    form.append('x_min', item.bbox.x_min);
+    form.append('y_min', item.bbox.y_min);
+    form.append('x_max', item.bbox.x_max);
+    form.append('y_max', item.bbox.y_max);
+    const data = await fetchPatient(apiBase() + '/plan/crop', { method: 'POST', body: form }, $('cropStatus'), 'Validation de l’isolation…');
+
+    item.cropImageBase64 = data.crop_image_base64;
+    item.isolated = data.isolated;
+    item.reason = data.reason;
+
+    if (!data.isolated) {
+      $('stage3Warning').style.display = 'block';
+      $('stage3Warning').textContent = 'Isolation imparfaite : ' + (data.reason || 'raison non précisée') + '. Acceptée quand même — ajustez si besoin.';
+    } else {
+      $('stage3Warning').style.display = 'none';
+    }
+    setStatus($('cropStatus'), 'done', '✓ Isolation confirmée');
+    advanceCrop();
+  } catch (e) {
+    $('cropError').style.display = 'flex';
+    $('cropError').innerHTML = `<div>Erreur : ${escapeHtml(e.message)}</div>`;
+    const btnRow = document.createElement('div');
+    btnRow.className = 'btn-row';
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn btn-ghost';
+    retryBtn.textContent = '↺ Réessayer';
+    retryBtn.onclick = () => { $('stage3ValidateBtn').click(); };
+    btnRow.appendChild(retryBtn);
+    $('cropError').appendChild(btnRow);
+  } finally {
+    $('stage3ValidateBtn').disabled = false;
+  }
+});
+
+$('stage3ResetSidebarBtn').addEventListener('click', () => $('stage3ResetBtn').click());
+$('stage3SkipSidebarBtn').addEventListener('click', () => $('stage3SkipBtn').click());
+$('stage3ValidateSidebarBtn').addEventListener('click', () => $('stage3ValidateBtn').click());
+
+function advanceCrop() {
+  cropIndex++;
+  if (cropIndex < planItems.length) {
+    showCropStep();
+  } else {
+    setPlanStep('vector');
+    runVectorialLoop();
+  }
+}
+
+// ═════════════ STEP 3.5 : vectoriel redessiné + erreurs ═════════════
+let vectorLevelIndex = 0;   // index into planItems for the level currently shown
+let ignoredErrorIds = {};   // tempId -> Set(error_id) client-side mirror, for instant UI feedback
+
+async function runVectorialLoop() {
+  $('vectorError').style.display = 'none';
+  const total = planItems.length;
+  for (let i = 0; i < total; i++) {
+    const item = planItems[i];
+    setStatus($('vectorStatus'), 'busy', `Vectorisation… niveau ${item.level} (${i + 1}/${total})`);
+    try {
+      const data = await fetchPatient(
+        apiBase() + '/plan/vectorial-redraw',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ temp_id: item.tempId }) },
+        $('vectorStatus'),
+        `Vectorisation… niveau ${item.level} (${i + 1}/${total})`
+      );
+      item.vectorPlan = data.json;
+      item.errors = data.errors;
+      item.svg = data.svg;
+      item.isProvisional = data.is_provisional;
+      item.vectorMetadata = data.metadata;
+      ignoredErrorIds[item.tempId] = ignoredErrorIds[item.tempId] || new Set();
+    } catch (e) {
+      item.vectorError = e.message;
+    }
+  }
+  setStatus($('vectorStatus'), 'idle', '');
+
+  const failed = planItems.filter((it) => it.vectorError);
+  if (failed.length) {
+    $('vectorError').style.display = 'flex';
+    $('vectorError').innerHTML = `<div>${failed.length} niveau(x) en échec de vectorisation : `
+      + failed.map((f) => `niveau ${f.level} — ${escapeHtml(f.vectorError)}`).join(' · ') + '</div>';
+  }
+
+  populateLevelSwitcher();
+  vectorLevelIndex = planItems.findIndex((it) => it.vectorPlan);
+  if (vectorLevelIndex === -1) vectorLevelIndex = 0;
+  showVectorStep();
+}
+
+function populateLevelSwitcher() {
+  const levelSel = $('levelSelect');
+  levelSel.innerHTML = '';
+  planItems.forEach((it, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = `${it.level}` + (i === 0 ? ' (Principal)' : '');
+    levelSel.appendChild(opt);
+  });
+  $('basementField').style.display = 'none'; // no basement concept yet on this dataset
+}
+
+$('levelSelect').addEventListener('change', () => {
+  vectorLevelIndex = parseInt($('levelSelect').value, 10) || 0;
+  showVectorStep();
+});
+
+function showVectorStep() {
+  const item = planItems[vectorLevelIndex];
+  if (!item) return;
+  $('levelSelect').value = String(vectorLevelIndex);
+
+  if (!item.vectorPlan) {
+    $('vectorSvgContainer').innerHTML = '<div style="padding:2rem;color:var(--text-mute);text-align:center">Aucune donnée vectorielle pour ce niveau (échec de vectorisation).</div>';
+    $('errorList').innerHTML = '';
+    $('errorCount').textContent = '0';
+    $('vectorSummary').innerHTML = '';
+    return;
+  }
+
+  $('provisionalBadge').style.display = item.isProvisional ? 'inline-block' : 'none';
+
+  $('vectorSvgContainer').innerHTML = item.svg;
+  wireVectorZoomPan();
+  wireVectorSvgClicks(item);
+
+  renderErrorList(item);
+  renderVectorSummary(item);
+  renderNotesList(item.level);
+
+  // scroll the panel into view at the top, per spec ("scroll SVG vers top")
+  document.querySelector('[data-panel="vector"]').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+let vectorZoomWired = false;
+function wireVectorZoomPan() {
+  if (vectorZoomWired) return; // stage/inner elements are stable across renders — wire once
+  vectorZoomWired = true;
+  wireZoomPan($('vectorStage'), $('vectorStageInner'));
+}
+
+function wireVectorSvgClicks(item) {
+  const container = $('vectorSvgContainer');
+  container.onclick = (e) => {
+    const marker = e.target.closest('.plan-error-marker');
+    if (marker) {
+      const errorId = marker.dataset.errorId;
+      const card = document.querySelector(`.error-card[data-error-id="${CSS.escape(errorId)}"]`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('flash');
+        setTimeout(() => card.classList.remove('flash'), 1200);
+      }
+      return;
+    }
+    const room = e.target.closest('polygon');
+    if (room) {
+      openNotesForm();
+      const label = room.nextElementSibling && room.nextElementSibling.tagName === 'text' ? room.nextElementSibling.textContent : '';
+      $('noteTags').value = label ? `piece:${label}` : '';
+    }
+  };
+}
+
+function renderVectorSummary(item) {
+  const m = item.vectorMetadata || {};
+  const wrap = $('vectorSummary');
+  const rows = [
+    ['Murs', m.walls], ['Pièces', m.rooms], ['Portes', m.doors], ['Fenêtres', m.windows],
+    ['Escaliers', m.stairs], ['Aire', m.area_m2 != null ? m.area_m2.toFixed(1) + ' m²' : '—'],
+  ];
+  wrap.innerHTML = rows.map(([label, value]) => `<div class="row"><span>${label}</span><b>${escapeHtml(String(value != null ? value : '—'))}</b></div>`).join('');
+}
+
+function renderErrorList(item) {
+  const ignored = ignoredErrorIds[item.tempId] || new Set();
+  const visible = (item.errors || []).filter((e) => !ignored.has(e.error_id));
+
+  $('errorCount').textContent = String(visible.length);
+  $('errorCount').className = visible.length ? 'n' : 'n zero';
+
+  const list = $('errorList');
+  if (!visible.length) {
+    list.innerHTML = '<div class="error-empty">✓ Aucune erreur détectée sur ce niveau</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  visible.forEach((err) => {
+    const card = document.createElement('div');
+    card.className = 'error-card sev-' + err.severity;
+    card.dataset.errorId = err.error_id;
+    const icon = err.severity === 'error' ? '❌' : '⚠️';
+    const actionsHtml = (err.actions || []).map((a, i) =>
+      `<button type="button" data-action-idx="${i}" class="${a.action === 'auto_fix' ? 'primary' : ''}">${escapeHtml(a.label)}</button>`
+    ).join('');
+    card.innerHTML = `
+      <div class="msg">${icon} ${escapeHtml(err.message)}</div>
+      ${err.element_label ? `<div class="sub">${escapeHtml(err.element_label)}</div>` : ''}
+      <div class="actions">${actionsHtml}</div>
+    `;
+    card.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      const marker = document.querySelector(`.plan-error-marker[data-error-id="${CSS.escape(err.error_id)}"]`);
+      if (marker) marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    card.querySelectorAll('.actions button').forEach((btn, i) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const action = err.actions[i];
+        await resolveError(item, err, action);
+      });
+    });
+    list.appendChild(card);
+  });
+}
+
+async function resolveError(item, err, action) {
+  if (action.action === 'edit' && action.new_value === undefined) {
+    const entered = prompt(`Nouvelle valeur pour "${err.element_label || err.error_id}" (actuel: ${err.current_value ?? '—'})`, err.recommended_value ?? err.current_value ?? '');
+    if (entered === null || entered.trim() === '') return;
+    action = { ...action, action: 'set_value', new_value: parseFloat(entered) };
+  }
+
+  if (action.action === 'ignore') {
+    ignoredErrorIds[item.tempId] = ignoredErrorIds[item.tempId] || new Set();
+    ignoredErrorIds[item.tempId].add(err.error_id);
+    renderErrorList(item);
+    return;
+  }
+
+  try {
+    const res = await fetch(apiBase() + '/plan/resolve-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ temp_id: item.tempId, error_id: err.error_id, action: action.action, new_value: action.new_value }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+
+    item.vectorPlan = data.updated_vector_plan;
+    item.errors = data.errors;
+    item.svg = data.svg;
+    // openings/rooms/walls counts may have changed (e.g. a duplicate wall removed)
+    const g = item.vectorPlan.geometry;
+    item.vectorMetadata = {
+      walls: g.walls.length, rooms: g.rooms.length, openings: g.openings.length,
+      doors: g.openings.filter((o) => o.type !== 'window').length,
+      windows: g.openings.filter((o) => o.type === 'window').length,
+      stairs: g.stairs.length, area_m2: g.bounds.area_m2,
+    };
+    $('vectorSvgContainer').innerHTML = item.svg;
+    wireVectorSvgClicks(item);
+    renderErrorList(item);
+    renderVectorSummary(item);
+  } catch (e) {
+    $('vectorError').style.display = 'flex';
+    $('vectorError').innerHTML = `<div>Erreur lors de la correction : ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+$('vectorRefreshBtn').addEventListener('click', async () => {
+  const item = planItems[vectorLevelIndex];
+  if (!item || !item.vectorPlan) return;
+  $('vectorRefreshBtn').disabled = true;
+  try {
+    const res = await fetch(apiBase() + '/plan/detect-errors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vector_plan: item.vectorPlan }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+    item.errors = data.errors;
+    renderErrorList(item);
+  } catch (e) {
+    $('vectorError').style.display = 'flex';
+    $('vectorError').innerHTML = `<div>Erreur lors du recalcul : ${escapeHtml(e.message)}</div>`;
+  } finally {
+    $('vectorRefreshBtn').disabled = false;
+  }
+});
+
+$('vectorContinueBtn').addEventListener('click', () => {
+  calibIndex = 0;
+  setPlanStep('calibrate');
+  showCalibStep();
+});
+
+// ───────────── Notes / annotations libres ─────────────
+function openNotesForm() {
+  $('notesForm').style.display = 'flex';
+  $('noteText').focus();
+}
+$('addNoteBtn').addEventListener('click', () => {
+  $('notesForm').style.display === 'flex' ? ($('notesForm').style.display = 'none') : openNotesForm();
+});
+$('cancelNoteBtn').addEventListener('click', () => {
+  $('notesForm').style.display = 'none';
+  $('noteText').value = '';
+  $('noteTags').value = '';
+});
+$('scrollToPhotosBtn').addEventListener('click', () => {
+  document.querySelector('.photos-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+const _notesByLevel = {}; // level -> [{annotation_id, text, tags}] client cache
+
+$('saveNoteBtn').addEventListener('click', async () => {
+  const item = planItems[vectorLevelIndex];
+  const text = $('noteText').value.trim();
+  if (!item || !text) return;
+  const tags = $('noteTags').value.split(',').map((t) => t.trim()).filter(Boolean);
+
+  try {
+    const res = await fetch(apiBase() + '/plan/add-annotation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: item.level, text, tags }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+
+    _notesByLevel[item.level] = _notesByLevel[item.level] || [];
+    _notesByLevel[item.level].push({ annotation_id: data.annotation_id, text, tags });
+    renderNotesList(item.level);
+    $('noteText').value = '';
+    $('noteTags').value = '';
+    $('notesForm').style.display = 'none';
+  } catch (e) {
+    alert('Erreur lors de l’enregistrement de la note : ' + e.message);
+  }
+});
+
+function renderNotesList(level) {
+  const notes = _notesByLevel[level] || [];
+  const wrap = $('notesList');
+  if (!notes.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = notes.map((n) => `
+    <div class="note-item">
+      ${escapeHtml(n.text)}
+      ${n.tags && n.tags.length ? `<div class="tags">${n.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ───────────── STEP 4 : calibration (loop) ─────────────
+let calibPoints = [];
+const calibZoom = wireZoomPan($('calibStage'), $('calibStageInner'));
+
+function showCalibStep() {
+  const item = planItems[calibIndex];
+  calibZoom.reset();
+  $('calibSubHeader').textContent = `Calibration ${calibIndex + 1}/${planItems.length} — Niveau ${item.level} (${item.file.name})`;
+  $('calibImg').src = 'data:image/png;base64,' + (item.cropImageBase64 || item.imageBase64);
+  $('calibLength').value = '';
+  $('calibError').style.display = 'none';
+  $('calibScaleHint').textContent = '';
+  $('calibConfirmBtn').disabled = true;
+  setStatus($('calibStatus'), 'idle', '');
+  calibPoints = [];
+  renderCalibOverlay();
+
+  const stage = $('calibStage');
+  const inner = $('calibStageInner');
+  stage.onpointerup = (e) => {
+    if (e.target.closest('.calib-dot')) return;
+    if (calibZoom.wasDrag()) return;
+    const r = inner.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    if (calibPoints.length >= 2) calibPoints = [];
+    calibPoints.push({ x, y });
+    renderCalibOverlay();
+    updateCalibConfirmState();
+  };
+}
+
+function renderCalibOverlay() {
+  const dots = $('calibDots');
+  dots.innerHTML = '';
+  calibPoints.forEach((p) => {
+    const d = document.createElement('div');
+    d.className = 'calib-dot';
+    d.style.left = (p.x * 100) + '%';
+    d.style.top = (p.y * 100) + '%';
+    dots.appendChild(d);
+  });
+  const svg = $('calibSvg');
+  if (calibPoints.length === 2) {
+    svg.innerHTML = `<line x1="${calibPoints[0].x * 100}" y1="${calibPoints[0].y * 100}" x2="${calibPoints[1].x * 100}" y2="${calibPoints[1].y * 100}" stroke="#5b7cff" stroke-width="0.6" />`;
+    $('calibHint').textContent = 'Ligne tracée. Indiquez sa longueur réelle ci-dessous, ou re-cliquez pour recommencer.';
+  } else {
+    svg.innerHTML = '';
+    $('calibHint').textContent = calibPoints.length === 0
+      ? 'Cliquez le 1er point de la longueur connue (ex : un bord de porte).'
+      : 'Cliquez le 2e point (ex : l’autre bord de la porte).';
+  }
+}
+
+function updateCalibConfirmState() {
+  const lengthM = parseFloat($('calibLength').value);
+  const lenOk = lengthM > 0;
+  $('calibConfirmBtn').disabled = !(calibPoints.length === 2 && lenOk);
+
+  if (calibPoints.length === 2 && lenOk) {
+    const img = $('calibImg');
+    const w = img.naturalWidth || 1, h = img.naturalHeight || 1;
+    const dx = (calibPoints[1].x - calibPoints[0].x) * w;
+    const dy = (calibPoints[1].y - calibPoints[0].y) * h;
+    const px = Math.sqrt(dx * dx + dy * dy);
+    $('calibScaleHint').textContent = `≈ ${(px / lengthM).toFixed(1)} px/m (calcul local, non validé)`;
+  } else {
+    $('calibScaleHint').textContent = '';
+  }
+}
+$('calibLength').addEventListener('input', updateCalibConfirmState);
+
+$('calibConfirmBtn').addEventListener('click', async () => {
+  const item = planItems[calibIndex];
+  const lengthM = parseFloat($('calibLength').value);
+  if (calibPoints.length !== 2 || !(lengthM > 0)) return;
+
+  $('calibError').style.display = 'none';
+  $('calibConfirmBtn').disabled = true;
+
+  try {
+    const form = new FormData();
+    form.append('temp_id', item.tempId);
+    form.append('ax', calibPoints[0].x);
+    form.append('ay', calibPoints[0].y);
+    form.append('bx', calibPoints[1].x);
+    form.append('by', calibPoints[1].y);
+    form.append('reference_length_m', lengthM);
+    const data = await fetchPatient(apiBase() + '/plan/calibrate', { method: 'POST', body: form }, $('calibStatus'), 'Calcul de la calibration…');
+
+    item.pixelsPerMeter = data.pixels_per_meter;
+    item.calibrated = true;
+    setStatus($('calibStatus'), 'done', '✓ Calibration enregistrée');
+    advanceCalib();
+  } catch (e) {
+    $('calibError').style.display = 'flex';
+    $('calibError').innerHTML = `<div>Erreur : ${escapeHtml(e.message)}</div>`;
+    const btnRow = document.createElement('div');
+    btnRow.className = 'btn-row';
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn btn-ghost';
+    retryBtn.textContent = '↺ Réessayer';
+    retryBtn.onclick = () => { $('calibConfirmBtn').disabled = false; $('calibConfirmBtn').click(); };
+    btnRow.appendChild(retryBtn);
+    $('calibError').appendChild(btnRow);
+  } finally {
+    $('calibConfirmBtn').disabled = false;
+  }
+});
+
+$('calibSkipBtn').addEventListener('click', () => {
+  planItems[calibIndex].calibrated = false;
+  advanceCalib();
+});
+
+function advanceCalib() {
+  calibIndex++;
+  if (calibIndex < planItems.length) {
+    showCalibStep();
+  } else {
+    setPlanStep('parse');
+    runParseStep();
+  }
+}
+
+// ───────────── STEP 5 : parsing (finalize) ─────────────
+async function runParseStep() {
+  $('parseError').style.display = 'none';
+  const total = planItems.length;
+  let step = 0;
+  setStatus($('parseStepStatus'), 'busy', `Parsing niveau ${planItems[0].level} — 1/${total}…`);
+  $('parseProgressFill').style.width = '8%';
+
+  const fillTimer = setInterval(() => {
+    const cur = parseFloat($('parseProgressFill').style.width) || 8;
+    if (cur < 90) $('parseProgressFill').style.width = (cur + Math.random() * 8) + '%';
+    if (cur > (step + 1) * (90 / total) && step < total - 1) {
+      step++;
+      setStatus($('parseStepStatus'), 'busy', `Parsing niveau ${planItems[step].level} — ${step + 1}/${total}…`);
+    }
+  }, 500);
+  const waitTimer = setTimeout(() => {
+    setStatus($('parseStepStatus'), 'busy', 'Parsing en cours… (en attente, veuillez patienter…)');
+  }, 30000);
+
+  try {
+    const form = new FormData();
+    planItems.forEach((it) => form.append('temp_ids', it.tempId));
+    const res = await fetch(apiBase() + '/plan/finalize', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+
+    $('parseProgressFill').style.width = '100%';
+    lastPlanResult = data;
+    renderPlanResults(data);
+    setPlanStep('results');
+  } catch (e) {
+    setStatus($('parseStepStatus'), 'error', 'Erreur : ' + e.message);
+    $('parseError').style.display = 'flex';
+    $('parseError').innerHTML = `<div>${escapeHtml(e.message)}</div>`;
+    const btnRow = document.createElement('div');
+    btnRow.className = 'btn-row';
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn btn-ghost';
+    retryBtn.textContent = '↺ Réessayer le parsing';
+    retryBtn.onclick = () => { runParseStep(); };
+    const restartBtn = document.createElement('button');
+    restartBtn.className = 'btn btn-ghost';
+    restartBtn.textContent = '↺ Recommencer depuis le début';
+    restartBtn.onclick = () => { resetPlanFlow(); };
+    btnRow.appendChild(retryBtn);
+    btnRow.appendChild(restartBtn);
+    $('parseError').appendChild(btnRow);
+  } finally {
+    clearInterval(fillTimer);
+    clearTimeout(waitTimer);
+  }
+}
+
+function buildKpiBlock(title, kpis) {
+  const block = document.createElement('div');
+  block.className = 'level-kpi-block';
+  const head = document.createElement('div');
+  head.className = 'level-kpi-head';
+  head.textContent = title;
+  block.appendChild(head);
+  const strip = document.createElement('div');
+  strip.className = 'kpi-strip';
+  Object.entries(kpis).forEach(([label, value]) => {
+    const kpi = document.createElement('div');
+    kpi.className = 'kpi';
+    kpi.innerHTML = `<div class="kpi-l">${escapeHtml(label)}</div><div class="kpi-v">${escapeHtml(String(value))}</div>`;
+    strip.appendChild(kpi);
+  });
+  block.appendChild(strip);
+  return block;
+}
+
+function renderJsonTabs(tabs, activeIndex) {
+  const tabsEl = $('jsonTabs');
+  tabsEl.innerHTML = '';
+  tabs.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'jtab' + (i === activeIndex ? ' active' : '');
+    btn.textContent = t.label;
+    btn.onclick = () => renderJsonTabs(tabs, i);
+    tabsEl.appendChild(btn);
+  });
+  $('planJson').innerHTML = highlightJson(tabs[activeIndex] ? tabs[activeIndex].data : {});
+}
+
+function renderPlanResults(data) {
+  const levels = data.levels || [];
+  const combined = data.combined || {};
+
+  const wrap = $('planKpisWrap');
+  wrap.innerHTML = '';
+  levels.forEach((lr) => {
+    const g = lr.geometry || {};
+    const areas = (g.rooms || []).map((r) => r.area_m2).filter((v) => v != null);
+    const area = areas.length ? areas.reduce((a, b) => a + b, 0).toFixed(1) + ' m²' : '—';
+    wrap.appendChild(buildKpiBlock(`Niveau ${lr.level}`, {
+      'Murs': (g.walls || []).length,
+      'Pièces': (g.rooms || []).length,
+      'Ouvertures': (g.openings || []).length,
+      'Escaliers': (g.stairs || []).length,
+      'Aire': area,
+    }));
+  });
+  wrap.appendChild(buildKpiBlock('Combiné', {
+    'Murs': (combined.walls || []).length,
+    'Pièces': combined.total_rooms != null ? combined.total_rooms : (combined.rooms || []).length,
+    'Ouvertures': (combined.openings || []).length,
+    'Escaliers': (combined.stairs || []).length,
+    'Aire': combined.total_area_m2 != null ? combined.total_area_m2.toFixed(1) + ' m²' : '—',
+  }));
+
+  const tabs = levels.map((lr) => ({ label: `Level ${lr.level}`, data: lr }))
+    .concat([{ label: 'Combined', data: combined }]);
+  renderJsonTabs(tabs, 0);
+
+  const failures = data.failures || [];
+  if (failures.length) {
+    $('resultsFailWarn').style.display = 'block';
+    $('resultsFailWarn').textContent = `⚠ ${failures.length} niveau(x) en échec : ` + failures.map((f) => `${f.source_path || '?'} (${f.stage}: ${f.error})`).join(' · ');
+  } else {
+    $('resultsFailWarn').style.display = 'none';
+  }
+
+  setStatus($('validateStatus'), 'idle', '');
+}
+
+$('validateContinueBtn').addEventListener('click', () => {
+  if (!lastPlanResult) return;
+  try { sessionStorage.setItem('v3d_bloc1_result', JSON.stringify(lastPlanResult)); } catch (e) {}
+  setStatus($('validateStatus'), 'done', '✓ Résultat validé — prêt pour la suite (Photos)');
+});
+
+$('restartBtn').addEventListener('click', resetPlanFlow);
+
+setPlanStep('upload');
+
+// ───────────── Analyze Photos ─────────────
+$('analyzeBtn').addEventListener('click', async () => {
+  if (!photoServerList.length) return;
+
+  $('analyzeBtn').disabled = true;
+  setStatus($('photoStatus'), 'busy', 'Analyse en cours…');
+  $('photoKpis').style.display = 'none';
+  $('photoJson').innerHTML = '';
+
+  const form = new FormData();
+  photoServerList.forEach((p) => form.append('photo_paths', p.path));
+
+  try {
+    const res = await fetch(apiBase() + '/analyze-photos', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+
+    const analyses = data.analyses || [];
+    const labels = new Set(analyses.map((a) => a.room_label).filter(Boolean));
+    $('kPhotos').textContent = analyses.length;
+    $('kLabels').textContent = labels.size;
+    $('photoKpis').style.display = 'grid';
+
+    $('photoJson').innerHTML = highlightJson(data);
+    setStatus($('photoStatus'), 'done', 'Terminé');
+    // The server deletes analyzed files once done — drop the now-stale thumbs.
+    photoServerList = [];
+    renderPhotoThumbs();
+  } catch (e) {
+    setStatus($('photoStatus'), 'error', 'Erreur : ' + e.message);
+    $('photoJson').innerHTML = highlightJson({ error: e.message });
+    $('analyzeBtn').disabled = photoServerList.length === 0;
+  }
+});
+</script>
+</body>
+</html>

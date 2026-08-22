@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Visite3D data
+/data/generation/glb/*
+/data/generation/logs/*
+/data/generation/temp/*
+!/data/generation/glb/.gitkeep
+!/data/generation/logs/.gitkeep
+!/data/generation/temp/.gitkeep
+/data/staging/*
+!/data/staging/.gitkeep
+visite3d.db
+
+# Env
+.env

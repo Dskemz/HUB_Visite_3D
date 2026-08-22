@@ -214,10 +214,34 @@
       .bien-actions{padding:.6rem .9rem}
       .kpi-v{font-size:1.15rem}
       .modal-head,.modal-body,.modal-foot{padding-left:1rem;padding-right:1rem}
+      .gnav{padding:.75rem 1rem}
+      .gnav-brand{font-size:.85rem}
+      .gnav-btn{padding:.4rem .6rem;font-size:.72rem}
     }
+
+    /* ───────────── NAVBAR GLOBALE ───────────── */
+    .gnav{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.9rem 1.4rem;border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;background:rgba(11,13,20,.92);backdrop-filter:blur(8px);z-index:40}
+    .gnav-brand{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:.95rem;color:#fff;letter-spacing:-.01em;transition:opacity .15s}
+    .gnav-brand:hover{opacity:.8}
+    .gnav-logo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg, var(--hot), var(--accent));font-size:.85rem;color:#fff;flex-shrink:0}
+    .gnav-links{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+    .gnav-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .8rem;border-radius:9px;font-size:.78rem;font-weight:700;color:var(--text-dim);background:var(--surface);border:1px solid var(--border);transition:background .15s,color .15s,border-color .15s}
+    .gnav-btn:hover{color:#fff;border-color:var(--border2);background:var(--surface2)}
+    .gnav-btn.active{color:#fff;background:rgba(91,124,255,.12);border-color:rgba(91,124,255,.3)}
   </style>
 </head>
 <body>
+
+<!-- NAVBAR -->
+<nav class="gnav">
+  <a class="gnav-brand" href="index.html"><span class="gnav-logo">◆</span> Visite3D</a>
+  <div class="gnav-links">
+    <a class="gnav-btn active" href="hub.html">📊 Hub</a>
+    <a class="gnav-btn" href="editor-bloc1.html">🔧 Éditeur</a>
+    <a class="gnav-btn" href="index.html">🏠 Accueil</a>
+    <button class="gnav-btn" id="hubLogoutBtn" type="button">🔒 Déconnexion</button>
+  </div>
+</nav>
 
 <!-- GATE -->
 <div id="gate">
@@ -246,6 +270,7 @@
     </div>
     <div class="kpi-strip" id="kpiHub"></div>
     <div id="accHub"></div>
+
     <div class="tools">
       <input id="q" placeholder="Rechercher une agence…">
       <span class="count" id="count"></span>
@@ -680,16 +705,29 @@
     else { renderVilles(A); show('vVilles'); }
   }
 
-  /* ===== GATE (INCHANGÉ) ===== */
+  /* ===== GATE ===== */
   function unlock(){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block';route();}
-  function tryPwd(){ var v=document.getElementById('pwd').value; if(v===HUB_PASSWORD){try{sessionStorage.setItem('hub_ok','1');}catch(e){}unlock();}else{document.getElementById('err').textContent='Mot de passe incorrect.';} }
+  function lock(){document.getElementById('app').style.display='none';document.getElementById('gate').style.display='flex';document.getElementById('pwd').value='';document.getElementById('err').textContent='';document.getElementById('pwd').focus();}
+  function tryPwd(){ var v=document.getElementById('pwd').value; if(v===HUB_PASSWORD){try{sessionStorage.setItem('hub_ok','1');}catch(e){}try{sessionStorage.setItem('v3d_auth_session','1');}catch(e){}unlock();}else{document.getElementById('err').textContent='Mot de passe incorrect.';} }
+  function hubLogout(){ try{sessionStorage.removeItem('hub_ok');}catch(e){} try{sessionStorage.removeItem('v3d_auth_session');}catch(e){} lock(); }
   document.getElementById('go').addEventListener('click',tryPwd);
   document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')tryPwd();});
+  document.getElementById('hubLogoutBtn').addEventListener('click',hubLogout);
   fetch('properties-index.json',{cache:'no-cache'})
     .then(function(r){return r.ok?r.json():{};})
     .then(function(j){PROPERTIES_INDEX=(j&&typeof j==='object')?j:{};if(document.getElementById('app').style.display==='block')route();})
     .catch(function(){});
-  try{if(sessionStorage.getItem('hub_ok')==='1')unlock();}catch(e){}
+  /* Session partagée : sessionStorage.hub_ok (propre au hub) OU
+     sessionStorage.v3d_auth_session (partagée avec index.html / editor-bloc1.html,
+     posée quand l'un ou l'autre onglet s'est authentifié dans CETTE session navigateur) */
+  try{
+    var hasHubSession=sessionStorage.getItem('hub_ok')==='1';
+    var hasSharedSession=sessionStorage.getItem('v3d_auth_session')==='1';
+    if(hasHubSession||hasSharedSession){
+      if(!hasHubSession){ try{sessionStorage.setItem('hub_ok','1');}catch(e){} }
+      unlock();
+    }
+  }catch(e){}
   document.getElementById('q').addEventListener('input',function(e){renderAgences(e.target.value);});
   Array.prototype.forEach.call(document.querySelectorAll('[data-home]'),function(b){b.addEventListener('click',function(){go('');});});
   window.addEventListener('hashchange',route);
