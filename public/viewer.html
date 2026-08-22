@@ -4960,20 +4960,24 @@ function frameModel(root) {
           'uniform float uFadeEnd;',
           'uniform vec3 uColor;',
           'uniform vec3 uCamPos;',
+          'uniform vec3 uGlowColor;',
+          'uniform float uGlowRadius;',
           'varying vec3 vWorldPos;',
           'varying vec3 vNormal;',
           'void main(){',
           '  vec3 viewDir = normalize(uCamPos - vWorldPos);',
           '  float facing = dot(vNormal, viewDir);',
-          '  // Fondu rasant : opaque vu d en haut, fondu doux quand la camera',
-          '  // frole le sol, transparent complet en dessous. Pas de discard brutal.',
           '  float angleFade = smoothstep(-0.05, 0.18, facing);',
           '  float d = length(vWorldPos.xz - uCenter.xz);',
           '  float radialFade = 1.0 - smoothstep(uFadeStart, uFadeEnd, d);',
           '  float a = radialFade * angleFade;',
           '  if (a < 0.002) discard;',
           '  float ndl = max(dot(vNormal, normalize(vec3(0.4,1.0,0.3))), 0.0);',
-          '  vec3 col = uColor * (0.55 + 0.45 * ndl);',
+          '  vec3 baseCol = uColor * (0.55 + 0.45 * ndl);',
+          // Glow AO : zone centrale plus claire (crème clair), fondu doux vers la couleur de base
+          '  float glowD = clamp(d / uGlowRadius, 0.0, 1.0);',
+          '  float glowStr = pow(1.0 - glowD, 0.7);',
+          '  vec3 col = mix(baseCol, uGlowColor, glowStr * 0.55);',
           '  gl_FragColor = vec4(col, a);',
           '}'
         ].join('\n');
@@ -4983,17 +4987,19 @@ function frameModel(root) {
           fragment: 'infiniteFloor'
         }, {
           attributes: ['position', 'normal'],
-          uniforms: ['worldViewProjection', 'world', 'uCenter', 'uFadeStart', 'uFadeEnd', 'uColor', 'uCamPos'],
+          uniforms: ['worldViewProjection', 'world', 'uCenter', 'uFadeStart', 'uFadeEnd', 'uColor', 'uCamPos', 'uGlowColor', 'uGlowRadius'],
           needAlphaBlending: true
         });
         __fm.backFaceCulling = false;
-        // Fondu : opaque dans la zone du modele, transparent aux bords
-        var __fadeStart = __span * 1.4;   // debut du fondu (plus tot)
-        var __fadeEnd   = __floorSize * 0.42; // fin du fondu (plus progressif)
+        var __fadeStart = __span * 1.4;
+        var __fadeEnd   = __floorSize * 0.42;
         __fm.setVector3('uCenter', new BABYLON.Vector3(__cx, 0, __cz));
         __fm.setFloat('uFadeStart', __fadeStart);
         __fm.setFloat('uFadeEnd', __fadeEnd);
         __fm.setColor3('uColor', new BABYLON.Color3(0.86, 0.80, 0.70));
+        // Glow AO : crème clair au centre, rayon = 3× l'emprise du modèle
+        __fm.setColor3('uGlowColor', new BABYLON.Color3(0.96, 0.92, 0.84));
+        __fm.setFloat('uGlowRadius', __span * 3.0);
 
         __floor.material = __fm;
         __floor.receiveShadows = true;
@@ -5005,64 +5011,7 @@ function frameModel(root) {
       __floor.position.z = __cz;
       __floor.position.y = min.y + 0.002; // pile sous le plancher, sans z-fighting
 
-      // ===== GLOW DE CONTACT — lueur diffuse sous le modèle (sans shadow map) =====
-      // Deux disques superposés avec shader radial pur (gradient pow) :
-      //   __floorGlow  = halo large et très doux (poids visuel)
-      //   __floorCore  = contact concentré sous le bâtiment
-      // Aucune ShadowGenerator, aucune shadow map → zéro crénelage possible.
-      // ===== GLOW AU SOL — texture canvas radiale sur StandardMaterial =====
-      // Gradient radial généré via canvas 2D (API native navigateur) appliqué
-      // sur un plan horizontal. Aucun shader custom = aucun problème d'alphaMode.
-      ['__floorGlow','__floorCore'].forEach(function(n){
-        var ex = scene.getMeshByName(n); if (ex) ex.dispose();
-      });
-
-      function __makeGlowPlane(name, radius, innerAlpha, outerAlpha, yOff) {
-        var sz = 512;
-        var cv = document.createElement('canvas');
-        cv.width = cv.height = sz;
-        var ctx = cv.getContext('2d');
-        // Fond transparent
-        ctx.clearRect(0, 0, sz, sz);
-        // Gradient radial centré, crème clair
-        var cx2 = sz / 2, cy2 = sz / 2, r = sz / 2;
-        var grad = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, r);
-        // Couleur crème légèrement plus claire que le fond beige
-        grad.addColorStop(0,   'rgba(210,195,170,' + innerAlpha + ')');
-        grad.addColorStop(0.5, 'rgba(210,195,170,' + (innerAlpha * 0.4).toFixed(2) + ')');
-        grad.addColorStop(1,   'rgba(210,195,170,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, sz, sz);
-
-        var mesh = BABYLON.MeshBuilder.CreateGround(name,
-          { width: radius * 2, height: radius * 2, subdivisions: 1 }, scene);
-        mesh.position.set(__cx, min.y + yOff, __cz);
-        mesh.isPickable = false;
-        mesh.checkCollisions = false;
-
-        var tex = new BABYLON.DynamicTexture(name + 'Tex', { width: sz, height: sz }, scene, false);
-        var tCtx = tex.getContext();
-        tCtx.drawImage(cv, 0, 0);
-        tex.update();
-
-        var mat = new BABYLON.StandardMaterial(name + 'Mat', scene);
-        mat.diffuseTexture = tex;
-        mat.diffuseTexture.hasAlpha = true;
-        mat.opacityTexture = tex;
-        mat.useAlphaFromDiffuseTexture = true;
-        mat.emissiveTexture = tex;
-        mat.emissiveColor = new BABYLON.Color3(1, 1, 1);
-        mat.disableLighting = true;
-        mat.backFaceCulling = false;
-        mat.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
-        mesh.material = mat;
-        return mesh;
-      }
-
-      // Halo large ultra-diffus (AO ambiante)
-      __makeGlowPlane('__floorGlow', __span * 3.5, 0.55, 0, 0.002);
-      // Contact sous le bâtiment (légèrement plus marqué)
-      __makeGlowPlane('__floorCore', __span * 1.4, 0.40, 0, 0.004);
+      // Sol infini gère maintenant le glow AO directement dans son shader
 
       // V2 : mettre a jour la position camera dans le shader a chaque frame
       // pour que le sol disparaisse vu d'en dessous.
