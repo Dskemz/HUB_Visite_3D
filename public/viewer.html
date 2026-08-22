@@ -3482,12 +3482,7 @@ async function init() {
         shadowGenerator.addShadowCaster(m, true);
         m.receiveShadows = true;
       } catch (e) { /* mesh non compatible — ignoré */ }
-      // Ombre de contact zénithale (V4, cf. frameModel) : mêmes meshes, second
-      // générateur créé plus tard — on l'alimente ici pour les chargements
-      // async (pièces meublées) survenant après sa création.
-      if (window.topDownShadowGenerator) {
-        try { window.topDownShadowGenerator.addShadowCaster(m, true); } catch (e) {}
-      }
+
     };
     // 1) meshes déjà présents, 2) tout mesh importé ensuite (chargements async)
     scene.meshes.slice().forEach(registerShadowMesh);
@@ -5010,69 +5005,61 @@ function frameModel(root) {
       __floor.position.z = __cz;
       __floor.position.y = min.y + 0.002; // pile sous le plancher, sans z-fighting
 
-      // ===== V4 : OMBRE DE CONTACT ZENITHALE — ancre le modele (vraie AO) =====
-      // Une lumiere directionnelle verticale (vue du dessus) + un ShadowGenerator
-      // tres flou, projetes sur un mesh dedie en ShadowOnlyMaterial : la zone
-      // assombrie epouse la VRAIE silhouette du batiment (sa geometrie reelle),
-      // contrairement a un degrade radial generique (cercle/anneau) qui ne colle
-      // jamais a une empreinte au sol non circulaire (rendu "immonde" sur un
-      // plan en L). Flou important = bords doux, lecture "glow diffus" plutot
-      // qu'ombre portee dure.
-      var __topDownLight = scene.getLightByName('__topDownLight');
-      if (!__topDownLight) {
-        __topDownLight = new BABYLON.DirectionalLight('__topDownLight', new BABYLON.Vector3(0.001, -1, 0.001), scene);
-        __topDownLight.intensity = 0; // sert UNIQUEMENT a projeter une ombre, jamais a eclairer
-        __topDownLight.diffuse = new BABYLON.Color3(0, 0, 0);
-        __topDownLight.specular = new BABYLON.Color3(0, 0, 0);
-        __topDownLight.position = new BABYLON.Vector3(__cx, max.y + __span, __cz);
-        __topDownLight.autoUpdateExtends = true;
-        __topDownLight.autoCalcShadowZBounds = true;
-
-        var __tdGen = new BABYLON.ShadowGenerator(512, __topDownLight);
-        __tdGen.useBlurExponentialShadowMap = true;
-        __tdGen.blurKernel = 128;  // flou tres genereux -> vrai glow diffus, pas une ligne fine
-        __tdGen.blurScale = 4;
-        __tdGen.bias = 0.0015;
-        __tdGen.normalBias = 0.02;
-        __tdGen.darkness = 0.55;   // jamais noir total -> lecture "ambient occlusion"
-        __tdGen.transparencyShadow = true;
-        window.topDownShadowGenerator = __tdGen;
-
-        // Rattrapage : les meshes du modele principal, deja charges AVANT la
-        // creation de ce generateur, n'ont ete enregistres que pour le soleil —
-        // on les ajoute ici comme projecteurs pour la lumiere zenithale aussi.
-        var __excludeFn = window.__shadowExcluded || function(){ return false; };
-        scene.meshes.slice().forEach(function(m){
-          if (__excludeFn(m)) return;
-          try { __tdGen.addShadowCaster(m, true); } catch (e) {}
-        });
+      // ===== GLOW DE CONTACT — lueur diffuse sous le modèle (sans shadow map) =====
+      // Deux disques superposés avec shader radial pur (gradient pow) :
+      //   __floorGlow  = halo large et très doux (poids visuel)
+      //   __floorCore  = contact concentré sous le bâtiment
+      // Aucune ShadowGenerator, aucune shadow map → zéro crénelage possible.
+      if (!BABYLON.Effect.ShadersStore['glowDiscVertexShader']) {
+        BABYLON.Effect.ShadersStore['glowDiscVertexShader'] = [
+          'precision highp float;',
+          'attribute vec3 position;',
+          'uniform mat4 worldViewProjection;',
+          'varying vec2 vUV;',
+          'void main(){',
+          '  vUV = position.xz;',
+          '  gl_Position = worldViewProjection * vec4(position,1.0);',
+          '}'
+        ].join('\n');
+        BABYLON.Effect.ShadersStore['glowDiscFragmentShader'] = [
+          'precision highp float;',
+          'uniform vec3  uColor;',
+          'uniform float uOpacity;',
+          'uniform float uPower;',
+          'varying vec2 vUV;',
+          'void main(){',
+          '  float d = length(vUV);',
+          '  if (d >= 1.0) discard;',
+          '  float a = uOpacity * pow(1.0 - d, uPower);',
+          '  gl_FragColor = vec4(uColor, a);',
+          '}'
+        ].join('\n');
       }
-      __topDownLight.position.x = __cx;
-      __topDownLight.position.z = __cz;
-      __topDownLight.position.y = max.y + __span;
 
-      var __floorGlow = scene.getMeshByName('__floorGlow');
-      if (!__floorGlow) {
-        var __glowRadius = Math.min(__floorSize * 0.5, Math.max(__span * 1.4, 6));
-        __floorGlow = BABYLON.MeshBuilder.CreateDisc('__floorGlow', {
-          radius: __glowRadius, tessellation: 64
-        }, scene);
-        __floorGlow.rotation.x = Math.PI / 2; // a plat dans le plan XZ, comme le sol
-
-        var __glowMat = new BABYLON.ShadowOnlyMaterial('__floorGlowMat', scene);
-        __glowMat.activeLight = __topDownLight;
-        __glowMat.alpha = 0.7; // force globale du halo
-
-        __floorGlow.material = __glowMat;
-        __floorGlow.receiveShadows = true;
-        __floorGlow.isPickable = false;
-        __floorGlow.checkCollisions = false;
-        if (window.shadowGenerator) { try { window.shadowGenerator.removeShadowCaster(__floorGlow); } catch(e){} }
-        if (window.topDownShadowGenerator) { try { window.topDownShadowGenerator.removeShadowCaster(__floorGlow); } catch(e){} }
+      function __makeGlowDisc(name, rx, rz, color3, opacity, power, yOff) {
+        var ex = scene.getMeshByName(name); if (ex) ex.dispose();
+        var d = BABYLON.MeshBuilder.CreateDisc(name, { radius: 1, tessellation: 96 }, scene);
+        d.rotation.x = Math.PI / 2;
+        d.scaling.x = rx; d.scaling.z = rz;
+        d.position.set(__cx, min.y + yOff, __cz);
+        d.isPickable = false; d.checkCollisions = false;
+        var m = new BABYLON.ShaderMaterial(name + 'Mat', scene,
+          { vertex: 'glowDisc', fragment: 'glowDisc' },
+          { attributes: ['position'], uniforms: ['worldViewProjection', 'uColor', 'uOpacity', 'uPower'], needAlphaBlending: true }
+        );
+        m.setColor3('uColor', color3);
+        m.setFloat('uOpacity', opacity);
+        m.setFloat('uPower', power);
+        m.backFaceCulling = false;
+        m.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
+        d.material = m;
+        return d;
       }
-      __floorGlow.position.x = __cx;
-      __floorGlow.position.z = __cz;
-      __floorGlow.position.y = min.y + 0.004; // au-dessus du sol infini (min.y + 0.002), sans z-fighting
+
+      // Teinte légèrement plus sombre que le fond crème/beige du sol
+      var __gc = new BABYLON.Color3(0.55, 0.50, 0.42);
+      __makeGlowDisc('__floorGlow', __span * 1.8, __span * 1.8, __gc, 0.52, 1.2, 0.003);
+      __makeGlowDisc('__floorCore', __span * 0.7, __span * 0.7, __gc, 0.38, 2.8, 0.005);
 
       // V2 : mettre a jour la position camera dans le shader a chaque frame
       // pour que le sol disparaisse vu d'en dessous.
