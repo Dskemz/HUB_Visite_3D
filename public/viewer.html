@@ -5014,10 +5014,12 @@ function frameModel(root) {
         BABYLON.Effect.ShadersStore['glowDiscVertexShader'] = [
           'precision highp float;',
           'attribute vec3 position;',
+          'attribute vec2 uv;',
           'uniform mat4 worldViewProjection;',
           'varying vec2 vUV;',
           'void main(){',
-          '  vUV = position.xz;',
+          // CreateDisc génère des UV 0..1 centrées — on les recentre en -1..1
+          '  vUV = uv * 2.0 - 1.0;',
           '  gl_Position = worldViewProjection * vec4(position,1.0);',
           '}'
         ].join('\n');
@@ -5028,24 +5030,26 @@ function frameModel(root) {
           'uniform float uPower;',
           'varying vec2 vUV;',
           'void main(){',
-          '  float d = length(vUV);',
-          '  if (d >= 1.0) discard;',
+          '  float d = clamp(length(vUV), 0.0, 1.0);',
           '  float a = uOpacity * pow(1.0 - d, uPower);',
+          '  if (a < 0.004) discard;',
           '  gl_FragColor = vec4(uColor, a);',
           '}'
         ].join('\n');
       }
 
-      function __makeGlowDisc(name, rx, rz, color3, opacity, power, yOff) {
+      function __makeGlowDisc(name, radius, color3, opacity, power, yOff) {
         var ex = scene.getMeshByName(name); if (ex) ex.dispose();
-        var d = BABYLON.MeshBuilder.CreateDisc(name, { radius: 1, tessellation: 96 }, scene);
-        d.rotation.x = Math.PI / 2;
-        d.scaling.x = rx; d.scaling.z = rz;
+        // CreateGround génère des UV 0..1 propres + est horizontal nativement
+        var d = BABYLON.MeshBuilder.CreateGround(name,
+          { width: radius * 2, height: radius * 2, subdivisions: 2 }, scene);
         d.position.set(__cx, min.y + yOff, __cz);
         d.isPickable = false; d.checkCollisions = false;
         var m = new BABYLON.ShaderMaterial(name + 'Mat', scene,
           { vertex: 'glowDisc', fragment: 'glowDisc' },
-          { attributes: ['position'], uniforms: ['worldViewProjection', 'uColor', 'uOpacity', 'uPower'], needAlphaBlending: true }
+          { attributes: ['position', 'uv'],
+            uniforms: ['worldViewProjection', 'uColor', 'uOpacity', 'uPower'],
+            needAlphaBlending: true }
         );
         m.setColor3('uColor', color3);
         m.setFloat('uOpacity', opacity);
@@ -5056,10 +5060,10 @@ function frameModel(root) {
         return d;
       }
 
-      // Teinte légèrement plus sombre que le fond crème/beige du sol
-      var __gc = new BABYLON.Color3(0.55, 0.50, 0.42);
-      __makeGlowDisc('__floorGlow', __span * 1.8, __span * 1.8, __gc, 0.52, 1.2, 0.003);
-      __makeGlowDisc('__floorCore', __span * 0.7, __span * 0.7, __gc, 0.38, 2.8, 0.005);
+      // Teinte légèrement plus sombre que le fond crème/beige
+      var __gc = new BABYLON.Color3(0.52, 0.47, 0.38);
+      __makeGlowDisc('__floorGlow', __span * 1.8, __gc, 0.55, 1.3, 0.002);
+      __makeGlowDisc('__floorCore', __span * 0.8, __gc, 0.40, 3.0, 0.004);
 
       // V2 : mettre a jour la position camera dans le shader a chaque frame
       // pour que le sol disparaisse vu d'en dessous.
