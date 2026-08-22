@@ -5010,64 +5010,59 @@ function frameModel(root) {
       //   __floorGlow  = halo large et très doux (poids visuel)
       //   __floorCore  = contact concentré sous le bâtiment
       // Aucune ShadowGenerator, aucune shadow map → zéro crénelage possible.
-      if (!BABYLON.Effect.ShadersStore['glowDiscVertexShader']) {
-        BABYLON.Effect.ShadersStore['glowDiscVertexShader'] = [
-          'precision highp float;',
-          'attribute vec3 position;',
-          'uniform mat4 worldViewProjection;',
-          'uniform mat4 world;',
-          'uniform vec2 uCenter;',
-          'uniform float uRadius;',
-          'varying float vDist;',
-          'void main(){',
-          '  vec3 wp = (world * vec4(position,1.0)).xyz;',
-          '  vDist = length(vec2(wp.x - uCenter.x, wp.z - uCenter.y)) / uRadius;',
-          '  gl_Position = worldViewProjection * vec4(position,1.0);',
-          '}'
-        ].join('\n');
-        BABYLON.Effect.ShadersStore['glowDiscFragmentShader'] = [
-          'precision highp float;',
-          'uniform vec3  uColor;',
-          'uniform float uOpacity;',
-          'uniform float uPower;',
-          'varying float vDist;',
-          'void main(){',
-          '  float d = clamp(vDist, 0.0, 1.0);',
-          '  float a = uOpacity * pow(1.0 - d, uPower);',
-          '  if (a < 0.003) discard;',
-          '  gl_FragColor = vec4(uColor, a);',
-          '}'
-        ].join('\n');
+      // ===== GLOW AU SOL — texture canvas radiale sur StandardMaterial =====
+      // Gradient radial généré via canvas 2D (API native navigateur) appliqué
+      // sur un plan horizontal. Aucun shader custom = aucun problème d'alphaMode.
+      ['__floorGlow','__floorCore'].forEach(function(n){
+        var ex = scene.getMeshByName(n); if (ex) ex.dispose();
+      });
+
+      function __makeGlowPlane(name, radius, innerAlpha, outerAlpha, yOff) {
+        var sz = 512;
+        var cv = document.createElement('canvas');
+        cv.width = cv.height = sz;
+        var ctx = cv.getContext('2d');
+        // Fond transparent
+        ctx.clearRect(0, 0, sz, sz);
+        // Gradient radial centré, crème clair
+        var cx2 = sz / 2, cy2 = sz / 2, r = sz / 2;
+        var grad = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, r);
+        // Couleur crème légèrement plus claire que le fond beige
+        grad.addColorStop(0,   'rgba(210,195,170,' + innerAlpha + ')');
+        grad.addColorStop(0.5, 'rgba(210,195,170,' + (innerAlpha * 0.4).toFixed(2) + ')');
+        grad.addColorStop(1,   'rgba(210,195,170,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, sz, sz);
+
+        var mesh = BABYLON.MeshBuilder.CreateGround(name,
+          { width: radius * 2, height: radius * 2, subdivisions: 1 }, scene);
+        mesh.position.set(__cx, min.y + yOff, __cz);
+        mesh.isPickable = false;
+        mesh.checkCollisions = false;
+
+        var tex = new BABYLON.DynamicTexture(name + 'Tex', { width: sz, height: sz }, scene, false);
+        var tCtx = tex.getContext();
+        tCtx.drawImage(cv, 0, 0);
+        tex.update();
+
+        var mat = new BABYLON.StandardMaterial(name + 'Mat', scene);
+        mat.diffuseTexture = tex;
+        mat.diffuseTexture.hasAlpha = true;
+        mat.opacityTexture = tex;
+        mat.useAlphaFromDiffuseTexture = true;
+        mat.emissiveTexture = tex;
+        mat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+        mat.disableLighting = true;
+        mat.backFaceCulling = false;
+        mat.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
+        mesh.material = mat;
+        return mesh;
       }
 
-      function __makeGlowDisc(name, radius, color3, opacity, power, yOff) {
-        var ex = scene.getMeshByName(name); if (ex) ex.dispose();
-        var d = BABYLON.MeshBuilder.CreateGround(name,
-          { width: radius * 2, height: radius * 2, subdivisions: 8 }, scene);
-        d.position.set(__cx, min.y + yOff, __cz);
-        d.isPickable = false; d.checkCollisions = false;
-        var m = new BABYLON.ShaderMaterial(name + 'Mat', scene,
-          { vertex: 'glowDisc', fragment: 'glowDisc' },
-          { attributes: ['position'],
-            uniforms: ['worldViewProjection', 'world', 'uCenter', 'uRadius', 'uColor', 'uOpacity', 'uPower'],
-            needAlphaBlending: true }
-        );
-        m.setColor3('uColor', color3);
-        m.setFloat('uOpacity', opacity);
-        m.setFloat('uPower', power);
-        m.setFloat('uRadius', radius);
-        m.setVector2('uCenter', new BABYLON.Vector2(__cx, __cz));
-        m.backFaceCulling = false;
-        m.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
-        d.material = m;
-        return d;
-      }
-
-      // Crème clair — plus clair que le sol pour attirer l'œil au centre
-      // Très grand rayon + power < 1 = AO ultra-diffuse, imperceptible aux bords
-      var __gc = new BABYLON.Color3(0.82, 0.76, 0.66);
-      __makeGlowDisc('__floorGlow', __span * 3.5, __gc, 0.55, 0.8, 0.002);
-      __makeGlowDisc('__floorCore', __span * 1.8, __gc, 0.38, 2.0, 0.004);
+      // Halo large ultra-diffus (AO ambiante)
+      __makeGlowPlane('__floorGlow', __span * 3.5, 0.55, 0, 0.002);
+      // Contact sous le bâtiment (légèrement plus marqué)
+      __makeGlowPlane('__floorCore', __span * 1.4, 0.40, 0, 0.004);
 
       // V2 : mettre a jour la position camera dans le shader a chaque frame
       // pour que le sol disparaisse vu d'en dessous.
