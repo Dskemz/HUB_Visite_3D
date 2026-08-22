@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/babylonjs@9.17.0/babylon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/babylonjs-loaders@9.17.0/babylonjs.loaders.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/babylonjs-gui@9.17.0/babylon.gui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babylonjs-materials@9.17.0/babylonjs.materials.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
@@ -85,11 +86,11 @@
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      /* Fond atmosphérique bleu nuit profond + noir, style studio sombre premium */
+      /* Fond atmosphérique crème/beige chaud, style architecture premium lumineux */
       background:
-        radial-gradient(ellipse 55% 45% at 62% 55%, rgba(28,32,52,0.55) 0%, transparent 70%),
-        radial-gradient(ellipse 35% 28% at 22% 72%, rgba(18,22,38,0.40) 0%, transparent 60%),
-        radial-gradient(ellipse 100% 80% at 38% 28%, #12141b 0%, #0b0c10 50%, #070708 100%);
+        radial-gradient(ellipse 55% 45% at 62% 55%, rgba(232,220,196,0.55) 0%, transparent 70%),
+        radial-gradient(ellipse 35% 28% at 22% 72%, rgba(238,228,206,0.40) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 80% at 38% 28%, #f5efe2 0%, #ece2ce 50%, #e3d6bc 100%);
     }
 
     #canvas {
@@ -101,9 +102,9 @@
     #reveal-veil {
       position: fixed; inset: 0; z-index: 40;
       background:
-        radial-gradient(ellipse 55% 45% at 62% 55%, rgba(28,32,52,0.55) 0%, transparent 70%),
-        radial-gradient(ellipse 35% 28% at 22% 72%, rgba(18,22,38,0.40) 0%, transparent 60%),
-        radial-gradient(ellipse 100% 80% at 38% 28%, #12141b 0%, #0b0c10 50%, #070708 100%);
+        radial-gradient(ellipse 55% 45% at 62% 55%, rgba(232,220,196,0.55) 0%, transparent 70%),
+        radial-gradient(ellipse 35% 28% at 22% 72%, rgba(238,228,206,0.40) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 80% at 38% 28%, #f5efe2 0%, #ece2ce 50%, #e3d6bc 100%);
       pointer-events: none;
       opacity: 1;
       transition: opacity 0.55s cubic-bezier(.22,.61,.36,1);
@@ -182,7 +183,7 @@
       }
       .collapse-arrow {
         display: inline-block; flex: 0 0 auto;
-        width: 18px; height: 18px; color: #fff;
+        width: 18px; height: 18px; color: var(--brand-navy);
         transition: transform 0.22s ease;
       }
       .collapsible[open] > summary .collapse-arrow { transform: rotate(180deg); }
@@ -200,7 +201,7 @@
       padding: 0.42rem 0.2rem; border-bottom: 1px solid rgba(var(--brand-navy-rgb),0.06);
     }
     .room-row .room-name { color: var(--brand-navy); font-size: 0.84rem; font-weight: 500; }
-    .room-row .room-status { font-size: 0.72rem; color: #9db0d6; margin-left: 0.5rem; }
+    .room-row .room-status { font-size: 0.72rem; color: rgba(var(--brand-navy-rgb),0.45); margin-left: 0.5rem; }
     /* Switch iOS-like */
     .switch { position: relative; display: inline-block; width: 42px; height: 24px; flex: 0 0 auto; }
     .switch input { opacity: 0; width: 0; height: 0; }
@@ -245,28 +246,28 @@
       flex: 1;
       overflow: visible;
     }
-    .poi-btn { 
-      padding: 0.6rem 0.9rem; 
+    .poi-btn {
+      padding: 0.6rem 0.9rem;
       margin-bottom: 0;
-      background: rgba(255,255,255,0.10); 
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.14); 
-      border-radius: 9px; 
-      cursor: pointer; 
-      text-align: center; 
+      background: rgba(46,42,36,0.045);
+      color: #2e2a24;
+      border: 1px solid rgba(70,58,45,0.14);
+      border-radius: 9px;
+      cursor: pointer;
+      text-align: center;
       font-size: 0.85rem;
       font-weight: 600;
       transition: background 0.15s ease, transform 0.15s ease;
       box-shadow: none;
     }
     .poi-btn:hover {
-      background: rgba(255,255,255,0.18);
+      background: rgba(46,42,36,0.09);
       transform: translateY(-1px);
       box-shadow: none;
     }
-    .poi-btn.active { 
-      background: rgba(255,255,255,0.22);
-      border-color: rgba(255,255,255,0.30);
+    .poi-btn.active {
+      background: rgba(46,42,36,0.13);
+      border-color: rgba(70,58,45,0.28);
       box-shadow: none;
     }
 
@@ -309,7 +310,7 @@
       overflow-y: auto;
       overflow-x: hidden;
       scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,0.18) transparent;
+      scrollbar-color: rgba(70,58,45,0.22) transparent;
       box-shadow: -4px 0 26px rgba(var(--brand-navy-rgb), 0.45);
       transform: translateX(0);
       transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -324,32 +325,32 @@
     .poi-panel::-webkit-scrollbar{ width: 6px; }
     .poi-panel::-webkit-scrollbar-track{ background: transparent; }
     .poi-panel::-webkit-scrollbar-thumb{
-      background: rgba(255,255,255,0.14);
+      background: rgba(70,58,45,0.20);
       border-radius: 999px;
     }
-    .poi-panel::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,0.24); }
+    .poi-panel::-webkit-scrollbar-thumb:hover{ background: rgba(70,58,45,0.32); }
     /* Tous les enfants du panneau : box-sizing hérité pour éviter tout débordement */
     .poi-panel *, .poi-panel *::before, .poi-panel *::after { box-sizing: border-box; }
     /* Corps du panneau : largeur bornée à 100% pour empêcher tout dépassement horizontal */
     .poi-panel > .panel-header, .poi-panel > .pl-body{ max-width: 100%; min-width: 0; }
 
-    /* ===== Skin « verre navy » du panneau : textes & éléments internes en clair ===== */
-    .poi-panel h3 { color: #fff; }
-    .poi-panel .room-section-title { color: #fff; }
-    .poi-panel .room-section-head { border-bottom-color: rgba(255, 255, 255, 0.18); }
-    .poi-panel .room-row { border-bottom-color: rgba(255, 255, 255, 0.07); }
-    .poi-panel .room-row .room-name { color: #fff; font-weight: 500; }
+    /* ===== Skin « verre clair » du panneau : textes & éléments internes foncés ===== */
+    .poi-panel h3 { color: var(--brand-navy); }
+    .poi-panel .room-section-title { color: var(--brand-navy); }
+    .poi-panel .room-section-head { border-bottom-color: rgba(var(--brand-navy-rgb), 0.14); }
+    .poi-panel .room-row { border-bottom-color: rgba(var(--brand-navy-rgb), 0.08); }
+    .poi-panel .room-row .room-name { color: var(--brand-navy); font-weight: 500; }
     /* Pendant l'ouverture/fermeture : on retire le flou (coûteux au-dessus du canvas 3D)
        et on opacifie légèrement le fond pour garder la lisibilité, sans latence. */
     .right-panel-container.reframing .poi-panel {
       -webkit-backdrop-filter: none; backdrop-filter: none;
-      background: rgba(var(--brand-navy-rgb),0.90);
+      background: rgba(255,250,242,0.94);
     }
     .poi-panel .room-allnone button {
-      background: rgba(255, 255, 255, 0.08); color: #cdd8ef; border-color: rgba(255, 255, 255, 0.20);
+      background: #fff; color: var(--brand-accent); border-color: rgba(var(--brand-accent-rgb),0.3);
     }
     .poi-panel .room-allnone button:hover { background: var(--brand-accent); color: #fff; border-color: var(--brand-accent); }
-    .poi-panel .switch .slider { background: rgba(255, 255, 255, 0.24); }
+    .poi-panel .switch .slider { background: rgba(var(--brand-navy-rgb), 0.18); }
     
     .poi-panel.closed {
       transform: translateX(100%);
@@ -386,16 +387,16 @@
       width: 3px;
       height: 24px;
       border-radius: 3px;
-      background: rgba(255,255,255,0.9);
+      background: rgba(46,42,36,0.55);
       transition: background 0.2s ease;
     }
-    
+
     .toggle-panel-btn:hover {
       background: rgba(var(--brand-navy-rgb),0.78);
       left: -36px;
     }
     .toggle-panel-btn:hover::before,
-    .toggle-panel-btn:hover::after { background: #fff; }
+    .toggle-panel-btn:hover::after { background: #2e2a24; }
     
     /* Quand le menu est fermé, la languette se colle au bord droit du conteneur */
     .poi-panel.closed + .toggle-panel-btn {
@@ -411,16 +412,16 @@
       position: fixed !important;
       bottom: 1rem;
       right: 1rem;
-      background: rgba(0,0,0,0.9); 
-      color: white; 
-      padding: 1.5rem; 
-      border-radius: 8px; 
+      background: rgba(255,250,242,0.92);
+      color: #2e2a24;
+      padding: 1.5rem;
+      border-radius: 8px;
       max-width: 400px;
       pointer-events: auto;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(60,45,25,0.20);
     }
     .info-panel h4 { font-size: 1.1rem; margin-bottom: 0.5rem; }
-    .poi-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: 4px; margin-bottom: 1rem; background: #222; }
+    .poi-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: 4px; margin-bottom: 1rem; background: #ece2ce; }
     .poi-image[src=""] { display: none; }
     
     /* bouton recentrer supprimé */
@@ -428,62 +429,62 @@
     /* ----- OUTIL MESURE (visiteur) ----- */
     .measure-btn {
       display: inline-flex; align-items: center; gap: 0.45rem; flex: 0 0 auto;
-      background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,250,242,0.55); color: #2e2a24; border: 1px solid rgba(70,58,45,0.22);
       border-radius: 9px; padding: 0.6rem 1.0rem; font-size: 0.86rem; font-weight: 700;
       font-family: inherit; line-height: 1; cursor: pointer; pointer-events: auto;
       transition: background .2s ease, border-color .2s ease, transform .15s ease;
     }
-    .measure-btn:hover { background: rgba(255,255,255,0.26); transform: translateY(-1px); }
-    .measure-btn.active { background: var(--brand-accent); border-color: var(--brand-accent);
+    .measure-btn:hover { background: rgba(255,250,242,0.75); transform: translateY(-1px); }
+    .measure-btn.active { background: var(--brand-accent); border-color: var(--brand-accent); color: #fff;
       box-shadow: 0 4px 14px rgba(var(--brand-accent-rgb),0.45); }
     .measure-hint {
       position: absolute; bottom: 1.2rem; left: 50%; transform: translateX(-50%);
-      background: rgba(14, 16, 22, 0.85);
+      background: rgba(255,250,242,0.85);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
               backdrop-filter: blur(14px) saturate(140%);
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      color: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(70,58,45,0.14);
+      color: rgba(46,42,36,0.90);
       padding: 0.5rem 1.1rem;
       border-radius: 999px; font-size: 0.82rem; font-weight: 500; pointer-events: none;
       white-space: nowrap; max-width: calc(100vw - 2rem); text-align: center;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 8px 24px rgba(60,45,25,0.18);
       opacity: 0; transition: opacity 0.3s; z-index: 150;
     }
     .measure-hint.show { opacity: 1; }
     .measure-clear {
       position: absolute; bottom: 1rem; left: 1rem; display: none; align-items: center; gap: 0.4rem;
       pointer-events: auto;
-      background: rgba(14, 16, 22, 0.82);
+      background: rgba(255,250,242,0.82);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
               backdrop-filter: blur(14px) saturate(140%);
-      color: rgba(255,255,255,0.92);
-      border: 1px solid rgba(255,255,255,0.10);
+      color: rgba(46,42,36,0.90);
+      border: 1px solid rgba(70,58,45,0.14);
       border-radius: 999px; padding: 0.55rem 1rem; cursor: pointer; font-size: 0.82rem; font-weight: 600;
       font-family: inherit;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      box-shadow: 0 8px 24px rgba(60,45,25,0.18);
       z-index: 150;
       transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
     .measure-clear:hover {
-      background: rgba(255,255,255,0.10);
-      border-color: rgba(255,255,255,0.22);
-      color: #fff;
+      background: rgba(255,250,242,0.95);
+      border-color: rgba(70,58,45,0.24);
+      color: #2e2a24;
     }
 
     /* ============ VIEWER 2.0 — Incrément 1 : orientation, vignettes, aide ============ */
     /* Fil d'Ariane dans le header : Bien / Pièce courante (orientation permanente) */
     .breadcrumb { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
-    .breadcrumb .bc-prop { font-size: 0.92rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; letter-spacing: 0.01em; }
-    .breadcrumb .bc-sep { color: rgba(255,255,255,0.4); font-weight: 400; }
-    .breadcrumb .bc-room { font-size: 0.82rem; font-weight: 500; color: rgba(255,255,255,0.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+    .breadcrumb .bc-prop { font-size: 0.92rem; font-weight: 700; color: #2e2a24; text-shadow: 0 1px 8px rgba(255,255,255,0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; letter-spacing: 0.01em; }
+    .breadcrumb .bc-sep { color: rgba(46,42,36,0.45); font-weight: 400; }
+    .breadcrumb .bc-room { font-size: 0.82rem; font-weight: 500; color: rgba(46,42,36,0.75); text-shadow: 0 1px 8px rgba(255,255,255,0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
     @media (max-width: 900px){ .breadcrumb .bc-prop { max-width: 40vw; } .breadcrumb .bc-room { max-width: 30vw; } }
 
     /* Carte de pièce enrichie (desktop) : vignette photo réelle + nom + coche visité */
     .poi-btn.poi-card { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.5rem 0.6rem; }
-    .poi-card .pc-thumb { width: 58px; height: 44px; flex: 0 0 auto; border-radius: 7px; overflow: hidden; background: rgba(255,255,255,0.08); position: relative; }
+    .poi-card .pc-thumb { width: 58px; height: 44px; flex: 0 0 auto; border-radius: 7px; overflow: hidden; background: rgba(46,42,36,0.07); position: relative; }
     .poi-card .pc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 0.45s ease; }
     .poi-card .pc-thumb img.loaded { opacity: 1; }
-    .poi-card .pc-thumb .sk { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.14), rgba(255,255,255,0.05)); background-size: 200% 100%; animation: pcSkeleton 1.3s ease-in-out infinite; }
+    .poi-card .pc-thumb .sk { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(46,42,36,0.04), rgba(46,42,36,0.11), rgba(46,42,36,0.04)); background-size: 200% 100%; animation: pcSkeleton 1.3s ease-in-out infinite; }
     @keyframes pcSkeleton { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
     .poi-card .pc-name { flex: 1; min-width: 0; font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .poi-card .pc-check { width: 17px; height: 17px; flex: 0 0 auto; opacity: 0; transition: opacity 0.2s ease; }
@@ -501,8 +502,8 @@
     }
 
     /* Bouton d'action header générique (icône SVG) — mesure & aide */
-    .hdr-icon-btn { display: inline-flex; align-items: center; gap: 0.45rem; flex: 0 0 auto; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 9px; padding: 0.55rem 0.95rem; font-size: 0.86rem; font-weight: 700; font-family: inherit; line-height: 1; cursor: pointer; transition: background .18s, border-color .18s, transform .12s; }
-    .hdr-icon-btn:hover { background: rgba(255,255,255,0.24); transform: translateY(-1px); }
+    .hdr-icon-btn { display: inline-flex; align-items: center; gap: 0.45rem; flex: 0 0 auto; background: rgba(255,250,242,0.55); color: #2e2a24; border: 1px solid rgba(70,58,45,0.22); border-radius: 9px; padding: 0.55rem 0.95rem; font-size: 0.86rem; font-weight: 700; font-family: inherit; line-height: 1; cursor: pointer; transition: background .18s, border-color .18s, transform .12s; }
+    .hdr-icon-btn:hover { background: rgba(255,250,242,0.75); transform: translateY(-1px); }
     .hdr-icon-btn:active { transform: translateY(1px); }
     .hdr-icon-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
@@ -523,7 +524,7 @@
     .vhelp.on { display: flex; pointer-events: auto; }
     .vhelp-backdrop {
       position: absolute; inset: 0;
-      background: rgba(6, 8, 14, 0.55);
+      background: rgba(46,42,36,0.30);
       -webkit-backdrop-filter: blur(10px) saturate(120%);
               backdrop-filter: blur(10px) saturate(120%);
       cursor: pointer;
@@ -535,15 +536,15 @@
       z-index: 2;  /* Au-dessus du backdrop */
       pointer-events: auto;
       width: min(92vw, 430px);
-      background: rgba(14, 16, 22, 0.78);
+      background: rgba(255,250,242,0.90);
       -webkit-backdrop-filter: blur(24px) saturate(140%);
               backdrop-filter: blur(24px) saturate(140%);
-      border: 1px solid rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(70,58,45,0.14);
       border-radius: 18px;
       padding: 22px 24px;
-      color: #fff;
-      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      color: #2e2a24;
+      box-shadow: 0 30px 70px rgba(60,45,25,0.28),
+                  inset 0 1px 0 rgba(255,255,255,0.5);
       animation: vhelpCardIn .35s cubic-bezier(.22,.61,.36,1);
     }
     @keyframes vhelpCardIn {
@@ -559,9 +560,9 @@
       position: absolute; top: 12px; right: 12px;
       width: 30px; height: 30px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      color: rgba(255, 255, 255, 0.85);
+      background: rgba(46,42,36,0.05);
+      border: 1px solid rgba(70,58,45,0.14);
+      color: rgba(46,42,36,0.80);
       font-size: 1rem; line-height: 1; cursor: pointer;
       font-family: inherit;
       pointer-events: auto;
@@ -569,31 +570,31 @@
       transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
     .vhelp-x:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.22);
-      color: #fff;
+      background: rgba(46,42,36,0.10);
+      border-color: rgba(70,58,45,0.24);
+      color: #2e2a24;
     }
     .vhelp-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 9px 0; font-size: 0.86rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(70,58,45,0.10);
     }
     .vhelp-row:last-of-type { border-bottom: none; }
-    .vhelp-row .d { color: rgba(255, 255, 255, 0.72); }
+    .vhelp-row .d { color: rgba(46,42,36,0.72); }
     .vhelp-row .keys { display: flex; gap: 5px; }
     .vhelp-row kbd {
       font-family: ui-monospace, 'SF Mono', Menlo, monospace;
       font-size: 0.74rem; padding: 3px 8px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 6px; color: #fff;
+      background: rgba(46,42,36,0.07);
+      border: 1px solid rgba(70,58,45,0.20);
+      border-radius: 6px; color: #2e2a24;
     }
     .vhelp-close {
       display: block; margin: 16px 0 0; width: 100%; height: 42px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(70,58,45,0.18);
       border-radius: 11px;
-      background: rgba(255, 255, 255, 0.05);
-      color: rgba(255, 255, 255, 0.95);
+      background: rgba(46,42,36,0.05);
+      color: rgba(46,42,36,0.90);
       font-family: inherit; font-weight: 600; font-size: 0.88rem;
       cursor: pointer;
       pointer-events: auto;
@@ -601,9 +602,9 @@
       transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
     .vhelp-close:hover {
-      background: rgba(255, 255, 255, 0.10);
-      border-color: rgba(255, 255, 255, 0.24);
-      color: #fff;
+      background: rgba(46,42,36,0.10);
+      border-color: rgba(70,58,45,0.28);
+      color: #2e2a24;
     }
     :focus-visible { outline: 2.5px solid var(--brand-accent); outline-offset: 2px; }
 
@@ -628,9 +629,9 @@
     /* ============ VIEWER 2.0 — Couche cinématique (sur la scène Babylon vivante) ============ */
     /* Letterbox + vignette : donnent le grain « film » au-dessus du canvas 3D */
     .cine-bar { position: fixed; left: 0; right: 0; z-index: 6; pointer-events: none; }
-    .cine-bar.top { top: 0; height: 15vh; background: linear-gradient(180deg, rgba(0,0,0,.62), transparent); }
-    .cine-bar.bottom { bottom: 0; height: 22vh; background: linear-gradient(0deg, rgba(0,0,0,.72), transparent); }
-    .cine-vignette { position: fixed; inset: 0; z-index: 6; pointer-events: none; box-shadow: inset 0 0 200px rgba(0,0,0,.5); }
+    .cine-bar.top { top: 0; height: 15vh; background: linear-gradient(180deg, rgba(46,38,28,.13), transparent); }
+    .cine-bar.bottom { bottom: 0; height: 22vh; background: linear-gradient(0deg, rgba(46,38,28,.15), transparent); }
+    .cine-vignette { position: fixed; inset: 0; z-index: 6; pointer-events: none; box-shadow: inset 0 0 200px rgba(46,38,28,.10); }
 
     /* Mise en veille immersive : toute l'UI s'estompe après 5 s sans mouvement */
     #ui-overlay { transition: opacity .6s ease; }
@@ -653,14 +654,14 @@
     @media (max-width: 820px){ .cine-guide { left: 14px; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); top: auto; } .cine-guide .cg-lbl { display: none; } .cine-guide { padding: 0; width: 46px; justify-content: center; } }
 
     /* Entrée cinématique (révélée quand le 3D est prêt) */
-    /* Cover VISIBLE DES L'OUVERTURE — fond OPAQUE noir profond organique.
+    /* Cover VISIBLE DES L'OUVERTURE — fond OPAQUE crème clair organique.
        Aucune transparence vers le viewer : le modele 3D ne transparait pas.
        Degradé radial subtil pour eviter l'aplat numerique plat. */
     #cine-entry { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; text-align: center; opacity: 1; visibility: visible;
       background:
-        radial-gradient(ellipse 55% 45% at 62% 55%, rgba(28,32,52,0.55) 0%, transparent 70%),
-        radial-gradient(ellipse 35% 28% at 22% 72%, rgba(18,22,38,0.40) 0%, transparent 60%),
-        radial-gradient(ellipse 100% 80% at 38% 28%, #12141b 0%, #0b0c10 50%, #070708 100%);
+        radial-gradient(ellipse 55% 45% at 62% 55%, rgba(232,220,196,0.55) 0%, transparent 70%),
+        radial-gradient(ellipse 35% 28% at 22% 72%, rgba(238,228,206,0.40) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 80% at 38% 28%, #f5efe2 0%, #ece2ce 50%, #e3d6bc 100%);
       transition: opacity 1s cubic-bezier(.22,.61,.36,1), visibility 1s;
     }
     #cine-entry.show { opacity: 1; visibility: visible; }
@@ -669,10 +670,10 @@
     /* Animation d'entree jouee UNE fois a l'ouverture de la page */
     .cine-entry-in { animation: cineEntryIn 1.2s .05s cubic-bezier(.22,.61,.36,1) both; }
     @keyframes cineEntryIn { to { transform: none; opacity: 1; } }
-    .cine-entry-in .eb { font-size: .74rem; letter-spacing: .34em; text-transform: uppercase; color: rgba(255,255,255,.72); margin-bottom: 18px; }
-    .cine-entry-in h1 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: clamp(2.4rem, 6.5vw, 5rem); line-height: .96; letter-spacing: -.02em; color: #fff; text-shadow: 0 4px 50px rgba(0,0,0,.6); }
+    .cine-entry-in .eb { font-size: .74rem; letter-spacing: .34em; text-transform: uppercase; color: rgba(46,42,36,.62); margin-bottom: 18px; }
+    .cine-entry-in h1 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: clamp(2.4rem, 6.5vw, 5rem); line-height: .96; letter-spacing: -.02em; color: #2e2a24; text-shadow: 0 4px 40px rgba(255,255,255,.5); }
     .cine-entry-in .rule { display: none; }
-    .cine-entry-in .sub { font-size: 1rem; color: rgba(255,255,255,.8); margin-bottom: 30px; }
+    .cine-entry-in .sub { font-size: 1rem; color: rgba(46,42,36,.72); margin-bottom: 30px; }
     .cine-enter-btn { display: inline-flex; align-items: center; gap: 11px; margin-top: 18px; padding: 15px 30px; border-radius: 14px; background: var(--brand-accent); color: #fff; font-weight: 600; font-size: .98rem; font-family: inherit; box-shadow: 0 14px 44px rgba(var(--brand-accent-rgb),.5); transition: transform .15s, background .2s; }
     .cine-enter-btn:hover { background: var(--brand-accent-dark, #c15f3c); transform: translateY(-2px); }
     .cine-enter-btn svg { width: 18px; height: 18px; fill: #fff; }
@@ -690,8 +691,8 @@
       position: fixed; inset: 0; z-index: 1000;
       display: flex; align-items: center; justify-content: center;
       background:
-        radial-gradient(ellipse 60% 50% at 50% 40%, rgba(30, 36, 52, 0.65) 0%, transparent 65%),
-        radial-gradient(ellipse at center, rgba(20, 24, 32, 0.82) 0%, rgba(8, 10, 14, 0.96) 70%);
+        radial-gradient(ellipse 60% 50% at 50% 40%, rgba(238,228,206, 0.65) 0%, transparent 65%),
+        radial-gradient(ellipse at center, rgba(245, 239, 226, 0.90) 0%, rgba(236, 226, 206, 0.97) 70%);
       -webkit-backdrop-filter: blur(22px) saturate(130%);
               backdrop-filter: blur(22px) saturate(130%);
       transition: opacity .55s cubic-bezier(.22,.61,.36,1), visibility .55s ease;
@@ -727,16 +728,16 @@
       gap: 26px;
       padding: 48px 56px 40px;
       min-width: 340px; max-width: min(92vw, 520px);
-      background: rgba(14, 16, 22, 0.42);
+      background: rgba(255,250,242,0.55);
       -webkit-backdrop-filter: blur(28px) saturate(160%);
               backdrop-filter: blur(28px) saturate(160%);
-      border: 1px solid rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(70,58,45,0.14);
       border-radius: 24px;
       box-shadow:
-        0 40px 90px rgba(0, 0, 0, 0.60),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 40px 90px rgba(60,45,25,0.24),
+        inset 0 1px 0 rgba(255,255,255,0.6),
         0 0 60px rgba(var(--brand-accent-rgb), 0.08);
-      color: #fff;
+      color: #2e2a24;
       animation: loadingCardIn .7s cubic-bezier(.22,.61,.36,1);
     }
     @keyframes loadingCardIn{
@@ -790,7 +791,7 @@
       font-size: 1.75rem;
       line-height: 1.15;
       letter-spacing: -0.015em;
-      color: #fff;
+      color: #2e2a24;
       margin: 0;
       max-width: 100%;
     }
@@ -804,14 +805,14 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       font-weight: 400;
       font-size: 0.95rem;
-      color: rgba(255, 255, 255, 0.72);
+      color: rgba(46,42,36,0.72);
       letter-spacing: 0.01em;
       max-width: 100%;
     }
     .story-sub .dot{
       display: inline-block;
       margin: 0 8px;
-      color: rgba(255,255,255,0.35);
+      color: rgba(46,42,36,0.35);
     }
 
     /* Icône décorative (soleil, boussole, étoile pour points forts) */
@@ -838,7 +839,7 @@
     /* BARRE PROGRESSION — fine ligne lumineuse avec dégradé accent */
     .progress{
       width: 280px; max-width: 70vw; height: 2px;
-      background: rgba(255,255,255,0.08);
+      background: rgba(46,42,36,0.10);
       border-radius: 999px;
       overflow: hidden;
       position: relative;
@@ -855,7 +856,7 @@
       transition: width 0.4s cubic-bezier(.22,.61,.36,1);
       animation: progressShimmer 2.2s linear infinite;
       box-shadow: 0 0 12px rgba(var(--brand-accent-rgb), 0.55),
-                  0 0 4px rgba(255, 255, 255, 0.35);
+                  0 0 4px rgba(255, 255, 255, 0.7);
     }
     @keyframes progressShimmer{
       from{ background-position: 0% 0; }
@@ -867,7 +868,7 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       font-weight: 400;
       font-size: 0.78rem;
-      color: rgba(255, 255, 255, 0.45);
+      color: rgba(46,42,36,0.50);
       letter-spacing: 0.02em;
       margin-top: -6px;
       text-align: center;
@@ -893,17 +894,17 @@
       margin: 0;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       font-weight: 500; font-size: 0.95rem;
-      color: rgba(255, 255, 255, 0.92);
+      color: rgba(46,42,36,0.90);
       letter-spacing: 0.005em;
       text-align: center;
     }
-    /* Fond global : neutre très sombre au boot pour éviter tout flash de couleur
+    /* Fond global : crème clair au boot pour éviter tout flash de couleur
        (avant que la scène 3D ne prenne le relais). Compatible avec toutes les
        chartes agence — le brand-navy garde son rôle dans les composants marqués. */
     html, body{ background:
-      radial-gradient(ellipse 55% 45% at 62% 55%, rgba(28,32,52,0.55) 0%, transparent 70%),
-      radial-gradient(ellipse 35% 28% at 22% 72%, rgba(18,22,38,0.40) 0%, transparent 60%),
-      radial-gradient(ellipse 100% 80% at 38% 28%, #12141b 0%, #0b0c10 50%, #070708 100%);
+      radial-gradient(ellipse 55% 45% at 62% 55%, rgba(232,220,196,0.55) 0%, transparent 70%),
+      radial-gradient(ellipse 35% 28% at 22% 72%, rgba(238,228,206,0.40) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 80% at 38% 28%, #f5efe2 0%, #ece2ce 50%, #e3d6bc 100%);
     }
     .hidden { display: none !important; }
     
@@ -921,24 +922,24 @@
     .panel-header{
       display: flex; align-items: center; gap: 10px;
       padding-bottom: 14px; margin-bottom: 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(70,58,45,0.12);
     }
     .panel-header .ph-title{
       flex: 1; min-width: 0;
       font-family: 'Fraunces', Georgia, serif; font-weight: 500;
-      font-size: 1.15rem; color: #fff; letter-spacing: -0.005em;
+      font-size: 1.15rem; color: #2e2a24; letter-spacing: -0.005em;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .panel-back{
       flex: 0 0 auto; height: 30px; padding: 0 12px 0 9px;
       display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 999px; color: rgba(255,255,255,0.88);
+      background: rgba(46,42,36,0.05); border: 1px solid rgba(70,58,45,0.14);
+      border-radius: 999px; color: rgba(46,42,36,0.80);
       font-family: inherit; font-size: 0.78rem; font-weight: 600;
       cursor: pointer; transition: background .18s ease, border-color .18s ease;
     }
     .panel-back svg{ width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.2; fill: none; }
-    .panel-back:hover{ background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.20); }
+    .panel-back:hover{ background: rgba(46,42,36,0.10); border-color: rgba(70,58,45,0.22); }
     .panel-back .pb-lbl{ line-height: 1; }
     @media (max-width: 900px){
       .panel-back .pb-lbl{ display: none; }
@@ -947,12 +948,12 @@
     .panel-close{
       flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);
-      color: rgba(255,255,255,0.85); cursor: pointer;
+      background: rgba(46,42,36,0.05); border: 1px solid rgba(70,58,45,0.14);
+      color: rgba(46,42,36,0.78); cursor: pointer;
       font-size: 0.9rem; line-height: 1;
       transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
-    .panel-close:hover{ background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.20); color: #fff; }
+    .panel-close:hover{ background: rgba(46,42,36,0.12); border-color: rgba(70,58,45,0.22); color: #2e2a24; }
 
     /* NOTE : CSS vestige .fp-poi-btn, .fp-poi-grid, .fp-back-btn retiré —
        le rendu unifié V2.1+ utilise .pl-room (grille pièces) et .pl-back-pill (retour). */
@@ -964,11 +965,11 @@
       bottom: 1.2rem;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(16, 18, 24, 0.88);
+      background: rgba(255,250,242,0.88);
       -webkit-backdrop-filter: blur(20px) saturate(150%);
               backdrop-filter: blur(20px) saturate(150%);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(70,58,45,0.16);
+      color: rgba(46,42,36,0.90);
       padding: 0.65rem 1.4rem;
       border-radius: 12px;
       font-size: 0.85rem;
@@ -978,8 +979,8 @@
       opacity: 0;
       transition: opacity 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
       z-index: 150;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 32px rgba(60,45,25,0.22),
+                  inset 0 1px 0 rgba(255,255,255,0.5);
       line-height: 1.5;
     }
     .fp-look-hint.show { opacity: 1; }
@@ -1368,18 +1369,19 @@
       .lightbox-nav { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
     }
 
-    /* ===== MARQUEURS POV (overlay SVG — pin glass frosted minimaliste)
-       Pin en forme de goutte inspiré des icônes Apple-style : verre dépoli
-       blanc dominant, très légère teinte agence en fond, TROU rond au
-       centre (obtenu via fill-rule:evenodd — c'est un vrai vide, pas un
-       remplissage). Aucun contour extérieur. Ombre douce au sol.
+    /* ===== MARQUEURS POV (overlay SVG — anneau de verre, style unifié viewer)
+       Anneau (ring) en verre sombre opaque, aux mêmes tokens que le reste de
+       l'interface (--glass-bg-strong / --glass-brd, cf. section glass plus
+       bas). TROU large et parfaitement centré (obtenu par un simple cercle
+       stroke — le centre est un vrai vide, on voit la scène au travers).
+       Aucune icône, aucune ombre au sol : juste l'anneau, discret et net.
 
        Empilement des transforms (pour éviter les conflits) :
          <g class="poi-mark">    ← translate JS (projection 3D→2D)
            rect.pm-hit           ← zone de clic fixe (hors anims)
            <g class="pm-hover">  ← scale au hover
              <g class="pm-bob">  ← animation bob infinie
-               shadow + tint + frost + glint + rim
+               ring-base + ring-tint + edge-out + edge-in + glint
            <g class="pm-tt">     ← infobulle (apparaît au hover) */
     #poi-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:5; }
     .poi-mark { pointer-events:auto; cursor:pointer; }
@@ -1388,12 +1390,13 @@
     .poi-mark .pm-hover { transition: transform .18s ease; }
     .poi-mark .pm-bob   { animation: pinBob 3.6s ease-in-out infinite; }
 
-    /* Couches du pin */
-    .poi-mark .pm-shadow { fill: rgba(0,0,0,0.28); }
-    .poi-mark .pm-tint   { fill: currentColor; opacity: 0.18; transition: opacity .2s ease; }  /* teinte agence subtile */
-    .poi-mark .pm-frost  { fill: rgba(255,255,255,0.42); }                                     /* verre dépoli blanc */
-    .poi-mark .pm-glint  { fill: rgba(255,255,255,0.38); }                                     /* petit reflet doux */
-    .poi-mark .pm-rim    { fill: none; stroke: rgba(255,255,255,0.55); stroke-width: 0.7; stroke-linecap: round; opacity: 0.7; } /* arc lumineux discret */
+    /* Couches de l'anneau — mêmes teintes que les panneaux verre du viewer */
+    .poi-mark .pm-ring-base { fill: none; stroke: rgba(14,16,20,0.88); stroke-width: 5; }                 /* verre sombre opaque */
+    .poi-mark .pm-ring-tint { fill: none; stroke: currentColor; stroke-width: 5; opacity: 0.24; transition: opacity .2s ease; } /* teinte agence */
+    .poi-mark .pm-edge-out  { fill: none; stroke: rgba(255,255,255,0.22); stroke-width: 0.8; }            /* liseré extérieur */
+    .poi-mark .pm-edge-in   { fill: none; stroke: rgba(255,255,255,0.16); stroke-width: 0.8; }            /* liseré du trou */
+    .poi-mark .pm-glint     { fill: none; stroke: rgba(255,255,255,0.4); stroke-width: 1.4; stroke-linecap: round; }
+    .poi-mark .pm-spinner   { fill: none; stroke: rgba(255,255,255,0); stroke-width: 1.2; stroke-dasharray: 2, 3; opacity: 0; } /* trait blanc animé (hover) */
 
     /* Infobulle — masquée au repos, apparaît au hover */
     .poi-mark .pm-tt {
@@ -1417,15 +1420,21 @@
       dominant-baseline: middle;
     }
 
-    /* Hover : scale léger, teinte agence renforcée, tooltip visible */
-    .poi-mark:hover .pm-hover { transform: scale(1.1); }
-    .poi-mark:hover .pm-tint  { opacity: 0.32; }
-    .poi-mark:hover .pm-tt    { opacity: 1; transform: translateY(0); }
-    .poi-mark:active .pm-hover{ transform: scale(1.16); transition-duration: .09s; }
+    /* Hover : scale augmenté, teinte agence renforcée, spinner blanc qui tourne, tooltip visible */
+    .poi-mark:hover .pm-hover    { transform: scale(1.18); }
+    .poi-mark:hover .pm-ring-tint{ opacity: 0.4; }
+    .poi-mark:hover .pm-spinner  { stroke: rgba(255,255,255,0.8); opacity: 1; animation: spinRing 1.2s linear infinite; }
+    .poi-mark:hover .pm-tt       { opacity: 1; transform: translateY(0); }
+    .poi-mark:active .pm-hover   { transform: scale(1.24); transition-duration: .09s; }
 
     @keyframes pinBob {
       0%, 100% { transform: translateY(0); }
       50%      { transform: translateY(-3px); }
+    }
+
+    @keyframes spinRing {
+      from { stroke-dashoffset: 0; }
+      to   { stroke-dashoffset: 44; }
     }
     @media (prefers-reduced-motion: reduce) {
       .poi-mark .pm-bob { animation: none; }
@@ -1443,12 +1452,12 @@
 
     /* Tokens communs de la matière verre (pilules flottantes) */
     :root{
-      --glass-bg: rgba(16,18,22,0.78);
-      --glass-bg-strong: rgba(14,16,20,0.90);
-      --glass-brd: rgba(255,255,255,0.12);
+      --glass-bg: rgba(255,252,246,0.70);
+      --glass-bg-strong: rgba(255,250,242,0.88);
+      --glass-brd: rgba(70,58,45,0.14);
       --glass-blur: 20px;
       --glass-radius: 18px;
-      --glass-shadow: 0 10px 40px rgba(0,0,0,0.35);
+      --glass-shadow: 0 10px 36px rgba(60,45,25,0.16);
     }
 
     /* Rotation lente de la lueur de bordure (2 éclats opposés au repos) */
@@ -1470,7 +1479,7 @@
       display: inline-flex; align-items: center; gap: 10px;
       background: var(--glass-bg-strong);
       -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
-      color: #fff; font-family: inherit; font-weight: 600;
+      color: #2e2a24; font-family: inherit; font-weight: 600;
       border: 1px solid var(--glass-brd);
       border-radius: 999px;
       cursor: pointer; pointer-events: auto;
@@ -1533,14 +1542,14 @@
       top: 0; bottom: 0; margin: auto 0; height: fit-content;
       z-index: 40; display: flex; flex-direction: column; align-items: center;
       gap: 6px; padding: 10px 8px;
-      background: rgba(16,18,22,0.58);
+      background: rgba(255,250,242,0.62);
       -webkit-backdrop-filter: blur(22px) saturate(140%); backdrop-filter: blur(22px) saturate(140%);
       border: 1px solid var(--glass-brd);
       border-radius: 999px;
       box-shadow:
-        0 20px 60px rgba(0,0,0,0.65),
-        0 4px 16px rgba(0,0,0,0.40),
-        inset 0 1px 0 rgba(255,255,255,0.12);
+        0 20px 60px rgba(60,45,25,0.22),
+        0 4px 16px rgba(60,45,25,0.14),
+        inset 0 1px 0 rgba(255,255,255,0.6);
       pointer-events: auto;
       isolation: isolate;
     }
@@ -1566,17 +1575,17 @@
       position: relative; display: flex; align-items: center; justify-content: center;
       width: 46px; height: 46px; padding: 0;
       background: transparent; border: 1px solid transparent; border-radius: 50%;
-      color: #fff; cursor: pointer; pointer-events: auto;
+      color: #2e2a24; cursor: pointer; pointer-events: auto;
       transition: background .2s ease, border-color .2s ease, box-shadow .25s ease;
       -webkit-tap-highlight-color: transparent;
     }
     .rail-btn:hover{
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.14);
+      background: rgba(46,42,36,0.06);
+      border-color: rgba(70,58,45,0.16);
       box-shadow:
-        0 0 0 1px rgba(255,255,255,0.05),
+        0 0 0 1px rgba(46,42,36,0.05),
         0 0 14px rgba(var(--brand-accent-rgb),0.22),
-        inset 0 1px 0 rgba(255,255,255,0.08);
+        inset 0 1px 0 rgba(255,255,255,0.5);
     }
     .rail-btn svg{ width: 22px; height: 22px; display: block; stroke: currentColor; fill: none; stroke-width: 1.5; }
     .rail-btn .btn-icon{ display: inline-flex; width: 22px; height: 22px; }
@@ -1599,7 +1608,7 @@
       background: var(--glass-bg-strong);
       -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
       border: 1px solid var(--glass-brd);
-      color: #fff; font-size: 0.78rem; font-weight: 600; font-family: inherit;
+      color: #2e2a24; font-size: 0.78rem; font-weight: 600; font-family: inherit;
       padding: 6px 10px; border-radius: 10px;
       opacity: 0; pointer-events: none; transition: opacity .16s ease;
       box-shadow: var(--glass-shadow); z-index: 2;
@@ -1620,9 +1629,9 @@
       border: 1px solid var(--glass-brd);
       border-radius: 999px;
       box-shadow:
-        0 20px 60px rgba(0,0,0,0.55),
-        0 4px 16px rgba(0,0,0,0.35),
-        inset 0 1px 0 rgba(255,255,255,0.11);
+        0 20px 60px rgba(60,45,25,0.18),
+        0 4px 16px rgba(60,45,25,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.55);
       pointer-events: auto;
       isolation: isolate;
     }
@@ -1653,7 +1662,7 @@
     .tour-topbar .tp-name{
       position: relative; z-index: 1;
       font-family: 'Fraunces', Georgia, serif; font-weight: 400;
-      font-size: 1.02rem; letter-spacing: -0.01em; color: rgba(255,255,255,0.90); line-height: 1;
+      font-size: 1.02rem; letter-spacing: -0.01em; color: rgba(46,42,36,0.90); line-height: 1;
       white-space: nowrap; max-width: 46vw; overflow: hidden; text-overflow: ellipsis;
       pointer-events: none;
     }
@@ -1662,14 +1671,14 @@
       flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
       display: inline-flex; align-items: center; justify-content: center;
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.20);
-      color: rgba(255,255,255,0.55);
+      border: 1px solid rgba(70,58,45,0.24);
+      color: rgba(46,42,36,0.60);
       font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 500;
       font-size: 0.82rem; cursor: pointer; pointer-events: auto;
       transition: color .22s ease, border-color .25s ease, box-shadow .25s ease, background .22s ease;
     }
     .info-dot:hover{
-      color: #fff;
+      color: #2e2a24;
       border-color: rgba(var(--brand-accent-rgb),0.75);
       background: rgba(var(--brand-accent-rgb),0.08);
       box-shadow:
@@ -1685,7 +1694,7 @@
        ----------------------------------------------------------------- */
     .rdv-overlay{
       position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center;
-      background: rgba(6, 8, 14, 0.55);
+      background: rgba(46,42,36,0.30);
       -webkit-backdrop-filter: blur(14px) saturate(120%); backdrop-filter: blur(14px) saturate(120%);
       opacity: 0; visibility: hidden; transition: opacity .3s ease, visibility .3s ease;
       pointer-events: none;
@@ -1694,36 +1703,36 @@
     .rdv-card{
       position: relative;
       width: min(92vw, 460px);
-      background: rgba(14, 16, 22, 0.55);
+      background: rgba(255,250,242,0.90);
       -webkit-backdrop-filter: blur(34px) saturate(140%); backdrop-filter: blur(34px) saturate(140%);
-      border: 1px solid rgba(255,255,255,0.10);
+      border: 1px solid rgba(70,58,45,0.14);
       border-radius: 22px; padding: 26px 26px 24px;
-      box-shadow: 0 30px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+      box-shadow: 0 30px 70px rgba(60,45,25,0.28), inset 0 1px 0 rgba(255,255,255,0.6);
       transform: translateY(10px) scale(.98); transition: transform .3s cubic-bezier(.22,.61,.36,1);
-      color: #fff;
+      color: #2e2a24;
     }
     .rdv-overlay.open .rdv-card{ transform: none; }
     .rdv-card h3{ font-family:'Fraunces',Georgia,serif; font-weight:500; font-size:1.5rem; margin:0 0 4px; letter-spacing:-0.01em; }
-    .rdv-card .rdv-sub{ font-size:.86rem; color:rgba(255,255,255,.7); margin-bottom:18px; }
+    .rdv-card .rdv-sub{ font-size:.86rem; color:rgba(46,42,36,.68); margin-bottom:18px; }
     .rdv-row{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
     .rdv-row .rdv-field{ margin-bottom: 0; }
     .rdv-field{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
-    .rdv-field label{ font-size:.74rem; letter-spacing:.04em; text-transform:uppercase; color:rgba(255,255,255,.6); }
-    .rdv-optional{ text-transform: none; letter-spacing: 0; color: rgba(255,255,255,0.35); font-weight: 400; margin-left: 4px; }
+    .rdv-field label{ font-size:.74rem; letter-spacing:.04em; text-transform:uppercase; color:rgba(46,42,36,.6); }
+    .rdv-optional{ text-transform: none; letter-spacing: 0; color: rgba(46,42,36,0.38); font-weight: 400; margin-left: 4px; }
     .rdv-field input, .rdv-field textarea{
-      width:100%; font-family:inherit; font-size:.92rem; color:#fff;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.10);
+      width:100%; font-family:inherit; font-size:.92rem; color:#2e2a24;
+      background: rgba(46,42,36,0.035);
+      border: 1px solid rgba(70,58,45,0.16);
       border-radius: 12px; padding: 11px 13px; outline: none;
       box-sizing: border-box;
       transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
     }
-    .rdv-field input::placeholder, .rdv-field textarea::placeholder{ color: rgba(255,255,255,0.30); }
-    .rdv-field input:hover, .rdv-field textarea:hover{ background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.16); }
+    .rdv-field input::placeholder, .rdv-field textarea::placeholder{ color: rgba(46,42,36,0.32); }
+    .rdv-field input:hover, .rdv-field textarea:hover{ background: rgba(46,42,36,0.06); border-color: rgba(70,58,45,0.24); }
     .rdv-field input:focus, .rdv-field textarea:focus{
       border-color: rgba(var(--brand-accent-rgb),0.7);
       box-shadow: 0 0 0 3px rgba(var(--brand-accent-rgb),0.18);
-      background: rgba(255,255,255,0.06);
+      background: rgba(46,42,36,0.045);
     }
     .rdv-field textarea{ resize: vertical; min-height: 74px; }
     .rdv-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
@@ -1731,11 +1740,11 @@
     .rdv-close{
       position:absolute; top:14px; right:14px; width:32px; height:32px; border-radius:50%;
       display:flex; align-items:center; justify-content:center;
-      background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);
-      color:rgba(255,255,255,0.85); cursor:pointer; font-size:1rem; line-height:1;
+      background: rgba(46,42,36,0.05); border:1px solid rgba(70,58,45,0.14);
+      color:rgba(46,42,36,0.75); cursor:pointer; font-size:1rem; line-height:1;
       transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
-    .rdv-close:hover{ background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.20); color:#fff; }
+    .rdv-close:hover{ background: rgba(46,42,36,0.10); border-color: rgba(70,58,45,0.22); color:#2e2a24; }
     @media (max-width: 520px){ .rdv-row{ grid-template-columns: 1fr; gap: 0; } }
 
     /* Panneau contextuel "infos du bien" ouvert par le "i" */
@@ -1744,7 +1753,7 @@
        le referme. Pas de conditionnels JS, pas de listeners fragiles. */
     .bien-info-scrim{
       position: fixed; inset: 0; z-index: 1249;
-      background: rgba(0,0,0,0.45);
+      background: rgba(46,42,36,0.28);
       opacity: 0; visibility: hidden; pointer-events: none;
       transition: opacity .22s ease, visibility .22s ease;
       cursor: pointer;
@@ -1761,21 +1770,21 @@
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,0.14) transparent;
-      background: rgba(14, 16, 22, 0.88);
+      scrollbar-color: rgba(70,58,45,0.20) transparent;
+      background: rgba(255,250,242,0.92);
       -webkit-backdrop-filter: blur(32px) saturate(140%);
               backdrop-filter: blur(32px) saturate(140%);
-      border: 1px solid rgba(255,255,255,0.10);
+      border: 1px solid rgba(70,58,45,0.14);
       border-radius: 20px; padding: 0;
-      box-shadow: 0 30px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
-      color: #fff;
+      box-shadow: 0 30px 70px rgba(60,45,25,0.26), inset 0 1px 0 rgba(255,255,255,0.6);
+      color: #2e2a24;
       opacity: 0; visibility: hidden; transform: translateY(-8px);
       transition: opacity .28s ease, visibility .28s ease, transform .28s cubic-bezier(.22,.61,.36,1);
       pointer-events: none;
     }
     .bien-info::-webkit-scrollbar{ width: 5px; }
     .bien-info::-webkit-scrollbar-track{ background: transparent; }
-    .bien-info::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.12); border-radius: 999px; }
+    .bien-info::-webkit-scrollbar-thumb{ background: rgba(70,58,45,0.18); border-radius: 999px; }
     .bien-info.open{ opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
     /* ── En-tête titre + localisation ── */
     .bi-header{
@@ -1787,14 +1796,14 @@
       margin: 0; padding-right: 32px;
     }
     .bi-location{
-      font-size: 0.78rem; color: rgba(255,255,255,0.55);
+      font-size: 0.78rem; color: rgba(46,42,36,0.60);
       letter-spacing: 0.03em; margin: 0;
     }
     /* ── Prix ── */
     .bi-price{
       margin: 14px 20px 0; padding: 12px 14px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(46,42,36,0.035);
+      border: 1px solid rgba(70,58,45,0.12);
       border-radius: 12px;
       font-family: 'Fraunces', Georgia, serif; font-weight: 500;
       font-size: 1.45rem; letter-spacing: -0.015em;
@@ -1804,34 +1813,34 @@
       display: block; font-family: 'Inter', sans-serif;
       font-size: 0.65rem; font-weight: 600;
       letter-spacing: 0.08em; text-transform: uppercase;
-      color: rgba(255,255,255,0.45); margin-bottom: 2px;
+      color: rgba(46,42,36,0.50); margin-bottom: 2px;
     }
     /* ── Grille chiffres clés ── */
     .bi-stats{
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
       margin: 14px 20px 0;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(70,58,45,0.12);
       border-radius: 12px; overflow: hidden;
     }
     .bi-stat{
       display: flex; flex-direction: column; align-items: center;
       padding: 11px 6px; gap: 3px;
-      border-right: 1px solid rgba(255,255,255,0.06);
+      border-right: 1px solid rgba(70,58,45,0.10);
     }
     .bi-stat:last-child{ border-right: none; }
     .bi-stat-val{ font-size: 1.1rem; font-weight: 700; }
     .bi-stat-lbl{
       font-size: 0.62rem; font-weight: 600;
       letter-spacing: 0.06em; text-transform: uppercase;
-      color: rgba(255,255,255,0.45);
+      color: rgba(46,42,36,0.50);
     }
     /* ── Section séparateur ── */
-    .bi-sep{ height: 1px; margin: 14px 20px; background: rgba(255,255,255,0.07); }
+    .bi-sep{ height: 1px; margin: 14px 20px; background: rgba(70,58,45,0.12); }
     .bi-section-title{
       padding: 0 20px; margin: 0 0 8px;
       font-size: 0.68rem; font-weight: 600;
       letter-spacing: 0.08em; text-transform: uppercase;
-      color: rgba(255,255,255,0.45);
+      color: rgba(46,42,36,0.50);
     }
     /* ── DPE badge ── */
     .bi-dpe-row{
@@ -1851,7 +1860,7 @@
     .bi-dpe-badge[data-dpe="E"]{ background: #eba834; }
     .bi-dpe-badge[data-dpe="F"]{ background: #e57830; }
     .bi-dpe-badge[data-dpe="G"]{ background: #d6302f; }
-    .bi-dpe-label{ font-size: 0.82rem; color: rgba(255,255,255,0.72); }
+    .bi-dpe-label{ font-size: 0.82rem; color: rgba(46,42,36,0.72); }
     /* ── GES (Gaz à Effet de Serre) - pendant du DPE ── */
     .bi-ges-badge{
       display: inline-flex; align-items: center; justify-content: center;
@@ -1870,7 +1879,7 @@
     .bi-description{
       padding: 0 20px; margin: 4px 0 0;
       font-size: 0.85rem; line-height: 1.5;
-      color: rgba(255,255,255,0.72);
+      color: rgba(46,42,36,0.72);
       font-style: italic;
     }
     /* ── Badges annexes (cave, parking, ascenseur...) ── */
@@ -1881,10 +1890,10 @@
     .bi-badge{
       display: inline-flex; align-items: center; gap: 6px;
       padding: 5px 10px; border-radius: 999px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(46,42,36,0.05);
+      border: 1px solid rgba(70,58,45,0.12);
       font-size: 0.72rem; font-weight: 500;
-      color: rgba(255,255,255,0.82);
+      color: rgba(46,42,36,0.80);
     }
     .bi-badge svg{ width: 12px; height: 12px; }
     /* ── Lignes info clé/valeur ── */
@@ -1896,27 +1905,27 @@
       display: flex; justify-content: space-between; align-items: center; gap: 20px;
     }
     .bi-info-label{
-      font-size: 0.75rem; color: rgba(255,255,255,0.55);
+      font-size: 0.75rem; color: rgba(46,42,36,0.55);
       letter-spacing: 0.02em; text-transform: uppercase; font-weight: 500;
     }
     .bi-info-val{
       font-size: 0.82rem; font-weight: 700; text-align: right;
-      color: #ffffff;
+      color: #2e2a24;
     }
     /* ── Référence en tête ── */
     .bi-ref{
       display: block; margin-top: 12px; margin-bottom: 8px;
       padding: 10px 14px; border-radius: 8px;
-      background: rgba(255,255,255,0.06);
+      background: rgba(46,42,36,0.05);
       letter-spacing: 0.05em;
     }
     .bi-ref-label{
-      display: block; font-size: 0.7rem; color: rgba(255,255,255,0.50);
+      display: block; font-size: 0.7rem; color: rgba(46,42,36,0.50);
       text-transform: uppercase; font-weight: 500;
       margin-bottom: 6px;
     }
     .bi-ref-val{
-      display: block; font-size: 0.85rem; color: #ffffff; font-weight: 600;
+      display: block; font-size: 0.85rem; color: #2e2a24; font-weight: 600;
     }
     /* ── Honoraires bloc ── */
     .bi-honoraires{
@@ -1931,13 +1940,13 @@
       display: block; margin-bottom: 4px;
       font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
     }
-    .bi-honoraires-val{ color: rgba(255,255,255,0.92); font-weight: 600; }
-    .bi-honoraires-charge{ color: rgba(255,255,255,0.55); font-size: 0.7rem; margin-top: 2px; display: block; }
+    .bi-honoraires-val{ color: rgba(46,42,36,0.90); font-weight: 600; }
+    .bi-honoraires-charge{ color: rgba(46,42,36,0.55); font-size: 0.7rem; margin-top: 2px; display: block; }
     /* ── Contact agent ── */
     .bi-agent-block{
       margin: 4px 20px 0; padding: 12px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(46,42,36,0.035);
+      border: 1px solid rgba(70,58,45,0.12);
       border-radius: 12px;
     }
     .bi-agent-photo{
@@ -1946,30 +1955,30 @@
     }
     .bi-agent-row{ display: flex; align-items: center; gap: 12px; }
     .bi-agent-info{ display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-    .bi-agent-name-lg{ font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.92); }
-    .bi-agent-role{ font-size: 0.72rem; color: rgba(255,255,255,0.55); }
+    .bi-agent-name-lg{ font-size: 0.9rem; font-weight: 600; color: rgba(46,42,36,0.90); }
+    .bi-agent-role{ font-size: 0.72rem; color: rgba(46,42,36,0.55); }
     .bi-agent-contact{
       display: inline-flex; padding: 7px 10px; border-radius: 8px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
-      color: #ffffff !important; text-decoration: none;
+      background: rgba(46,42,36,0.055); border: 1px solid rgba(70,58,45,0.12);
+      color: #2e2a24 !important; text-decoration: none;
       font-size: 0.75rem; text-align: center; font-weight: 500;
       transition: background .18s ease; margin-top: 6px; margin-right: 8px;
     }
-    .bi-agent-contact:hover{ background: rgba(255,255,255,0.10); }
+    .bi-agent-contact:hover{ background: rgba(46,42,36,0.10); }
     .bi-agent-contact a{
       flex: 1; padding: 7px 8px; border-radius: 8px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
-      color: #ffffff !important; text-decoration: none;
+      background: rgba(46,42,36,0.055); border: 1px solid rgba(70,58,45,0.12);
+      color: #2e2a24 !important; text-decoration: none;
       font-size: 0.75rem; text-align: center; font-weight: 500;
       transition: background .18s ease;
     }
-    .bi-agent-contact a:hover{ background: rgba(255,255,255,0.10); }
+    .bi-agent-contact a:hover{ background: rgba(46,42,36,0.10); }
     /* ── Lignes financières ── */
     .bi-finance{
       display: grid; grid-template-columns: 1fr auto; gap: 6px 14px;
       padding: 0 20px;
     }
-    .bi-fin-label{ font-size: 0.82rem; color: rgba(255,255,255,0.60); }
+    .bi-fin-label{ font-size: 0.82rem; color: rgba(46,42,36,0.65); }
     .bi-fin-val{ font-size: 0.82rem; font-weight: 600; text-align: right; }
     /* ── Points forts (puces) ── */
     .bi-highlights{
@@ -1979,23 +1988,23 @@
     .bi-highlights li{
       position: relative; padding-left: 16px;
       font-size: 0.84rem; line-height: 1.45;
-      color: rgba(255,255,255,0.82);
+      color: rgba(46,42,36,0.80);
     }
     .bi-highlights li::before{
       content: ''; position: absolute; left: 0; top: 7px;
       width: 6px; height: 6px; border-radius: 50%;
-      background: var(--brand-accent, rgba(255,255,255,0.45));
+      background: var(--brand-accent, rgba(46,42,36,0.45));
     }
     /* ── CTA Agence + RDV ── */
     .bi-cta{
       margin: 0 20px; padding: 14px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(46,42,36,0.03);
+      border: 1px solid rgba(70,58,45,0.10);
       border-radius: 14px;
       display: flex; flex-direction: column; align-items: center; gap: 10px;
     }
     .bi-agent-name{
-      font-size: 0.78rem; color: rgba(255,255,255,0.55);
+      font-size: 0.78rem; color: rgba(46,42,36,0.55);
       letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600;
     }
     .bi-rdv-btn{
@@ -2004,7 +2013,7 @@
       border-radius: 11px;
       border: 1px solid rgba(var(--brand-accent-rgb), 0.5);
       background: rgba(var(--brand-accent-rgb), 0.15);
-      color: #fff; font-weight: 600; font-size: 0.88rem;
+      color: var(--brand-accent-dark, var(--brand-accent)); font-weight: 700; font-size: 0.88rem;
       font-family: inherit; cursor: pointer;
       transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
     }
@@ -2019,19 +2028,19 @@
     .bien-info-close{
       display: flex; align-items: center; justify-content: center;
       width: 100%; padding: 9px 14px;
-      border-radius: 10px; border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.04);
-      color: rgba(255,255,255,0.75);
+      border-radius: 10px; border: 1px solid rgba(70,58,45,0.14);
+      background: rgba(46,42,36,0.04);
+      color: rgba(46,42,36,0.70);
       font-family: inherit; font-weight: 500; font-size: 0.78rem;
       cursor: pointer;
       transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
     .bien-info-close:hover{
-      background: rgba(255,255,255,0.09);
-      border-color: rgba(255,255,255,0.20);
-      color: #fff;
+      background: rgba(46,42,36,0.09);
+      border-color: rgba(70,58,45,0.22);
+      color: #2e2a24;
     }
-    .bien-info-empty{ font-size:.85rem; color:rgba(255,255,255,.6); padding: 20px; }
+    .bien-info-empty{ font-size:.85rem; color:rgba(46,42,36,.55); padding: 20px; }
 
     /* -----------------------------------------------------------------
        RE-SKIN des éléments existants vers la charte verre (pt.1/9)
@@ -2049,6 +2058,7 @@
       -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
       border: 1px solid var(--glass-brd);
       box-shadow: var(--glass-shadow) !important;
+      color: #2e2a24 !important;
     }
     .cine-guide:hover{
       background: var(--glass-bg-strong) !important;
@@ -2056,7 +2066,7 @@
       box-shadow: 0 0 20px rgba(var(--brand-accent-rgb),0.35), var(--glass-shadow) !important;
       transform: translateY(-1px);
     }
-    .cine-guide svg{ fill: #fff; }
+    .cine-guide svg{ fill: #2e2a24; }
 
     /* "Commencer la visite" (cover) → pilule verre lumineuse (pt.2)
        Spot lumineux tournant sur le contour, comme .lum-pill mais un peu plus present
@@ -2070,6 +2080,7 @@
       box-shadow: var(--glass-shadow) !important;
       overflow: visible; isolation: isolate;
       transition: box-shadow .3s ease, border-color .3s ease, transform .15s ease;
+      color: #2e2a24 !important;
     }
     .cine-enter-btn > *{ position: relative; z-index: 1; }
     /* Meme spot tournant que .lum-pill (JS anime --sweep-a) */
@@ -2111,17 +2122,17 @@
         rgba(var(--brand-accent-rgb),0.00) 360deg
       );
     }
-    .cine-enter-btn svg{ fill: #fff; }
+    .cine-enter-btn svg{ fill: #2e2a24; }
     /* Ecrin dark glassmorphism autour du bloc titre+bouton de la cover.
        Fond sombre translucide avec blur pour laisser deviner subtilement
        le degrade atmospherique de la page, sans montrer le viewer. */
     .cine-entry-in{
-      background: rgba(13,14,18,0.50);
+      background: rgba(255,250,242,0.55);
       -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-      border: 1px solid rgba(255,255,255,0.06);
+      border: 1px solid rgba(70,58,45,0.10);
       border-radius: 28px;
       padding: 44px 48px 40px;
-      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      box-shadow: 0 30px 80px rgba(60,45,25,0.16);
     }
 
     /* ==============================================================
@@ -2131,23 +2142,23 @@
        - Slide fluide depuis la droite (translateX 100% ↔ 0)
        ============================================================== */
     .poi-panel{
-      background: rgba(14, 16, 22, 0.52) !important;
+      background: rgba(255,250,242,0.82) !important;
       -webkit-backdrop-filter: blur(30px) saturate(140%) !important;
               backdrop-filter: blur(30px) saturate(140%) !important;
-      border-left: 1px solid rgba(255,255,255,0.08) !important;
-      box-shadow: -14px 0 44px rgba(0,0,0,0.55), inset 1px 0 0 rgba(255,255,255,0.02) !important;
+      border-left: 1px solid rgba(70,58,45,0.12) !important;
+      box-shadow: -14px 0 44px rgba(60,45,25,0.18), inset 1px 0 0 rgba(255,255,255,0.5) !important;
       transition: transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) !important;
     }
     .right-panel-container.reframing .poi-panel{
-      background: rgba(14,16,22,0.92) !important;
+      background: rgba(255,250,242,0.94) !important;
     }
     .toggle-panel-btn{
-      background: rgba(14,16,22,0.62) !important;
-      border: 1px solid rgba(255,255,255,0.08) !important;
+      background: rgba(255,250,242,0.72) !important;
+      border: 1px solid rgba(70,58,45,0.12) !important;
       border-right: none !important;
-      box-shadow: -3px 0 12px rgba(0,0,0,0.35) !important;
+      box-shadow: -3px 0 12px rgba(60,45,25,0.16) !important;
     }
-    .toggle-panel-btn:hover{ background: rgba(20,22,28,0.82) !important; }
+    .toggle-panel-btn:hover{ background: rgba(255,250,242,0.90) !important; }
 
     /* ==============================================================
        V2.1 — STRUCTURE INTERNE UNIFIÉE DU DRAWER
@@ -2170,9 +2181,9 @@
       border-radius: 14px;
       overflow: hidden;
       cursor: zoom-in;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 14px 34px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.20);
+      background: rgba(46,42,36,0.05);
+      border: 1px solid rgba(70,58,45,0.10);
+      box-shadow: 0 14px 34px rgba(60,45,25,0.22), 0 2px 6px rgba(60,45,25,0.12);
       isolation: isolate;
     }
     .pl-hero img{
@@ -2211,7 +2222,7 @@
     }
     /* DESCRIPTION */
     .pl-desc{
-      color: rgba(255,255,255,0.78);
+      color: rgba(46,42,36,0.75);
       font-size: 0.9rem; line-height: 1.6;
       margin: 0;
     }
@@ -2220,7 +2231,7 @@
       all: unset;
       display: flex; align-items: center; justify-content: space-between;
       width: 100%; cursor: pointer;
-      color: rgba(255,255,255,0.55);
+      color: rgba(46,42,36,0.55);
       font-size: 0.68rem; font-weight: 600;
       letter-spacing: 0.09em; text-transform: uppercase;
       margin: 0.35rem 0 0.55rem 0;
@@ -2228,8 +2239,8 @@
       border-radius: 6px;
       transition: color .18s ease, background .18s ease;
     }
-    .pl-section-lbl:hover{ color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.03); }
-    .pl-section-lbl:focus-visible{ outline: 1px solid rgba(255,255,255,0.25); outline-offset: 2px; }
+    .pl-section-lbl:hover{ color: rgba(46,42,36,0.85); background: rgba(46,42,36,0.04); }
+    .pl-section-lbl:focus-visible{ outline: 1px solid rgba(70,58,45,0.30); outline-offset: 2px; }
     .pl-section-lbl .pl-sec-chev{
       width: 12px; height: 12px; margin-left: 8px; opacity: 0.7;
       stroke: currentColor; stroke-width: 2.4; fill: none;
@@ -2249,24 +2260,24 @@
       display: flex; align-items: center; justify-content: flex-start;
       gap: 9px;
       padding: 11px 13px;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(70,58,45,0.12);
       border-radius: 12px;
-      background: rgba(255,255,255,0.035);
+      background: rgba(46,42,36,0.03);
       -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-      color: rgba(255,255,255,0.86);
+      color: rgba(46,42,36,0.82);
       font-size: 0.83rem; font-weight: 600;
       font-family: inherit; cursor: pointer; text-align: left;
       transition: background .22s ease, border-color .22s ease, transform .14s ease, box-shadow .22s ease;
     }
     .pl-room:hover{
-      background: rgba(255,255,255,0.08);
-      border-color: rgba(255,255,255,0.20);
+      background: rgba(46,42,36,0.07);
+      border-color: rgba(70,58,45,0.22);
       transform: translateY(-1px);
     }
     .pl-room:active{ transform: scale(0.98); }
     .pl-room .pl-dot{
       width: 7px; height: 7px; border-radius: 50%;
-      background: rgba(255,255,255,0.22);
+      background: rgba(46,42,36,0.22);
       flex: 0 0 auto;
       transition: background .22s ease, box-shadow .22s ease, transform .22s ease;
     }
@@ -2278,9 +2289,9 @@
     }
     /* ÉTAT ACTIF — pastille lumineuse (glow accent marque) + halo subtil sur le bouton */
     .pl-room.active{
-      background: rgba(255,255,255,0.09);
+      background: rgba(var(--brand-accent-rgb), 0.10);
       border-color: rgba(var(--brand-accent-rgb), 0.35);
-      color: #fff; cursor: default;
+      color: #2e2a24; cursor: default;
       box-shadow: inset 0 0 0 1px rgba(var(--brand-accent-rgb), 0.10),
                   0 0 22px -6px rgba(var(--brand-accent-rgb), 0.35);
     }
@@ -2300,26 +2311,26 @@
       opacity: 0; transition: opacity .22s ease;
     }
     .pl-room .pl-check svg{
-      width: 100%; height: 100%; stroke: rgba(255,255,255,0.55);
+      width: 100%; height: 100%; stroke: rgba(46,42,36,0.55);
       stroke-width: 2.6; fill: none;
     }
     .pl-room.visited .pl-check{ opacity: 1; }
 
-    /* BOUTON "REVENIR À LA VISITE" — pilule verre fumé en bas du drawer (mode POV actif) */
+    /* BOUTON "REVENIR À LA VISITE" — pilule verre clair en bas du drawer (mode POV actif) */
     .pl-back-pill{
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%; margin-top: 4px; padding: 11px 16px;
-      border-radius: 12px; border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.04);
+      border-radius: 12px; border: 1px solid rgba(70,58,45,0.14);
+      background: rgba(46,42,36,0.04);
       -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-      color: rgba(255,255,255,0.90);
+      color: rgba(46,42,36,0.85);
       font-weight: 600; font-size: 0.86rem; font-family: inherit;
       cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease;
     }
     .pl-back-pill:hover{
-      background: rgba(255,255,255,0.09);
-      border-color: rgba(255,255,255,0.20);
-      color: #fff;
+      background: rgba(46,42,36,0.09);
+      border-color: rgba(70,58,45,0.22);
+      color: #2e2a24;
     }
     .pl-back-pill svg{ width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.2; fill: none; }
 
@@ -2341,21 +2352,21 @@
       gap: 0.7rem;
       padding: 0.7rem 0.9rem;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.09);
-      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(70,58,45,0.12);
+      background: rgba(46,42,36,0.035);
       -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
     }
     .pov-switch-label {
       display: flex; align-items: center; gap: 0.5rem;
-      color: rgba(255,255,255,0.88); font-size: 0.86rem; font-weight: 600;
+      color: rgba(46,42,36,0.85); font-size: 0.86rem; font-weight: 600;
       min-width: 0;
     }
     .pov-switch-label svg {
       width: 16px; height: 16px; flex: 0 0 auto;
-      stroke: rgba(255,255,255,0.60); stroke-width: 1.8; fill: none;
+      stroke: rgba(46,42,36,0.60); stroke-width: 1.8; fill: none;
     }
     .pov-switch-label .room-status {
-      font-size: 0.72rem; font-weight: 400; color: rgba(255,255,255,0.40);
+      font-size: 0.72rem; font-weight: 400; color: rgba(46,42,36,0.45);
       margin-left: 0.3rem;
     }
 
@@ -2426,8 +2437,8 @@
         --m3-accent: var(--brand-accent, #d97757);
         --m3-accent-rgb: var(--brand-accent-rgb, 217,119,87);
         --m3-navy-rgb: var(--brand-navy-rgb, 45,45,45);
-        --m3-glass: rgba(16,18,22,0.55);
-        --m3-brd: rgba(255,255,255,0.14);
+        --m3-glass: rgba(255,250,242,0.70);
+        --m3-brd: rgba(70,58,45,0.16);
         --m3-safe-t: env(safe-area-inset-top, 0px);
         --m3-safe-b: env(safe-area-inset-bottom, 0px);
         --m3-safe-l: env(safe-area-inset-left, 0px);
@@ -2456,12 +2467,12 @@
       #m3-logo, #m3-title { display: none; }    /* pas de logo/titre en doublon */
       #m3-counter {
         display: inline-flex; align-items: center; gap: 6px;
-        font-size: 0.76rem; font-weight: 600; color: #fff;
-        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
-        border: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        font-size: 0.76rem; font-weight: 600; color: #2e2a24;
+        background: var(--glass-bg-strong, rgba(255,250,242,0.88));
+        border: 1px solid var(--glass-brd, rgba(70,58,45,0.14));
         padding: 6px 11px; border-radius: 999px;
         -webkit-backdrop-filter: blur(var(--glass-blur,20px)); backdrop-filter: blur(var(--glass-blur,20px));
-        box-shadow: var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+        box-shadow: var(--glass-shadow, 0 10px 36px rgba(60,45,25,0.16));
         pointer-events: auto;
       }
       #m3-counter svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
@@ -2476,25 +2487,25 @@
         top: 50%; transform: translateY(-50%);
         display: flex; flex-direction: column; gap: 8px;
         padding: 8px; border-radius: 18px;
-        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
+        background: var(--glass-bg-strong, rgba(255,250,242,0.88));
         -webkit-backdrop-filter: blur(var(--glass-blur,20px)) saturate(140%); backdrop-filter: blur(var(--glass-blur,20px)) saturate(140%);
-        border: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
-        box-shadow: var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+        border: 1px solid var(--glass-brd, rgba(70,58,45,0.14));
+        box-shadow: var(--glass-shadow, 0 10px 36px rgba(60,45,25,0.16));
       }
       .m3-tool {
         width: 44px; height: 44px;              /* cible tactile Apple HIG */
         display: flex; align-items: center; justify-content: center;
         background: transparent; border: 1px solid transparent; border-radius: 12px;
-        color: #fff; cursor: pointer; -webkit-tap-highlight-color: transparent;
+        color: #2e2a24; cursor: pointer; -webkit-tap-highlight-color: transparent;
         transition: background .18s ease, border-color .18s ease, transform .12s ease;
         position: relative;
       }
       .m3-tool svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-      .m3-tool:active { transform: scale(0.92); background: rgba(255,255,255,0.08); }
+      .m3-tool:active { transform: scale(0.92); background: rgba(46,42,36,0.08); }
       .m3-tool.active {
         background: rgba(var(--m3-accent-rgb),0.20);
         border-color: rgba(var(--m3-accent-rgb),0.55);
-        color: #fff;
+        color: #2e2a24;
       }
       .m3-tool.active::after {
         content: ''; position: absolute; right: 4px; top: 4px;
@@ -2508,9 +2519,9 @@
         position: fixed; left: 0; right: 0; bottom: 0;
         display: flex; align-items: center; gap: 10px;
         padding: 10px 14px calc(10px + var(--m3-safe-b));
-        background: var(--glass-bg, rgba(16,18,22,0.78));
+        background: var(--glass-bg, rgba(255,252,246,0.70));
         -webkit-backdrop-filter: blur(var(--glass-blur,20px)) saturate(150%); backdrop-filter: blur(var(--glass-blur,20px)) saturate(150%);
-        border-top: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        border-top: 1px solid var(--glass-brd, rgba(70,58,45,0.14));
         box-shadow: 0 -8px 30px rgba(0,0,0,0.35);
       }
       /* ---- Boutons footer : base commune ---- */
@@ -2528,14 +2539,14 @@
       /* Bouton secondaire « Photos » — pilule verre fumé neutre */
       .m3-secondary {
         flex: 0 1 auto; padding: 0 16px;
-        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
-        color: rgba(255,255,255,0.92);
-        border: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
-        box-shadow: var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+        background: var(--glass-bg-strong, rgba(255,250,242,0.88));
+        color: rgba(46,42,36,0.88);
+        border: 1px solid var(--glass-brd, rgba(70,58,45,0.14));
+        box-shadow: var(--glass-shadow, 0 10px 36px rgba(60,45,25,0.16));
       }
       .m3-secondary:hover, .m3-secondary:focus-visible {
-        border-color: rgba(255,255,255,0.24);
-        box-shadow: 0 0 14px rgba(255,255,255,0.08), var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+        border-color: rgba(70,58,45,0.28);
+        box-shadow: 0 0 14px rgba(46,42,36,0.08), var(--glass-shadow, 0 10px 36px rgba(60,45,25,0.16));
       }
       .m3-secondary svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
@@ -2545,11 +2556,11 @@
       .m3-quick {
         flex: 0 0 auto; width: 46px; height: 46px; border-radius: 999px;
         display: none; align-items: center; justify-content: center;
-        text-decoration: none; color: rgba(255,255,255,0.92);
-        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
-        border: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        text-decoration: none; color: rgba(46,42,36,0.88);
+        background: var(--glass-bg-strong, rgba(255,250,242,0.88));
+        border: 1px solid var(--glass-brd, rgba(70,58,45,0.14));
         -webkit-backdrop-filter: blur(var(--glass-blur,20px)); backdrop-filter: blur(var(--glass-blur,20px));
-        box-shadow: var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+        box-shadow: var(--glass-shadow, 0 10px 36px rgba(60,45,25,0.16));
         transition: border-color .25s ease, box-shadow .25s ease;
       }
       .m3-quick.show { display: inline-flex; }
@@ -2557,7 +2568,7 @@
       /* WhatsApp : accent vert doux */
       .m3-quick.m3-call-wa {
         border-color: rgba(37,211,102,0.35);
-        box-shadow: 0 0 12px rgba(37,211,102,0.18), var(--glass-shadow, 0 10px 40px rgba(0,0,0,0.35));
+        box-shadow: 0 0 12px rgba(37,211,102,0.18), var(--glass-shadow, 0 10px 36px rgba(60,45,25,0.16));
       }
       .m3-quick.m3-call-wa:hover { border-color: rgba(37,211,102,0.65); }
 
@@ -2581,12 +2592,12 @@
       }
       /* IMPORTANT : PAS de backdrop-filter sur le scrim actif — sinon le GLB
          apparaît flou derrière la sheet. On garde juste un léger assombrissement. */
-      .m3-scrim.show { opacity: 1; pointer-events: auto; background: rgba(0,0,0,0.28); }
+      .m3-scrim.show { opacity: 1; pointer-events: auto; background: rgba(46,42,36,0.22); }
       /* Mode "pass-through" : le scrim reste visuellement présent (léger fond
          sombre) mais laisse passer les events tactiles/souris vers le canvas
          POV en dessous — utilisé quand la fiche d'une pièce est ouverte pour
          laisser l'utilisateur tourner la caméra dans la bande haute. */
-      #m3-root .m3-scrim.show.pass-through { pointer-events: none; background: rgba(0,0,0,0.14); }
+      #m3-root .m3-scrim.show.pass-through { pointer-events: none; background: rgba(46,42,36,0.10); }
       /* Décalage visuel du canvas 3D vers le haut quand une bottom-sheet est
          ouverte : le modèle apparaît dans la bande visible au-dessus de la sheet
          sans aucun changement de taille / orientation / caméra. Le canvas est
@@ -2601,32 +2612,32 @@
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 570;
         max-height: 62vh; display: flex; flex-direction: column;
         padding: 0 16px calc(18px + var(--m3-safe-b));
-        background: var(--glass-bg-strong, rgba(14,16,20,0.90));
+        background: var(--glass-bg-strong, rgba(255,250,242,0.88));
         -webkit-backdrop-filter: blur(var(--glass-blur,20px)) saturate(150%); backdrop-filter: blur(var(--glass-blur,20px)) saturate(150%);
-        border-top: 1px solid var(--glass-brd, rgba(255,255,255,0.12));
+        border-top: 1px solid var(--glass-brd, rgba(70,58,45,0.14));
         border-radius: 22px 22px 0 0;
-        box-shadow: 0 -14px 40px rgba(0,0,0,0.4);
+        box-shadow: 0 -14px 40px rgba(60,45,25,0.20);
         transform: translateY(110%);
         transition: transform .34s cubic-bezier(0.16,1,0.3,1);
         overflow: hidden;
       }
       .m3-sheet.show { transform: translateY(0); }
-      .m3-grip { width: 42px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.32); margin: 12px auto 6px; flex: 0 0 auto; }
-      .m3-sheet h2 { color: #fff; font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 1.15rem; margin: 4px 0 2px; }
+      .m3-grip { width: 42px; height: 5px; border-radius: 3px; background: rgba(46,42,36,0.25); margin: 12px auto 6px; flex: 0 0 auto; }
+      .m3-sheet h2 { color: #2e2a24; font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 1.15rem; margin: 4px 0 2px; }
       /* Bandeau de tête sheet détail : bouton retour + titre alignés */
       .m3-sheet-head { display: flex; align-items: center; gap: 10px; margin: 4px 0 2px; }
       .m3-sheet-head h2 { margin: 0; flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .m3-back {
         flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
         padding: 7px 12px 7px 9px; border-radius: 999px;
-        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
-        color: rgba(255,255,255,0.92); font-family: inherit; font-size: 0.78rem; font-weight: 600;
+        background: rgba(46,42,36,0.05); border: 1px solid rgba(70,58,45,0.14);
+        color: rgba(46,42,36,0.85); font-family: inherit; font-size: 0.78rem; font-weight: 600;
         cursor: pointer; -webkit-tap-highlight-color: transparent;
         transition: background .18s ease, border-color .18s ease;
       }
-      .m3-back:active { background: rgba(255,255,255,0.14); }
+      .m3-back:active { background: rgba(46,42,36,0.12); }
       .m3-back svg { width: 14px; height: 14px; }
-      .m3-sheet p.m3-desc { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin: 0 0 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .m3-sheet p.m3-desc { color: rgba(46,42,36,0.68); font-size: 0.85rem; margin: 0 0 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
       .m3-sheet-scroll { overflow-y: visible; overflow-x: hidden; }
 
       /* Liste des pièces */
@@ -2634,12 +2645,12 @@
       .m3-room {
         display: flex; align-items: center; gap: 12px;
         padding: 10px 12px; border-radius: 14px;
-        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
-        color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-align: left;
+        background: rgba(46,42,36,0.05); border: 1px solid rgba(70,58,45,0.12);
+        color: #2e2a24; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-align: left;
       }
-      .m3-room:active { background: rgba(255,255,255,0.12); }
+      .m3-room:active { background: rgba(46,42,36,0.10); }
       .m3-room.active { border-color: rgba(var(--m3-accent-rgb),0.6); background: rgba(var(--m3-accent-rgb),0.14); }
-      .m3-room .m3-room-thumb { width: 54px; height: 40px; flex: 0 0 auto; border-radius: 9px; overflow: hidden; background: rgba(255,255,255,0.08); }
+      .m3-room .m3-room-thumb { width: 54px; height: 40px; flex: 0 0 auto; border-radius: 9px; overflow: hidden; background: rgba(46,42,36,0.07); }
       .m3-room .m3-room-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
       .m3-room .m3-room-lbl { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .m3-room .m3-room-check { width: 18px; height: 18px; flex: 0 0 auto; opacity: 0; }
@@ -2647,23 +2658,23 @@
       .m3-room .m3-room-check svg { width: 100%; height: 100%; stroke: var(--m3-accent); stroke-width: 2.6; fill: none; }
 
       /* Switch « meublé cette pièce » */
-      .m3-switch { display: flex; align-items: center; gap: 12px; padding: 12px 2px; color: #fff; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
+      .m3-switch { display: flex; align-items: center; gap: 12px; padding: 12px 2px; color: #2e2a24; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
       .m3-switch input { display: none; }
-      .m3-switch .m3-slider { position: relative; width: 48px; height: 28px; flex: 0 0 auto; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; transition: background .25s ease; }
-      .m3-switch .m3-slider::before { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .25s ease; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+      .m3-switch .m3-slider { position: relative; width: 48px; height: 28px; flex: 0 0 auto; background: rgba(46,42,36,0.14); border: 1px solid rgba(70,58,45,0.22); border-radius: 999px; transition: background .25s ease; }
+      .m3-switch .m3-slider::before { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .25s ease; box-shadow: 0 1px 4px rgba(60,45,25,0.3); }
       .m3-switch input:checked + .m3-slider { background: var(--m3-accent); border-color: var(--m3-accent); }
       .m3-switch input:checked + .m3-slider::before { transform: translateX(20px); }
       .m3-switch input:disabled + .m3-slider { opacity: 0.45; }
 
       /* Carrousel photos pièce */
-      .m3-carousel { position: relative; overflow: hidden; border-radius: 14px; background: rgba(255,255,255,0.05); margin: 8px 0 4px; height: 22vh; max-height: 200px; }
+      .m3-carousel { position: relative; overflow: hidden; border-radius: 14px; background: rgba(46,42,36,0.045); margin: 8px 0 4px; height: 22vh; max-height: 200px; }
       .m3-carousel-track { display: flex; height: 100%; transition: transform .3s cubic-bezier(0.16,1,0.3,1); }
       .m3-slide { flex: 0 0 100%; min-width: 100%; height: 100%; }
       .m3-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
       .m3-carousel-dots { display: flex; gap: 6px; justify-content: center; padding: 8px 0 2px; }
-      .m3-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); }
+      .m3-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(46,42,36,0.25); }
       .m3-dot.active { background: var(--m3-accent); }
-      .m3-carousel-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(255,255,255,0.5); font-size: 0.85rem; }
+      .m3-carousel-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(46,42,36,0.50); font-size: 0.85rem; }
 
       /* =====================  MESURE ASSISTÉE  ===================== */
       #m3-measure-ov {
@@ -2681,7 +2692,7 @@
       .m3-cross-ring { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 22px; height: 22px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 6px rgba(0,0,0,0.6); pointer-events: none; }
       .m3-measure-hint {
         position: fixed; top: calc(64px + var(--m3-safe-t)); left: 50%; transform: translateX(-50%);
-        background: rgba(14,16,22,0.85); color: #fff; font-size: 0.82rem; font-weight: 500;
+        background: rgba(255,250,242,0.85); color: #2e2a24; font-size: 0.82rem; font-weight: 500;
         padding: 8px 16px; border-radius: 999px; white-space: nowrap;
         -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
         border: 1px solid var(--m3-brd);
@@ -2692,13 +2703,13 @@
       }
       .m3-measure-actions button { pointer-events: auto; min-height: 48px; padding: 0 20px; border: none; border-radius: 14px; font-family: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
       #m3-measure-validate { background: var(--m3-accent); color: #fff; box-shadow: 0 6px 18px rgba(var(--m3-accent-rgb),0.45); }
-      #m3-measure-cancel { background: rgba(255,255,255,0.14); color: #fff; border: 1px solid var(--m3-brd) !important; }
+      #m3-measure-cancel { background: rgba(255,250,242,0.55); color: #2e2a24; border: 1px solid var(--m3-brd) !important; }
 
       /* Toast discret (retours d'action) */
       #m3-toast {
         position: fixed; left: 50%; top: calc(var(--hdr-top) + 60px); bottom: auto;
         transform: translateX(-50%) translateY(-8px);
-        background: rgba(14,16,22,0.9); color: #fff; font-size: 0.84rem; font-weight: 600;
+        background: rgba(255,250,242,0.90); color: #2e2a24; font-size: 0.84rem; font-weight: 600;
         padding: 9px 16px; border-radius: 999px; border: 1px solid var(--m3-brd);
         -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
         opacity: 0; pointer-events: none; z-index: 600; transition: opacity .25s ease, transform .25s ease;
@@ -3133,8 +3144,8 @@ async function init() {
     // Mode éditeur : gris neutre, aligné sur le bord du dégradé de la skybox.
     if (new URLSearchParams(location.search).get('edit') === '1')
       return new BABYLON.Color4(43/255, 43/255, 43/255, 1);
-    // V2 : clearColor neutre sombre (aligne sur le bord du degrade skybox)
-    return new BABYLON.Color4(10/255, 11/255, 14/255, 1);
+    // V2 : clearColor beige clair (aligne sur le bord du degrade skybox)
+    return new BABYLON.Color4(237/255, 229/255, 211/255, 1);
   })();
 
   // ========== RÉCUPÉRATION APRÈS PERTE DE CONTEXTE WebGL ==========
@@ -3258,10 +3269,14 @@ async function init() {
   // Laforêt → identique à l'origine ; ERA → bordeaux ; Sixième → vert d'eau sombre.
   const _bn = (window.__BRAND__ && window.__BRAND__.navyRgb) ? window.__BRAND__.navyRgb.split(',').map(Number) : [11,27,63];
   const _desat = (c, amt) => { const l = 0.3*c[0] + 0.59*c[1] + 0.11*c[2]; return [Math.round(c[0]+(l-c[0])*amt), Math.round(c[1]+(l-c[1])*amt), Math.round(c[2]+(l-c[2])*amt)]; };
-  // V2 : degrade de fond NEUTRE (bleu-nuit tres sombre), independant de la teinte
-  // de marque -> supprime le halo rouge/bordeaux. Doux centre -> bords.
-  let _ctr = [22, 24, 30];   // centre legerement plus clair (#16181e)
-  let _edg = [10, 11, 14];   // bords tres sombres (#0a0b0e)
+  // V3 : degrade de fond CREME/BEIGE (theme clair premium), independant de la
+  // teinte de marque -> supprime le halo rouge/bordeaux. Doux centre -> bords.
+  // NB : ce degrade sert AUSSI de source pour la reflection probe de repli
+  // (metaux/PBR) -> ne pas le pousser vers du blanc pur, sous peine de cramer
+  // toutes les surfaces reflechissantes du modele (cf. scene.environmentIntensity
+  // plus bas, volontairement abaisse pour compenser).
+  let _ctr = [222, 210, 186]; // centre plus clair (#ded2ba)
+  let _edg = [173, 160, 138]; // bords plus sombres (#ada08a)
 
   /* MODE ÉDITEUR UNIQUEMENT : on neutralise la teinte de marque pour un fond
      gris façon viewport Blender — même mécanique de dégradé radial que pour les
@@ -3341,8 +3356,12 @@ async function init() {
       }
       envProbe.renderList.push(skybox);
       scene.environmentTexture = envProbe.cubeTexture;
+      // Skybox V3 nettement plus claire (theme cream) qu'a l'origine (~10x plus
+      // lumineuse) -> intensite reduite d'autant pour eviter que les materiaux
+      // metallic/PBR sans texture (portes, robinetterie...) ne soient cramés
+      // en blanc pur (ils tirent TOUTE leur couleur de cet environment map).
       if (scene.environmentIntensity == null || scene.environmentIntensity === 1) {
-        scene.environmentIntensity = 1.0;
+        scene.environmentIntensity = 0.12;
       }
       window.__envFallbackProbe = envProbe;
       console.log('✅ Réflexion de repli installée (métaux réfléchissent la skybox)');
@@ -3404,27 +3423,76 @@ async function init() {
   keyLight.range = sl.range;
   
   // ========== SOLEIL (lumière directionnelle chaude) ==========
+  // Représente le soleil : lumière directe chaude qui donne du modelé et des
+  // ombres réalistes, en complément de l'éclairage doux hémisphérique (froid).
+  // Ce contraste chaud/froid est la base d'un rendu réaliste.
   const SUN = {
     enabled:   true,
-    color:     [1.0, 0.94, 0.82],
-    shadows:   false,   // Shadow map désactivée — remplacée par un blob glow shader sous le modèle
-    darkness:  0.45,
+    color:     [1.0, 0.94, 0.82], // teinte chaude par défaut (si non défini dans le JSON)
+    shadows:   true,              // ⬅️ passer à false si les ombres gênent / artefacts
+    darkness:  0.45,              // 0 = ombre noire, 1 = pas d'ombre. ~0.45 = douce/réaliste
   };
 
   const dl = lightConfig.directionalLight;
   const shadowLight = new BABYLON.DirectionalLight('shadowLight',
     new BABYLON.Vector3(...dl.direction), scene);
   shadowLight.intensity = dl.intensity;
-  shadowLight.diffuse   = new BABYLON.Color3(...(dl.color || SUN.color));
-  shadowLight.specular  = new BABYLON.Color3(0.4, 0.38, 0.32);
-  shadowLight.position  = new BABYLON.Vector3(...dl.direction).scale(-40);
-  shadowLight.autoUpdateExtends    = true;
-  shadowLight.autoCalcShadowZBounds= true;
+  shadowLight.diffuse   = new BABYLON.Color3(...(dl.color || SUN.color)); // teinte chaude du soleil
+  shadowLight.specular  = new BABYLON.Color3(0.4, 0.38, 0.32);            // léger reflet solaire
+  // Positionner le soleil EN HAUTEUR, du côté d'où il vient : sans ça, la caméra
+  // d'ombre (frustum orthographique de la directionnelle) reste à l'origine, à
+  // l'intérieur du bâtiment, et ne projette rien de cohérent.
+  shadowLight.position = new BABYLON.Vector3(...dl.direction).scale(-40);
+  shadowLight.autoUpdateExtends = true;     // recalcule le frustum sur les meshes
+  shadowLight.autoCalcShadowZBounds = true; // ajuste les bornes de profondeur
 
-  // Shadow generator désactivé — les shadow maps basse résolution
-  // produisent des artefacts crénelés inacceptables. On utilise à la place
-  // un blob glow disc (mesh plan + shader radial) positionné sous le modèle.
-  window.shadowGenerator = null;
+  // ========== OMBRES SOLAIRES DOUCES & RÉALISTES ==========
+  // Avant : aucun mesh n'était enregistré comme projecteur → pas d'ombre du tout,
+  // et darkness=1.0 = ombre invisible. On corrige : ombres douces, darkness modérée,
+  // et auto-enregistrement de chaque mesh chargé (murs, pièces, meubles, plafond)
+  // comme projecteur ET receveur d'ombre, en excluant skybox / marqueurs / axes.
+  const sh = lightConfig.shadows;
+  // Résolution/flou PLAFONNÉS pour limiter la charge GPU (évite les pertes de
+  // contexte WebGL lors des transitions). 1024 reste net pour une visite immo.
+  const shadowRes = Math.min(1024, sh.mapResolution || 1024);
+  const shadowGenerator = new BABYLON.ShadowGenerator(shadowRes, shadowLight);
+  shadowGenerator.useBlurExponentialShadowMap = true;
+  shadowGenerator.blurKernel = Math.min(16, sh.blurKernel || 16);  // flou plus léger
+  shadowGenerator.bias = 0.00005;   // évite l'acné d'ombre tout en gardant le contact
+  shadowGenerator.normalBias = 0.02;
+  shadowGenerator.useKernelBlur = true;
+  shadowGenerator.blurScale = 2;
+  shadowGenerator.darkness = SUN.darkness; // ombres douces (pas noir total)
+  shadowGenerator.transparencyShadow = true;
+  window.shadowGenerator = shadowGenerator;
+
+  if (SUN.shadows) {
+    // Meshes à NE PAS inclure dans les ombres (ciel, marqueurs POV, axes debug,
+    // sol infini et son ombre de contact zénithale — géré à part dans frameModel)
+    const shadowExcluded = (m) => {
+      const n = m.name || '';
+      return n === 'skybox' || n.indexOf('poi-plane') === 0 || n.indexOf('poi-group') === 0
+          || n.indexOf('axis') === 0 || n === '__infiniteFloor' || n === '__floorGlow'
+          || !m.getTotalVertices || m.getTotalVertices() === 0;
+    };
+    window.__shadowExcluded = shadowExcluded; // réutilisé par le générateur zénithal (frameModel)
+    const registerShadowMesh = (m) => {
+      if (shadowExcluded(m)) return;
+      try {
+        shadowGenerator.addShadowCaster(m, true);
+        m.receiveShadows = true;
+      } catch (e) { /* mesh non compatible — ignoré */ }
+      // Ombre de contact zénithale (V4, cf. frameModel) : mêmes meshes, second
+      // générateur créé plus tard — on l'alimente ici pour les chargements
+      // async (pièces meublées) survenant après sa création.
+      if (window.topDownShadowGenerator) {
+        try { window.topDownShadowGenerator.addShadowCaster(m, true); } catch (e) {}
+      }
+    };
+    // 1) meshes déjà présents, 2) tout mesh importé ensuite (chargements async)
+    scene.meshes.slice().forEach(registerShadowMesh);
+    scene.onNewMeshAddedObservable.add(registerShadowMesh);
+  }
   
   const al = lightConfig.ambientLight;
   const ambientLight = new BABYLON.HemisphericLight('ambient', new BABYLON.Vector3(0, 1, 0), scene);
@@ -3547,13 +3615,13 @@ async function init() {
 
   // --- AO (SSAO2) : créé détaché, attaché seulement quand activé --------------
   window.ssao2Pipeline   = null;
-  window.__AO_STATE__    = { enabled:true, strength:1.0, radius:1.2, base:0.2 };
-  window.__AO_STRENGTH__ = 1.0;
+  window.__AO_STATE__    = { enabled:true, strength:1.35, radius:1.6, base:0.2 };
+  window.__AO_STRENGTH__ = 1.35;
   if (BABYLON.SSAO2RenderingPipeline && engine.webGLVersion > 1) {
     try {
       var ssao2 = new BABYLON.SSAO2RenderingPipeline('ssao2', scene, { ssaoRatio:0.5, blurRatio:0.5 }, []);
-      ssao2.radius        = 1.2;
-      ssao2.totalStrength = 1.0;
+      ssao2.radius        = 1.6;
+      ssao2.totalStrength = 1.35;
       ssao2.base          = 0.2;
       ssao2.samples       = 16;
       ssao2.maxZ          = 60;
@@ -4857,103 +4925,165 @@ function frameModel(root) {
   // vrai centre du modèle.
   modelBounds = {min, max, center: center.clone(), radius};
 
-  // ===== BLOB GLOW DISC — ancrage lumineux sous le modèle =====
-  // Remplace le shadow generator crénelé par un plan plan elliptique avec
-  // un shader radial pur : lueur douce et diffuse, proportionnelle à l'emprise
-  // du modèle. Aucune shadow map = aucun crénelage possible.
-  // Deux couches superposées :
-  //   1. __blobGlow  — lueur large et très douce (grand rayon, faible opacité)
-  //   2. __blobCore  — contact zone plus concentrée sous le bâtiment
+  // ===== V2 : SOL MAT INFINI — ancre les ombres portees (pt.8) =====
+  // Positionne au niveau du plancher du modele (min.y), dimensionne large,
+  // mat (0 speculaire), recoit les ombres sans en projeter. Cree une seule
+  // fois. Neutralise en mode editeur (?edit=1) pour laisser le placement POV.
   if (typeof EDIT_MODE === 'undefined' || !EDIT_MODE) {
     try {
       var __span = Math.max(max.x - min.x, max.z - min.z) || 20;
+      var __floorSize = Math.max(80, __span * 16);
       var __cx = (min.x + max.x) / 2, __cz = (min.z + max.z) / 2;
-      var __cy = min.y - 0.01; // légèrement sous le plancher
+      var __floor = scene.getMeshByName('__infiniteFloor');
+      if (!__floor) {
+        __floor = BABYLON.MeshBuilder.CreateGround('__infiniteFloor', {
+          width: __floorSize, height: __floorSize, subdivisions: 1
+        }, scene);
 
-      // Shader commun aux deux disques
-      if (!BABYLON.Effect.ShadersStore['blobGlowVertexShader']) {
-        BABYLON.Effect.ShadersStore['blobGlowVertexShader'] = [
+        // V2 : ShaderMaterial avec fondu radial aux bords.
+        // Le sol est opaque au centre (sous le modele) et devient
+        // transparent progressivement vers les bords, fusionnant
+        // avec le fond de scene (skybox + clearColor).
+        BABYLON.Effect.ShadersStore['infiniteFloorVertexShader'] = [
           'precision highp float;',
           'attribute vec3 position;',
+          'attribute vec3 normal;',
           'uniform mat4 worldViewProjection;',
           'uniform mat4 world;',
-          'varying vec2 vUV;',
+          'varying vec3 vWorldPos;',
+          'varying vec3 vNormal;',
           'void main(){',
-          '  vUV = position.xz;', // -1..1 dans l'espace local du disc
+          '  vWorldPos = (world * vec4(position,1.0)).xyz;',
+          '  vNormal = normalize((world * vec4(normal,0.0)).xyz);',
           '  gl_Position = worldViewProjection * vec4(position,1.0);',
           '}'
         ].join('\n');
-        BABYLON.Effect.ShadersStore['blobGlowFragmentShader'] = [
+        BABYLON.Effect.ShadersStore['infiniteFloorFragmentShader'] = [
           'precision highp float;',
-          'uniform vec3  uColor;',
-          'uniform float uOpacity;',
-          'uniform float uPower;',   // concentration du gradient (2 = doux, 4 = concentré)
-          'varying vec2 vUV;',
+          'uniform vec3 uCenter;',
+          'uniform float uFadeStart;',
+          'uniform float uFadeEnd;',
+          'uniform vec3 uColor;',
+          'uniform vec3 uCamPos;',
+          'varying vec3 vWorldPos;',
+          'varying vec3 vNormal;',
           'void main(){',
-          '  float d = length(vUV);',           // 0 au centre, ~1 au bord
-          '  if (d >= 1.0) discard;',
-          '  float a = uOpacity * pow(1.0 - d, uPower);',
-          '  gl_FragColor = vec4(uColor, a);',
+          '  vec3 viewDir = normalize(uCamPos - vWorldPos);',
+          '  float facing = dot(vNormal, viewDir);',
+          '  // Fondu rasant : opaque vu d en haut, fondu doux quand la camera',
+          '  // frole le sol, transparent complet en dessous. Pas de discard brutal.',
+          '  float angleFade = smoothstep(-0.05, 0.18, facing);',
+          '  float d = length(vWorldPos.xz - uCenter.xz);',
+          '  float radialFade = 1.0 - smoothstep(uFadeStart, uFadeEnd, d);',
+          '  float a = radialFade * angleFade;',
+          '  if (a < 0.002) discard;',
+          '  float ndl = max(dot(vNormal, normalize(vec3(0.4,1.0,0.3))), 0.0);',
+          '  vec3 col = uColor * (0.55 + 0.45 * ndl);',
+          '  gl_FragColor = vec4(col, a);',
           '}'
         ].join('\n');
-      }
 
-      function makeBlobDisc(name, radius, rx, rz, color3, opacity, power, yOffset) {
-        var existing = scene.getMeshByName(name);
-        if (existing) { existing.dispose(); }
-        // Disc avec subdivisions élevées pour bords lisses
-        var disc = BABYLON.MeshBuilder.CreateDisc(name, { radius: 1, tessellation: 96 }, scene);
-        disc.rotation.x = Math.PI / 2; // horizontal
-        disc.scaling.x = rx;
-        disc.scaling.z = rz;
-        disc.position.set(__cx, __cy + yOffset, __cz);
-        disc.isPickable = false;
-        disc.checkCollisions = false;
-
-        var mat = new BABYLON.ShaderMaterial(name + 'Mat', scene, {
-          vertex: 'blobGlow', fragment: 'blobGlow'
+        var __fm = new BABYLON.ShaderMaterial('__infiniteFloorMat', scene, {
+          vertex: 'infiniteFloor',
+          fragment: 'infiniteFloor'
         }, {
-          attributes: ['position'],
-          uniforms: ['worldViewProjection', 'world', 'uColor', 'uOpacity', 'uPower'],
+          attributes: ['position', 'normal'],
+          uniforms: ['worldViewProjection', 'world', 'uCenter', 'uFadeStart', 'uFadeEnd', 'uColor', 'uCamPos'],
           needAlphaBlending: true
         });
-        mat.setColor3('uColor', color3);
-        mat.setFloat('uOpacity', opacity);
-        mat.setFloat('uPower', power);
-        mat.backFaceCulling = false;
-        mat.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
-        disc.material = mat;
-        return disc;
+        __fm.backFaceCulling = false;
+        // Fondu : opaque dans la zone du modele, transparent aux bords
+        var __fadeStart = __span * 1.4;   // debut du fondu (plus tot)
+        var __fadeEnd   = __floorSize * 0.42; // fin du fondu (plus progressif)
+        __fm.setVector3('uCenter', new BABYLON.Vector3(__cx, 0, __cz));
+        __fm.setFloat('uFadeStart', __fadeStart);
+        __fm.setFloat('uFadeEnd', __fadeEnd);
+        __fm.setColor3('uColor', new BABYLON.Color3(0.86, 0.80, 0.70));
+
+        __floor.material = __fm;
+        __floor.receiveShadows = true;
+        __floor.isPickable = false;
+        __floor.checkCollisions = false;
+        if (window.shadowGenerator) { try { window.shadowGenerator.removeShadowCaster(__floor); } catch(e){} }
       }
+      __floor.position.x = __cx;
+      __floor.position.z = __cz;
+      __floor.position.y = min.y + 0.002; // pile sous le plancher, sans z-fighting
 
-      // Teinte du glow : très légèrement plus sombre que le fond de scène
-      var glowColor = new BABYLON.Color3(0.06, 0.065, 0.072);
+      // ===== V4 : OMBRE DE CONTACT ZENITHALE — ancre le modele (vraie AO) =====
+      // Une lumiere directionnelle verticale (vue du dessus) + un ShadowGenerator
+      // tres flou, projetes sur un mesh dedie en ShadowOnlyMaterial : la zone
+      // assombrie epouse la VRAIE silhouette du batiment (sa geometrie reelle),
+      // contrairement a un degrade radial generique (cercle/anneau) qui ne colle
+      // jamais a une empreinte au sol non circulaire (rendu "immonde" sur un
+      // plan en L). Flou important = bords doux, lecture "glow diffus" plutot
+      // qu'ombre portee dure.
+      var __topDownLight = scene.getLightByName('__topDownLight');
+      if (!__topDownLight) {
+        __topDownLight = new BABYLON.DirectionalLight('__topDownLight', new BABYLON.Vector3(0.001, -1, 0.001), scene);
+        __topDownLight.intensity = 0; // sert UNIQUEMENT a projeter une ombre, jamais a eclairer
+        __topDownLight.diffuse = new BABYLON.Color3(0, 0, 0);
+        __topDownLight.specular = new BABYLON.Color3(0, 0, 0);
+        __topDownLight.position = new BABYLON.Vector3(__cx, max.y + __span, __cz);
+        __topDownLight.autoUpdateExtends = true;
+        __topDownLight.autoCalcShadowZBounds = true;
 
-      // Couche 1 : large halo diffus (poids visuel, ancrage)
-      makeBlobDisc('__blobGlow',
-        1,
-        __span * 1.6,   // rayon X
-        __span * 1.6,   // rayon Z
-        glowColor,
-        0.55,           // opacité max au centre
-        1.4,            // gradient très doux
-        0
-      );
+        var __tdGen = new BABYLON.ShadowGenerator(512, __topDownLight);
+        __tdGen.useBlurExponentialShadowMap = true;
+        __tdGen.blurKernel = 128;  // flou tres genereux -> vrai glow diffus, pas une ligne fine
+        __tdGen.blurScale = 4;
+        __tdGen.bias = 0.0015;
+        __tdGen.normalBias = 0.02;
+        __tdGen.darkness = 0.55;   // jamais noir total -> lecture "ambient occlusion"
+        __tdGen.transparencyShadow = true;
+        window.topDownShadowGenerator = __tdGen;
 
-      // Couche 2 : contact zone concentrée sous le bâtiment (plus opaque, plus petit)
-      makeBlobDisc('__blobCore',
-        1,
-        __span * 0.65,
-        __span * 0.65,
-        glowColor,
-        0.40,
-        2.5,            // gradient plus concentré
-        0.001
-      );
+        // Rattrapage : les meshes du modele principal, deja charges AVANT la
+        // creation de ce generateur, n'ont ete enregistres que pour le soleil —
+        // on les ajoute ici comme projecteurs pour la lumiere zenithale aussi.
+        var __excludeFn = window.__shadowExcluded || function(){ return false; };
+        scene.meshes.slice().forEach(function(m){
+          if (__excludeFn(m)) return;
+          try { __tdGen.addShadowCaster(m, true); } catch (e) {}
+        });
+      }
+      __topDownLight.position.x = __cx;
+      __topDownLight.position.z = __cz;
+      __topDownLight.position.y = max.y + __span;
 
-    } catch(e) { /* silencieux */ }
+      var __floorGlow = scene.getMeshByName('__floorGlow');
+      if (!__floorGlow) {
+        var __glowRadius = Math.min(__floorSize * 0.5, Math.max(__span * 1.4, 6));
+        __floorGlow = BABYLON.MeshBuilder.CreateDisc('__floorGlow', {
+          radius: __glowRadius, tessellation: 64
+        }, scene);
+        __floorGlow.rotation.x = Math.PI / 2; // a plat dans le plan XZ, comme le sol
+
+        var __glowMat = new BABYLON.ShadowOnlyMaterial('__floorGlowMat', scene);
+        __glowMat.activeLight = __topDownLight;
+        __glowMat.alpha = 0.7; // force globale du halo
+
+        __floorGlow.material = __glowMat;
+        __floorGlow.receiveShadows = true;
+        __floorGlow.isPickable = false;
+        __floorGlow.checkCollisions = false;
+        if (window.shadowGenerator) { try { window.shadowGenerator.removeShadowCaster(__floorGlow); } catch(e){} }
+        if (window.topDownShadowGenerator) { try { window.topDownShadowGenerator.removeShadowCaster(__floorGlow); } catch(e){} }
+      }
+      __floorGlow.position.x = __cx;
+      __floorGlow.position.z = __cz;
+      __floorGlow.position.y = min.y + 0.004; // au-dessus du sol infini (min.y + 0.002), sans z-fighting
+
+      // V2 : mettre a jour la position camera dans le shader a chaque frame
+      // pour que le sol disparaisse vu d'en dessous.
+      // Référence cachée une fois — évite getMeshByName() à 60fps.
+      var _floorRef = scene.getMeshByName('__infiniteFloor');
+      scene.onBeforeRenderObservable.add(function(){
+        if (!_floorRef || !_floorRef.material || !camera) return;
+        try { _floorRef.material.setVector3('uCamPos', camera.position); } catch(_){}
+      });
+    } catch (e) { console.warn('Sol infini non cree:', e); }
   }
-
 
   const fovV = camera.fov;
   const aspect = engine.getAspectRatio(camera);
@@ -6379,7 +6509,7 @@ function renderRoomSwitchesHTML() {
     <details class="collapsible room-section" open>
       <summary>
         <div class="room-section-head" style="flex:1;margin-bottom:0;padding-bottom:0;border-bottom:none;">
-          <h4 class="room-section-title" style="color:#fff;">Éléments par pièce</h4>
+          <h4 class="room-section-title" style="color:var(--brand-navy);">Éléments par pièce</h4>
           <div class="room-allnone">
             <button onclick="event.preventDefault();event.stopPropagation();setAllRooms(true)">Tout</button>
             <button onclick="event.preventDefault();event.stopPropagation();setAllRooms(false)">Aucun</button>
@@ -6959,32 +7089,31 @@ function createPoiMarkers() {
     const label = (poi.label || poi.id || '').toString();
     const ttW = Math.max(46, label.length * 6.6 + 18);
     const ttX = -ttW / 2;
-    // Path du pin AVEC son trou central : deux subpaths + fill-rule="evenodd"
-    // → le cercle central devient un vrai vide (on voit la scène derrière).
-    // Bulbe centré sur (0,0), pointe en (0,+22), trou r=4 à (0,-3).
-    const PIN_D = 'M0,-14 C8,-14 14,-8 14,0 C14,7 7,11 2,17 L0,22 L-2,17 C-7,11 -14,7 -14,0 C-14,-8 -8,-14 0,-14 Z ' +
-                  'M4,-3 A4,4 0 1,1 -4,-3 A4,4 0 1,1 4,-3 Z';
+    // Anneau centré sur (0,0) : rayon médian 7, épaisseur de trait 5
+    // → bord extérieur 9.5, trou intérieur 4.5 (grand, bien centré).
     g.innerHTML =
       // Zone de clic (hors bob/hover pour rester stable)
-      '<rect class="pm-hit" x="-17" y="-19" width="34" height="45" fill="transparent"/>' +
-      // Pin (soumis au hover scale + bob)
+      '<rect class="pm-hit" x="-14" y="-14" width="28" height="28" fill="transparent"/>' +
+      // Anneau (soumis au hover scale + bob)
       '<g class="pm-hover"><g class="pm-bob">' +
-        // Ombre douce au sol
-        '<ellipse class="pm-shadow" cx="0" cy="24" rx="7" ry="1.8"/>' +
-        // Couche 1 : teinte agence subtile en fond
-        '<path class="pm-tint"  d="' + PIN_D + '" fill-rule="evenodd"/>' +
-        // Couche 2 : verre dépoli blanc (frosted glass)
-        '<path class="pm-frost" d="' + PIN_D + '" fill-rule="evenodd"/>' +
-        // Petit reflet doux (glint) en haut à gauche
-        '<ellipse class="pm-glint" cx="-5" cy="-9" rx="2.6" ry="3.4"/>' +
-        // Arc lumineux discret sur le bord supérieur du bulbe
-        '<path class="pm-rim" d="M-10,-9.5 C-12,-6 -11.5,-2.5 -9.5,0"/>' +
+        // Verre sombre opaque (base)
+        '<circle class="pm-ring-base" cx="0" cy="0" r="7"/>' +
+        // Teinte agence discrète, mélangée sur le même anneau
+        '<circle class="pm-ring-tint" cx="0" cy="0" r="7"/>' +
+        // Liseré fin du bord extérieur
+        '<circle class="pm-edge-out" cx="0" cy="0" r="9.5"/>' +
+        // Liseré fin du bord du trou
+        '<circle class="pm-edge-in" cx="0" cy="0" r="4.5"/>' +
+        // Trait blanc qui tourne autour de l\'anneau (visible au hover)
+        '<circle class="pm-spinner" cx="0" cy="0" r="8.2"/>' +
+        // Reflet doux en haut à gauche de l\'anneau
+        '<path class="pm-glint" d="M-6.58,-2.39 A7,7 0 0,1 -2.39,-6.58"/>' +
       '</g></g>' +
       // Infobulle — apparaît au hover, largeur calibrée sur label
       (label ? (
         '<g class="pm-tt">' +
-          '<rect class="pm-tt-bg" x="' + ttX + '" y="-42" width="' + ttW + '" height="20" rx="10"/>' +
-          '<text class="pm-tt-txt" x="0" y="-32" text-anchor="middle">' +
+          '<rect class="pm-tt-bg" x="' + ttX + '" y="-31" width="' + ttW + '" height="20" rx="10"/>' +
+          '<text class="pm-tt-txt" x="0" y="-21" text-anchor="middle">' +
             label.replace(/[<>&]/g, function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;'}[c];}) +
           '</text>' +
         '</g>'
@@ -8992,7 +9121,7 @@ init();
   <header id="m3-header">
     <div id="m3-logo"></div>
     <div id="m3-title">Visite 3D</div>
-    <button id="m3-info-btn" onclick="toggleBienInfo()" title="Informations sur le bien" aria-label="Informations sur le bien" style="background:none;border:none;color:white;padding:4px;cursor:pointer;pointer-events:auto;">
+    <button id="m3-info-btn" onclick="toggleBienInfo()" title="Informations sur le bien" aria-label="Informations sur le bien" style="background:none;border:none;color:#2e2a24;padding:4px;cursor:pointer;pointer-events:auto;filter:drop-shadow(0 1px 4px rgba(255,255,255,0.6));">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
     </button>
     <div id="m3-counter" title="Pièces explorées">
@@ -9133,7 +9262,7 @@ init();
       }
     } catch(e){}
     var nm = (window.__BRAND__ && window.__BRAND__.name) || 'Visite 3D';
-    el.innerHTML = '<span style="font-weight:800;color:#fff;font-size:.9rem;white-space:nowrap;">'+esc(nm)+'</span>';
+    el.innerHTML = '<span style="font-weight:800;color:#2e2a24;font-size:.9rem;white-space:nowrap;">'+esc(nm)+'</span>';
   }
   function syncTitle(){
     var src=$('header-title'); var dst=$('m3-title');
@@ -9244,7 +9373,7 @@ init();
     var cont=$('m3-rooms'); if(!cont) return;
     var list=pois(); var cur=''; try{ cur=currentPoiId; }catch(e){}
     cont.innerHTML='';
-    if(!list.length){ cont.innerHTML='<div style="color:rgba(255,255,255,.6);font-size:.85rem;padding:8px 2px;">Aucune pièce déclarée.</div>'; return; }
+    if(!list.length){ cont.innerHTML='<div style="color:rgba(46,42,36,.55);font-size:.85rem;padding:8px 2px;">Aucune pièce déclarée.</div>'; return; }
     list.forEach(function(poi){
       var visited=false; try{ visited = window.__visited && window.__visited.has(poi.id); }catch(e){}
       var active = poi.id===cur;
