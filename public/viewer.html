@@ -5060,10 +5060,11 @@ function frameModel(root) {
         return d;
       }
 
-      // Teinte légèrement plus sombre que le fond crème/beige
-      var __gc = new BABYLON.Color3(0.52, 0.47, 0.38);
-      __makeGlowDisc('__floorGlow', __span * 1.8, __gc, 0.55, 1.3, 0.002);
-      __makeGlowDisc('__floorCore', __span * 0.8, __gc, 0.40, 3.0, 0.004);
+      // Crème clair — légèrement plus clair que le sol pour centrer le regard
+      // Halo très large et très doux (AO diffuse), pas de contact dur
+      var __gc = new BABYLON.Color3(0.78, 0.72, 0.62);
+      __makeGlowDisc('__floorGlow', __span * 3.2, __gc, 0.48, 0.9, 0.002);
+      __makeGlowDisc('__floorCore', __span * 1.6, __gc, 0.32, 1.8, 0.004);
 
       // V2 : mettre a jour la position camera dans le shader a chaque frame
       // pour que le sol disparaisse vu d'en dessous.
